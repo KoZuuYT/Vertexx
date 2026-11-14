@@ -24,3 +24,37 @@ waystones:
     type: ITEM
     item: AMETHYST_SHARD
     amount: 1
+
+graves:
+  enabled: true
+  # Por quantos minutos só o dono (ou alguém com uma Chave de Túmulo) pode abrir o túmulo.
+  protection-minutes: 30
+  # Porcentagem do XP total guardada no túmulo.
+  xp-percent: 100
+
+combat:
+  # false = membros do mesmo reino e de reinos aliados não se ferem.
+  friendly-fire: false
+  # Segundos "em combate" após um golpe (bloqueia viagens por Waystone).
+  combat-tag-seconds: 10
+
+# Honra vai de -100 a 100.
+#   Desonrado (-30 ou menos): paga o dobro nos Waystones e pode ser caçado sem punição.
+#   Honrado (30+) e Glorioso (70+): Gloriosos viajam de graça.
+honor:
+  activity:
+    interval-minutes: 10
+    amount: 1
+  unjustified-attack: -1
+  unjustified-kill: -10
+  defense-kill: 3
+  dishonored-kill: 5
+  betrayal-kill: -25
+  alliance-break: -20
+
+# Pacote de recursos OPCIONAL. Deixe a url vazia para desativar.
+# O jogador é convidado a carregar e pode recusar sem perder nada.
+resource-pack:
+  url: ""
+  # SHA-1 do arquivo .zip (40 caracteres), recomendado para o cliente usar o cache.
+  sha1: ""

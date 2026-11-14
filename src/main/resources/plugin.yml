@@ -11,6 +11,17 @@ commands:
     description: Informações e gestão do seu reino.
     usage: /reino [membros|aliar|romper|admin]
     aliases: [reinos, kingdom]
+  tumulo:
+    description: Lista os seus túmulos pendentes.
+    usage: /tumulo [chave <jogador> [quantidade]]
+    aliases: [tumulos, grave]
+  honra:
+    description: Mostra a honra de um jogador.
+    usage: /honra [jogador]
+    aliases: [honor]
+  pacote:
+    description: Aceita ou recusa o pacote visual opcional.
+    usage: /pacote [aceitar|recusar]
 
 permissions:
   vertexx.admin:
