@@ -1,0 +1,18 @@
+name: Vertexx
+version: '${version}'
+main: dev.vertexx.PluginMain
+api-version: '26.3'
+description: Plugin customizado do SMP semi-vanilla Vertexx (reinos, waystones, túmulos e honra).
+author: KoZuuYT
+website: https://github.com/KoZuuYT/Vertexx
+
+commands:
+  reino:
+    description: Informações e gestão do seu reino.
+    usage: /reino [membros|aliar|romper|admin]
+    aliases: [reinos, kingdom]
+
+permissions:
+  vertexx.admin:
+    description: Acesso administrativo ao Vertexx.
+    default: op

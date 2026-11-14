@@ -1,0 +1,12 @@
+# ─────────────────────────────────────────────────────────────
+#  Vertexx — configuração principal
+#  Novas opções são adicionadas automaticamente a cada atualização.
+# ─────────────────────────────────────────────────────────────
+
+chat:
+  # Mostra o símbolo do reino antes do nome no chat e no TAB.
+  kingdom-tag: true
+
+onboarding:
+  # Ticks de espera após o login antes de abrir o menu de escolha de reino.
+  open-delay-ticks: 40
