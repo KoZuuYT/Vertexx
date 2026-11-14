@@ -10,3 +10,17 @@ chat:
 onboarding:
   # Ticks de espera após o login antes de abrir o menu de escolha de reino.
   open-delay-ticks: 40
+
+waystones:
+  # Um Waystone é criado ao colocar um Lodestone RENOMEADO na bigorna.
+  # Limite por jogador (-1 = sem limite).
+  max-per-player: 3
+  name-max-length: 32
+  # Tempo de concentração antes do teletransporte (20 ticks = 1 segundo).
+  warmup-ticks: 30
+  ambient-particles: true
+  cost:
+    # ITEM | XP_LEVELS | NONE
+    type: ITEM
+    item: AMETHYST_SHARD
+    amount: 1

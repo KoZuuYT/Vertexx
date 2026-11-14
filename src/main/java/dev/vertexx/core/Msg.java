@@ -36,6 +36,11 @@ public final class Msg {
         to.sendActionBar(mm(text, resolvers));
     }
 
+    /** Escapa tags MiniMessage de textos vindos de jogadores. */
+    public static String esc(String text) {
+        return MM.escapeTags(text);
+    }
+
     public static String plain(Component component) {
         return PlainTextComponentSerializer.plainText().serialize(component);
     }
