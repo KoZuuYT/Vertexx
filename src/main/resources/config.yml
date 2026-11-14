@@ -58,3 +58,13 @@ resource-pack:
   url: ""
   # SHA-1 do arquivo .zip (40 caracteres), recomendado para o cliente usar o cache.
   sha1: ""
+
+# Sincronização automática com o GitHub: baixa a release mais recente para plugins/update/
+# e o servidor aplica no próximo reinício.
+updater:
+  enabled: true
+  repository: "KoZuuYT/Vertexx"
+  check-interval-minutes: 30
+  # true = desliga o servidor quando estiver vazio e houver atualização baixada.
+  # Só ative se o seu painel/script reinicia o servidor sozinho.
+  restart-when-empty: false

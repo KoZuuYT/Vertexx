@@ -22,6 +22,10 @@ commands:
   pacote:
     description: Aceita ou recusa o pacote visual opcional.
     usage: /pacote [aceitar|recusar]
+  vertexx:
+    description: Versão do plugin e atualização pelo GitHub.
+    usage: /vertexx [versao|atualizar]
+    permission: vertexx.admin
 
 permissions:
   vertexx.admin:

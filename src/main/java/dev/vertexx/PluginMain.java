@@ -11,8 +11,10 @@ import dev.vertexx.kingdom.KingdomCommand;
 import dev.vertexx.kingdom.KingdomListener;
 import dev.vertexx.kingdom.KingdomManager;
 import dev.vertexx.pack.ResourcePackManager;
+import dev.vertexx.update.AutoUpdater;
 import dev.vertexx.waystone.WaystoneListener;
 import dev.vertexx.waystone.WaystoneManager;
+import java.io.File;
 import java.util.Objects;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
@@ -61,6 +63,11 @@ public final class PluginMain extends JavaPlugin {
         register("tumulo", new GraveCommand(this));
         register("honra", new HonorCommand(this));
         register("pacote", resourcePack);
+
+        AutoUpdater updater = new AutoUpdater(this);
+        plugins.registerEvents(updater, this);
+        register("vertexx", updater);
+        updater.start();
 
         loadAsync();
     }
@@ -131,6 +138,11 @@ public final class PluginMain extends JavaPlugin {
 
     public HonorManager honor() {
         return honor;
+    }
+
+    /** Arquivo .jar do plugin em execução (usado pelo atualizador). */
+    public File jarFile() {
+        return getFile();
     }
 
     // ── Ganchos entre módulos ───────────────────────────────────

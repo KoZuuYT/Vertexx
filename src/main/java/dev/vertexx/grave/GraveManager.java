@@ -6,6 +6,7 @@ import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
 import dev.vertexx.core.YamlStore;
+import io.papermc.paper.datacomponent.item.ResolvableProfile;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -158,7 +159,7 @@ public final class GraveManager {
         }
         block.setType(Material.PLAYER_HEAD, false);
         if (block.getState() instanceof Skull skull) {
-            skull.setOwningPlayer(player);
+            skull.setProfile(ResolvableProfile.resolvableProfile(player.getPlayerProfile()));
             skull.update(true, false);
         }
         Location above = block.getLocation().add(0.5, 1.0, 0.5);

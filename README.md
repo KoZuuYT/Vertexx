@@ -1,0 +1,150 @@
+# Vertexx
+
+Plugin customizado para o SMP semi-vanilla **Vertexx** — Paper **26.3**, Java 25.
+Leve, sem dependências, com textos em MiniMessage e feedback de som e partículas em cada interação.
+
+| Módulo | O que faz |
+| --- | --- |
+| **Reinos** | 3 reinos fixos, escolha obrigatória no primeiro login, cargos e alianças |
+| **Waystones** | Lodestones renomeados viram pontos de viagem rápida |
+| **Túmulos** | Itens e XP guardados no local da morte, protegidos por tempo |
+| **Honra** | Reputação de -100 a 100 que julga o PvP entre reinos |
+| **Resource pack** | Convite opcional, nunca forçado |
+| **Auto-update** | O servidor baixa sozinho a release mais recente deste repositório |
+
+## Instalação no servidor
+
+1. Baixe o `Vertexx-x.y.z.jar` da [release mais recente](https://github.com/KoZuuYT/Vertexx/releases/latest)
+   e coloque em `plugins/` — ou rode o script de sincronização:
+   ```powershell
+   .\scripts\sync-latest.ps1 -PluginsDir "C:\servidor\plugins"
+   ```
+   ```bash
+   ./scripts/sync-latest.sh /caminho/do/servidor/plugins
+   ```
+2. Inicie o servidor (Paper 26.3, Java 25).
+
+### Sincronização automática
+
+Depois de instalado, o plugin se atualiza sozinho:
+
+- A cada 30 minutos (e 15 segundos após ligar) ele consulta a release mais recente no GitHub.
+- Se for mais nova, baixa o jar para `plugins/update/`, confere o SHA-256 publicado pelo GitHub e avisa os administradores.
+- O Paper troca o jar **no próximo reinício** — não há troca a quente, para não corromper dados.
+- `/vertexx atualizar` força a checagem; `/vertexx` mostra a versão em execução.
+- Com `updater.restart-when-empty: true`, o servidor se desliga quando estiver vazio e houver atualização
+  baixada. Só ative se o seu painel ou script reinicia o servidor automaticamente.
+
+## Como se joga
+
+### Reinos
+
+Os três reinos são fixos: **Enternais**, **Reino dos aurudos+67+ego** e **cafetões**.
+
+No primeiro login, um menu bloqueia o jogador (sem andar, sem dano, sem comandos) até ele selecionar
+um reino e confirmar. A escolha é permanente e o jogador entra como **Membro**. O símbolo do reino
+aparece no chat e no TAB.
+
+Alianças são tratadas pelos **Líderes** (definidos por um administrador): um líder propõe com
+`/reino aliar <reino>` e o outro aceita com o mesmo comando.
+
+### Waystones
+
+- **Criar:** renomeie um Lodestone na bigorna e coloque-o no chão. O nome do item vira o nome do Waystone.
+  Lodestones sem nome continuam vanilla.
+- **Descobrir:** clique com o botão direito em um Waystone para registrá-lo.
+- **Viajar:** o menu lista os Waystones que você já descobriu. A viagem custa 1 Fragmento de Ametista
+  (configurável), tem 1,5 s de concentração — cancela se você se mover — e não funciona em combate.
+- **Remover:** só o dono (ou um administrador) consegue quebrar. Explosões e pistões não afetam.
+
+### Túmulos
+
+Ao morrer, seus itens e todo o seu XP ficam em uma cabeça sua no local da morte. Clique ou quebre para
+recuperar. Por 30 minutos só você abre; depois disso, qualquer um. Uma **Chave de Túmulo**
+(entregue por administradores) abre um túmulo ainda protegido.
+
+### Honra
+
+| Faixa | Honra | Efeito |
+| --- | --- | --- |
+| Desonrado | -30 ou menos | Paga o dobro nos Waystones; pode ser atacado sem punição |
+| Neutro | -29 a 29 | — |
+| Honrado | 30 a 69 | — |
+| Glorioso | 70 ou mais | Viaja de graça pelos Waystones |
+
+| Evento | Honra |
+| --- | --- |
+| Jogar ativamente (a cada 10 min) | +1 |
+| Matar quem te atacou primeiro | +3 |
+| Matar um Desonrado | +5 |
+| Dar o primeiro golpe em alguém | -1 |
+| Matar sendo o agressor | -10 |
+| Romper uma aliança (líder) | -20 |
+| Matar um aliado (só com fogo amigo ligado) | -25 |
+
+Membros do mesmo reino e de reinos aliados não se ferem (fogo amigo desativado).
+
+## Comandos
+
+| Comando | Quem | Descrição |
+| --- | --- | --- |
+| `/reino` | todos | Seu reino, cargo, aliados e honra |
+| `/reino membros` | todos | Lista os membros do seu reino |
+| `/reino aliar <reino>` | Líder | Propõe ou aceita uma aliança |
+| `/reino romper <reino>` | Líder | Rompe uma aliança |
+| `/reino admin definir <jogador> <reino>` | admin | Move um jogador de reino |
+| `/reino admin cargo <jogador> <membro\|oficial\|lider>` | admin | Define o cargo |
+| `/tumulo` | todos | Coordenadas dos seus túmulos |
+| `/tumulo chave [jogador] [qtd]` | admin | Entrega Chaves de Túmulo |
+| `/honra [jogador]` | todos | Mostra a honra |
+| `/honra definir <jogador> <valor>` | admin | Ajusta a honra |
+| `/pacote [aceitar\|recusar]` | todos | Resource pack opcional |
+| `/vertexx [atualizar]` | admin | Versão e atualização |
+
+Os ids dos reinos nos comandos são `enternais`, `aurudos` e `cafetoes`.
+Administrador = permissão `vertexx.admin` (padrão: OP).
+
+## Arquivos no servidor
+
+Tudo fica em `plugins/Vertexx/`, salvo de forma assíncrona:
+
+| Arquivo | Conteúdo |
+| --- | --- |
+| `config.yml` | Todas as opções, comentadas |
+| `kingdoms.yml` | Membros, cargos e alianças |
+| `waystones.yml` | Waystones e quem descobriu cada um |
+| `graves.yml` | Túmulos pendentes |
+| `honor.yml` | Honra de cada jogador |
+| `resourcepack.yml` | Quem aceitou ou recusou o pacote |
+
+## Estrutura do projeto
+
+```
+Vertexx/
+├─ libs/                  jars exportados, um por etapa/versão
+├─ scripts/               build, release e sincronização
+├─ docs/                  guia de desenvolvimento
+├─ resourcepack/          fontes do pacote visual (ainda vazio)
+└─ src/main/
+   ├─ resources/          plugin.yml e config.yml
+   └─ java/dev/vertexx/
+      ├─ PluginMain.java  registro de eventos/comandos e carregamento assíncrono
+      ├─ core/            MiniMessage, efeitos, itens de menu, YAML assíncrono
+      ├─ kingdom/         KingdomGUI, reinos, cargos, alianças, /reino
+      ├─ waystone/        WaystoneManager, menu de viagem, eventos
+      ├─ grave/           túmulos e Chave de Túmulo
+      ├─ honor/           honra e regras de combate
+      ├─ pack/            resource pack opcional
+      └─ update/          auto-update pelo GitHub
+```
+
+Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLVIMENTO.md).
+
+## Histórico de etapas
+
+| Versão | Etapa |
+| --- | --- |
+| 0.1.0 | Reinos e onboarding |
+| 0.2.0 | Waystones |
+| 0.3.0 | Túmulos, honra, fogo amigo e resource pack opcional |
+| 0.4.0 | Auto-update pelo GitHub |
