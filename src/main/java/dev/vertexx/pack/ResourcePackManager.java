@@ -114,8 +114,9 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         return !url().isEmpty();
     }
 
+    /** Fixo: assim cada versão nova do pacote substitui a anterior no cliente em vez de empilhar. */
     private UUID packId() {
-        return UUID.nameUUIDFromBytes(("vertexx:" + url()).getBytes(StandardCharsets.UTF_8));
+        return UUID.nameUUIDFromBytes("vertexx:resource-pack".getBytes(StandardCharsets.UTF_8));
     }
 
     @EventHandler
@@ -180,7 +181,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
             player.sendResourcePacks(ResourcePackRequest.resourcePackRequest()
                     .packs(info)
                     .required(false)
-                    .replace(false)
+                    .replace(true)
                     .prompt(Msg.mm("<gray>Pacote visual do servidor (menus, sons e ícones)."))
                     .build());
         } catch (IllegalArgumentException e) {

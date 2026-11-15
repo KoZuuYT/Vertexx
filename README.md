@@ -219,6 +219,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.15.0 | Modelos em bbmodel com animações (conversor para o resource pack), sistema de análise de referências pixel a pixel, mobs rejeitados e bosses remodelados a partir das imagens, correção do flicker de escala/rotação dos displays |
 | 0.15.1 | Atualizador e resource pack automático não dependem mais da API do GitHub quando ela responde 403/429 (limite de 60 req/h por IP): a tag vem do redirecionamento de /releases/latest |
 | 0.16.0 | Análise com OpenCV/scikit-image/SciPy (texel, direções de aresta, câmera pelas arestas, métricas), captura de tela/janela/GIF/vídeo/jar do cliente, ajuste e cópia de poses (textura projetada com o modelo posado; Golem de Tufo agora projetado), cabeças de jogador com skin do resource pack (`/vertexx cabeca`) |
+| 0.16.1 | Resource pack: UUID fixo e envio com substituição, para cada versão nova trocar a anterior no cliente em vez de empilhar |
 
 ## Modelos e animações (bbmodel)
 
