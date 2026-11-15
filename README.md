@@ -235,6 +235,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.6.1 | Waystone menor que o jogador (escala 0,85) e display entities com brilho máximo (acabou o visual preto) |
 | 0.7.0 | Escolha de reino em cutscene (3 bandeirões, câmera, mouse + agachar), resource pack gerado e publicado na release, configurado automaticamente pelo plugin |
 | 0.8.0 | Sair e trocar de reino (aliança, traição, fora da lei), mercenários com reputação e recompensas, honra dos reinos, menus refeitos com fundos e ícones do resource pack (com versão vanilla equivalente) |
+| 0.8.1 | Waystone gira para quem a colocou (yaw salvo); o pacote novo é reenviado a quem entrou antes da descoberta da release |
 
 ## Servidor de teste (Windows)
 

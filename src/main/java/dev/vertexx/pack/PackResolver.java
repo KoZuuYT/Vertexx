@@ -167,6 +167,8 @@ public final class PackResolver {
             url = downloadUrl;
             saveCache();
             plugin.getLogger().info("Resource pack configurado automaticamente: " + downloadUrl + " (sha1 " + hash + ")");
+            // quem entrou antes da descoberta recebeu o pacote do cache (versão antiga): reenvia o novo
+            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> plugin.resourcePack().refreshOnline());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {

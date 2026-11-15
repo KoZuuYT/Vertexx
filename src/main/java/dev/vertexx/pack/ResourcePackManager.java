@@ -134,6 +134,19 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         }
     }
 
+    /** O pacote mudou (nova release): quem já aceitou recebe a versão atual, sem novo convite. */
+    public void refreshOnline() {
+        if (!isConfigured()) {
+            return;
+        }
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            loaded.remove(player.getUniqueId());
+            if (Boolean.TRUE.equals(choices.get(player.getUniqueId())) && !plugin.intro().isActive(player)) {
+                apply(player);
+            }
+        }
+    }
+
     private void prompt(Player player) {
         player.sendMessage(Msg.mm(""));
         player.sendMessage(Msg.mm(" <gradient:#7f5af0:#2cb67d><bold>Pacote visual opcional</bold></gradient>"));

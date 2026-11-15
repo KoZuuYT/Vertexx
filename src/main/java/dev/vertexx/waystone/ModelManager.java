@@ -553,7 +553,7 @@ public final class ModelManager implements Listener {
 
     private static Location baseLocation(Waystone waystone) {
         return new Location(waystone.pos().bukkitWorld(), waystone.pos().x() + 0.5, waystone.pos().y(),
-                waystone.pos().z() + 0.5);
+                waystone.pos().z() + 0.5, waystone.yaw(), 0f);
     }
 
     private void spawn(Instance instance) {

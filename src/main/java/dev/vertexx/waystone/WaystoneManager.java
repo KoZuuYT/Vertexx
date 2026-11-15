@@ -99,6 +99,7 @@ public final class WaystoneManager {
                     waystone.showName(entry.getBoolean("show-name", true));
                     waystone.skin(WaystoneSkin.parse(entry.getString("skin")));
                     waystone.uses(entry.getInt("uses", 0));
+                    waystone.yaw((float) entry.getDouble("yaw", 0));
                     String route = entry.getString("route");
                     waystone.route(route == null || route.isBlank() ? null : UUID.fromString(route));
                     byId.put(waystone.id(), waystone);
@@ -172,6 +173,7 @@ public final class WaystoneManager {
             entry.set("show-name", waystone.showName());
             entry.set("skin", waystone.skin().name());
             entry.set("uses", waystone.uses());
+            entry.set("yaw", waystone.yaw());
             entry.set("route", waystone.route() == null ? null : waystone.route().toString());
         }
         for (Map.Entry<UUID, Material> entry : payment.entrySet()) {
@@ -267,6 +269,8 @@ public final class WaystoneManager {
         }
         Waystone waystone = new Waystone(UUID.randomUUID(), name, BlockPos.of(block),
                 owner.getUniqueId(), owner.getName(), System.currentTimeMillis());
+        // o modelo fica de frente para quem o colocou, alinhado aos quatro pontos cardeais
+        waystone.yaw(Math.round((owner.getLocation().getYaw() + 180f) / 90f) * 90f);
         byId.put(waystone.id(), waystone);
         byPos.put(waystone.pos(), waystone);
         discovered.computeIfAbsent(owner.getUniqueId(), k -> new HashSet<>()).add(waystone.id());

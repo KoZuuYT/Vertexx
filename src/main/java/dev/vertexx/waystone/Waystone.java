@@ -19,6 +19,8 @@ public final class Waystone {
     private volatile int uses;
     /** Rota fixa: ao clicar, viaja direto para este Waystone em vez de abrir o menu. */
     private volatile UUID route;
+    /** Direção do modelo (yaw em graus, múltiplo de 90), definida por quem colocou o Lodestone. */
+    private volatile float yaw;
 
     public Waystone(UUID id, String name, BlockPos pos, UUID owner, String ownerName, long created) {
         this.id = id;
@@ -84,6 +86,14 @@ public final class Waystone {
 
     public void uses(int uses) {
         this.uses = uses;
+    }
+
+    public float yaw() {
+        return yaw;
+    }
+
+    public void yaw(float yaw) {
+        this.yaw = yaw;
     }
 
     public UUID route() {
