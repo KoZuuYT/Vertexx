@@ -5,7 +5,6 @@ import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
 import dev.vertexx.core.Ui;
-import dev.vertexx.kingdom.Kingdom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,7 +60,7 @@ public final class WaystoneConfigGUI implements InventoryHolder {
         this.waystone = waystone;
         this.pack = plugin.resourcePack().isLoaded(player);
         this.inventory = Bukkit.createInventory(this, SIZE, Ui.title(pack,
-                Ui.Theme.of(plugin.kingdoms().kingdomOf(waystone.owner())),
+                Ui.Theme.VERTEXX,
                 "<gradient:#c4a7ff:#2cb67d><bold>Configurar</bold></gradient> <dark_gray>» <gray>" + Msg.esc(waystone.name())));
     }
 
@@ -190,8 +189,7 @@ public final class WaystoneConfigGUI implements InventoryHolder {
     // ── Renderização ───────────────────────────────────────────
 
     private void frame() {
-        Kingdom owner = plugin.kingdoms().kingdomOf(waystone.owner());
-        ItemStack theme = Items.filler(owner == null ? Material.PURPLE_STAINED_GLASS_PANE : owner.pane());
+        ItemStack theme = Items.filler(Material.PURPLE_STAINED_GLASS_PANE);
         ItemStack dark = Items.filler(Material.BLACK_STAINED_GLASS_PANE);
         ItemStack soft = Items.filler(Material.GRAY_STAINED_GLASS_PANE);
         for (int slot = 0; slot < SIZE; slot++) {

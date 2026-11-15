@@ -47,22 +47,7 @@ public final class PanelCommand implements TabExecutor {
                     return plugin.updater().onCommand(sender, command, label, args);
                 }
             }
-            case "cerimonia" -> {
-                if (!admin) {
-                    Msg.send(sender, "<red>Você não tem permissão.");
-                    return true;
-                }
-                Player target = args.length > 1 ? org.bukkit.Bukkit.getPlayerExact(args[1])
-                        : (sender instanceof Player p ? p : null);
-                if (target == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx cerimonia [jogador]</white> <dark_gray>(ensaio; não altera o reino)");
-                } else if (!plugin.intro().demo(target)) {
-                    Msg.send(sender, "<red>Esse jogador já está em uma cerimônia.");
-                } else {
-                    Msg.send(sender, "<green>Ensaio da cerimônia iniciado para <white>" + target.getName() + "</white>.");
-                }
-            }
-            default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? " [painel|livro|versao|atualizar|cerimonia]" : " livro"));
+            default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? " [painel|livro|versao|atualizar]" : " livro"));
         }
         return true;
     }
@@ -72,6 +57,6 @@ public final class PanelCommand implements TabExecutor {
         if (args.length != 1) {
             return List.of();
         }
-        return sender.hasPermission("vertexx.admin") ? List.of("painel", "livro", "versao", "atualizar", "cerimonia") : List.of("livro");
+        return sender.hasPermission("vertexx.admin") ? List.of("painel", "livro", "versao", "atualizar") : List.of("livro");
     }
 }

@@ -118,7 +118,17 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         return UUID.nameUUIDFromBytes(("vertexx:" + url()).getBytes(StandardCharsets.UTF_8));
     }
 
-    /** Chamado quando o jogador entra (já com reino) ou conclui o onboarding. */
+    @EventHandler
+    public void onJoin(org.bukkit.event.player.PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline() && plugin.isReady()) {
+                greet(player);
+            }
+        }, 40L);
+    }
+
+    /** Chamado quando o jogador entra: oferece o pacote ou reenvia a quem já aceitou. */
     public void greet(Player player) {
         if (!isConfigured()) {
             return;
@@ -141,7 +151,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         }
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             loaded.remove(player.getUniqueId());
-            if (Boolean.TRUE.equals(choices.get(player.getUniqueId())) && !plugin.intro().isActive(player)) {
+            if (Boolean.TRUE.equals(choices.get(player.getUniqueId()))) {
                 apply(player);
             }
         }
@@ -163,11 +173,6 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         Fx.sound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.5f);
     }
 
-    /** Envia o pacote sem convite no chat (usado pela cerimônia de entrada, que depende dele). */
-    public void send(Player player) {
-        apply(player);
-    }
-
     private void apply(Player player) {
         String hash = sha1();
         try {
@@ -176,7 +181,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
                     .packs(info)
                     .required(false)
                     .replace(false)
-                    .prompt(Msg.mm("<gray>Pacote visual do servidor (cerimônia dos reinos, sons e ícones)."))
+                    .prompt(Msg.mm("<gray>Pacote visual do servidor (menus, sons e ícones)."))
                     .build());
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("resource-pack.url inválida no config.yml: " + e.getMessage());
@@ -189,7 +194,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
             return;
         }
         Player player = event.getPlayer();
-        boolean cinematic = plugin.intro().isActive(player);
+        boolean cinematic = false;
         switch (event.getStatus()) {
             case SUCCESSFULLY_LOADED -> {
                 loaded.add(player.getUniqueId());
@@ -220,7 +225,6 @@ public final class ResourcePackManager implements Listener, TabExecutor {
             default -> {
             }
         }
-        plugin.intro().onPackStatus(player, event.getStatus());
     }
 
     @EventHandler

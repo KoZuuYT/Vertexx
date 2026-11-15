@@ -5,7 +5,6 @@ import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
 import dev.vertexx.core.Ui;
-import dev.vertexx.kingdom.Kingdom;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -26,7 +25,7 @@ import org.bukkit.scheduler.BukkitTask;
 
 /**
  * Menu de viagem rápida: destinos descobertos com revelação gradual, favoritos, ordenação, filtro
- * por dimensão e um cabeçalho com os dados do Waystone atual, decorado com as cores do reino do dono.
+ * por dimensão e um cabeçalho com os dados do Waystone atual, no tema do Vertexx.
  */
 public final class WaystoneGUI implements InventoryHolder {
 
@@ -109,7 +108,7 @@ public final class WaystoneGUI implements InventoryHolder {
         this.cost = plugin.waystones().costFor(player);
         this.pack = plugin.resourcePack().isLoaded(player);
         this.inventory = Bukkit.createInventory(this, SIZE, Ui.title(pack,
-                Ui.Theme.of(plugin.kingdoms().kingdomOf(origin.owner())),
+                Ui.Theme.VERTEXX,
                 "<gradient:#c4a7ff:#2cb67d><bold>Waystone</bold></gradient> <dark_gray>» <gray>" + Msg.esc(origin.name())));
         applyView();
     }
@@ -242,8 +241,7 @@ public final class WaystoneGUI implements InventoryHolder {
     // ── Renderização ───────────────────────────────────────────
 
     private Material themePane() {
-        Kingdom owner = plugin.kingdoms().kingdomOf(origin.owner());
-        return owner == null ? Material.PURPLE_STAINED_GLASS_PANE : owner.pane();
+        return Material.PURPLE_STAINED_GLASS_PANE;
     }
 
     private void frame() {
@@ -269,12 +267,10 @@ public final class WaystoneGUI implements InventoryHolder {
         frame();
 
         long days = Math.max(0, (System.currentTimeMillis() - origin.created()) / 86_400_000L);
-        Kingdom ownerKingdom = plugin.kingdoms().kingdomOf(origin.owner());
         List<String> originLore = new ArrayList<>();
         originLore.add("<dark_gray>▸ Você está aqui");
         originLore.add("");
-        originLore.add("<gray>Dono: <white>" + origin.ownerName()
-                + (ownerKingdom == null ? "" : " <dark_gray>(" + ownerKingdom.styled() + "<dark_gray>)"));
+        originLore.add("<gray>Dono: <white>" + origin.ownerName());
         originLore.add("<gray>Skin: <white>" + origin.skin().label());
         originLore.add("<gray>Erguido há: <white>" + (days == 0 ? "menos de um dia" : days + (days == 1 ? " dia" : " dias")));
         originLore.add("<gray>Viagens até aqui: <white>" + origin.uses());
@@ -376,10 +372,8 @@ public final class WaystoneGUI implements InventoryHolder {
             };
         }
         boolean favorite = plugin.waystones().isFavorite(player, waystone);
-        Kingdom ownerKingdom = plugin.kingdoms().kingdomOf(waystone.owner());
         List<String> lore = new ArrayList<>();
-        lore.add("<gray>Dono: <white>" + waystone.ownerName()
-                + (ownerKingdom == null ? "" : " <dark_gray>(" + ownerKingdom.styled() + "<dark_gray>)"));
+        lore.add("<gray>Dono: <white>" + waystone.ownerName());
         lore.add("<gray>Local: <white>" + dimension + " <dark_gray>" + waystone.pos().coords());
         if (world != null && world.equals(player.getWorld())) {
             int distance = (int) Math.round(player.getLocation().distance(waystone.pos().center()));

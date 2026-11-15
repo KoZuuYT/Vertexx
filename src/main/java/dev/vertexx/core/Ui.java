@@ -1,6 +1,5 @@
 package dev.vertexx.core;
 
-import dev.vertexx.kingdom.Kingdom;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -16,29 +15,15 @@ import org.bukkit.inventory.ItemStack;
  */
 public final class Ui {
 
-    /** Temas do fundo; a ordem define o caractere do glifo (U+E100 + ordinal). */
+    /**
+     * Temas do fundo; a ordem define o caractere do glifo (U+E100 + ordinal). Só o tema principal é usado
+     * agora, mas a ordem original é mantida para não invalidar o resource pack já publicado.
+     */
     public enum Theme {
-        VERTEXX, ENTERNAIS, AURUDOS, CAFETOES, OUTLAW;
-
-        public static Theme of(Kingdom kingdom) {
-            if (kingdom == null) {
-                return VERTEXX;
-            }
-            return switch (kingdom) {
-                case ENTERNAIS -> ENTERNAIS;
-                case AURUDOS -> AURUDOS;
-                case CAFETOES -> CAFETOES;
-            };
-        }
+        VERTEXX;
 
         public Material pane() {
-            return switch (this) {
-                case VERTEXX -> Material.PURPLE_STAINED_GLASS_PANE;
-                case ENTERNAIS -> Kingdom.ENTERNAIS.pane();
-                case AURUDOS -> Kingdom.AURUDOS.pane();
-                case CAFETOES -> Kingdom.CAFETOES.pane();
-                case OUTLAW -> Material.RED_STAINED_GLASS_PANE;
-            };
+            return Material.PURPLE_STAINED_GLASS_PANE;
         }
     }
 
@@ -75,11 +60,6 @@ public final class Ui {
             item.editMeta(meta -> meta.setItemModel(NamespacedKey.fromString("vertexx:" + key)));
         }
         return item;
-    }
-
-    /** Emblema do reino no lugar do ícone vanilla (só com o pacote). */
-    public static ItemStack emblem(boolean pack, ItemStack item, Kingdom kingdom) {
-        return model(pack, item, "emblem_" + kingdom.id());
     }
 
     /**

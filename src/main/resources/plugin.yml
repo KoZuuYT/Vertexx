@@ -2,37 +2,21 @@ name: Vertexx
 version: '${version}'
 main: dev.vertexx.PluginMain
 api-version: '26.3'
-description: Plugin customizado do SMP semi-vanilla Vertexx (reinos, waystones, túmulos e honra).
+description: Plugin customizado do SMP pacífico Vertexx (waystones e túmulos).
 author: KoZuuYT
 website: https://github.com/KoZuuYT/Vertexx
 
 commands:
-  reino:
-    description: Informações e gestão do seu reino.
-    usage: /reino [info|membros|sair|entrar|aliar|romper|anuncio|promover|rebaixar|admin]
-    aliases: [reinos, kingdom]
   tumulo:
     description: Lista os seus túmulos pendentes.
     usage: /tumulo [chave <jogador> [quantidade]]
     aliases: [tumulos, grave]
-  honra:
-    description: Mostra a honra de um jogador.
-    usage: /honra [jogador]
-    aliases: [honor]
-  recompensa:
-    description: Quadro de procurados e recompensas pela cabeça dos mercenários.
-    usage: /recompensa [quadro|lista|colocar <jogador> <quantia>]
-    aliases: [recompensas, procurados, bounty]
-  mercenario:
-    description: Mostra a reputação de um mercenário.
-    usage: /mercenario [jogador]
-    aliases: [mercenarios, reputacao]
   pacote:
     description: Aceita ou recusa o pacote visual opcional.
     usage: /pacote [aceitar|recusar]
   vertexx:
     description: Painel do Vertexx (administradores), Guia em livro para todos e atualização pelo GitHub.
-    usage: /vertexx [painel|livro|versao|atualizar|cerimonia]
+    usage: /vertexx [painel|livro|versao|atualizar]
 
 permissions:
   vertexx.admin:

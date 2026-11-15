@@ -5,8 +5,6 @@ import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
 import dev.vertexx.core.YamlStore;
-import dev.vertexx.kingdom.Kingdom;
-import dev.vertexx.kingdom.KingdomPanelGUI;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -80,7 +78,7 @@ public final class PanelManager implements Listener {
 
     public ItemStack createGuide() {
         ItemStack book = Items.of(Material.BOOK, "<gradient:#c4a7ff:#2cb67d><bold>Guia do Vertexx",
-                List.of("<gray>Reinos, Waystones, túmulos e honra",
+                List.of("<gray>Waystones, túmulos e comandos",
                         "<gray>reunidos em um só lugar.",
                         "",
                         "<yellow>▶ Clique com o botão direito para abrir"), true);
@@ -102,7 +100,6 @@ public final class PanelManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        Bukkit.getScheduler().runTaskLater(plugin, () -> showNotice(player), 60L);
         if (received.contains(player.getUniqueId())) {
             return;
         }
@@ -117,18 +114,6 @@ public final class PanelManager implements Listener {
         }, 30L);
     }
 
-    /** Mostra o mural do reino ao entrar, se o líder tiver fixado um aviso. */
-    private void showNotice(Player player) {
-        if (!player.isOnline()) {
-            return;
-        }
-        Kingdom kingdom = plugin.kingdoms().kingdomOf(player.getUniqueId());
-        String notice = kingdom == null ? null : plugin.kingdoms().notice(kingdom);
-        if (notice != null) {
-            Msg.send(player, kingdom.styled() + " <gray>— mural: <white>" + Msg.esc(notice));
-        }
-    }
-
     @EventHandler(priority = EventPriority.HIGH)
     public void onUse(PlayerInteractEvent event) {
         Action action = event.getAction();
@@ -140,9 +125,6 @@ public final class PanelManager implements Listener {
         }
         event.setUseInteractedBlock(Event.Result.DENY);
         event.setUseItemInHand(Event.Result.DENY);
-        if (plugin.onboarding().isPending(event.getPlayer())) {
-            return;
-        }
         if (event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND) {
             open(event.getPlayer());
         }
@@ -157,7 +139,7 @@ public final class PanelManager implements Listener {
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         Object holder = event.getInventory().getHolder(false);
-        if (!(holder instanceof PanelGUI) && !(holder instanceof KingdomPanelGUI)) {
+        if (!(holder instanceof PanelGUI)) {
             return;
         }
         event.setCancelled(true);
@@ -166,15 +148,13 @@ public final class PanelManager implements Listener {
         }
         if (holder instanceof PanelGUI gui) {
             gui.handleClick(event.getSlot(), event.getClick());
-        } else if (holder instanceof KingdomPanelGUI gui) {
-            gui.handleClick(event.getSlot(), event.getClick());
         }
     }
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
         Object holder = event.getInventory().getHolder(false);
-        if (holder instanceof PanelGUI || holder instanceof KingdomPanelGUI) {
+        if (holder instanceof PanelGUI) {
             event.setCancelled(true);
         }
     }

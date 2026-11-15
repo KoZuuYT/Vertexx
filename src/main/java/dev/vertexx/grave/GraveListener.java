@@ -76,7 +76,7 @@ public final class GraveListener implements Listener {
             return;
         }
         Grave grave = graves().at(event.getClickedBlock());
-        if (grave == null || plugin.onboarding().isPending(event.getPlayer())) {
+        if (grave == null) {
             return;
         }
         event.setCancelled(true);

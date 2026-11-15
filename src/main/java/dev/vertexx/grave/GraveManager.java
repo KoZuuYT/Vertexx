@@ -227,10 +227,6 @@ public final class GraveManager {
             Fx.sound(player, Sound.BLOCK_VAULT_OPEN_SHUTTER, 1.0f, 1.0f);
         }
         remove(grave);
-        if (access != Access.OWNER) {
-            plugin.onGraveLooted(player, grave.owner());
-        }
-
         Location center = grave.pos().center();
         ItemStack[] items = ItemStack.deserializeItemsFromBytes(grave.items());
         int dropped = 0;

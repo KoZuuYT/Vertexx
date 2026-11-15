@@ -402,7 +402,7 @@ public final class WaystoneManager {
         if (type == TravelCost.Type.XP_LEVELS) {
             base = plugin.getConfig().getInt("waystones.cost.xp-levels", 1);
         }
-        int amount = (int) Math.ceil(base * plugin.travelCostMultiplier(player));
+        int amount = base;
         if (type == TravelCost.Type.NONE || amount <= 0) {
             return TravelCost.FREE;
         }
@@ -419,10 +419,6 @@ public final class WaystoneManager {
     public void travel(Player player, Waystone destination) {
         UUID id = player.getUniqueId();
         if (traveling.contains(id)) {
-            return;
-        }
-        if (plugin.inCombat(player)) {
-            deny(player, "<red>Você não pode viajar em combate.");
             return;
         }
         if (destination.pos().bukkitWorld() == null) {
