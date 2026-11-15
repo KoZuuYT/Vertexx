@@ -217,6 +217,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.13.0 | Bosses Wildfire (Câmara do Wildfire) e Iceologer (Castelo de Gelo) com salas construídas sozinhas; `/vertexx mob` com nível, elite e traits; autocomplete em todos os comandos; Wiki de traits, Elites e bosses no painel; comandos de admin no painel |
 | 0.14.0 | Rótulos de mobs nivelados não atravessam mais paredes; bosses colidem com blocos; mobs rejeitados Rascal, Golem de Tufo, Moobloom e Glare; aba Rejeitados na Wiki |
 | 0.15.0 | Modelos em bbmodel com animações (conversor para o resource pack), sistema de análise de referências pixel a pixel, mobs rejeitados e bosses remodelados a partir das imagens, correção do flicker de escala/rotação dos displays |
+| 0.15.1 | Atualizador e resource pack automático não dependem mais da API do GitHub quando ela responde 403/429 (limite de 60 req/h por IP): a tag vem do redirecionamento de /releases/latest |
 
 ## Modelos e animações (bbmodel)
 

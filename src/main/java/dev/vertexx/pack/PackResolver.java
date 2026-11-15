@@ -119,10 +119,17 @@ public final class PackResolver {
                     .timeout(Duration.ofSeconds(20))
                     .GET().build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
+            JsonObject release;
+            if (response.statusCode() == 200) {
+                release = JsonParser.parseString(response.body()).getAsJsonObject();
+            } else if (response.statusCode() == 403 || response.statusCode() == 429) {
+                release = dev.vertexx.update.GithubLatest.fallbackRelease(repository, "Vertexx-PackResolver", assetName);
+                if (release == null) {
+                    return;
+                }
+            } else {
                 return;
             }
-            JsonObject release = JsonParser.parseString(response.body()).getAsJsonObject();
             JsonObject asset = findAsset(release, assetName);
             if (asset == null) {
                 plugin.getLogger().info("A release mais recente não tem o arquivo " + assetName

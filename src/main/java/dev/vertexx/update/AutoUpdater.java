@@ -97,15 +97,25 @@ public final class AutoUpdater implements Listener, TabExecutor {
                     .timeout(Duration.ofSeconds(20))
                     .GET().build();
             HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 404) {
+            JsonObject release;
+            if (response.statusCode() == 200) {
+                release = JsonParser.parseString(response.body()).getAsJsonObject();
+            } else if (response.statusCode() == 403 || response.statusCode() == 429) {
+                // limite da API anônima (60/h por IP): descobre a tag pela página de releases, que não tem limite
+                plugin.getLogger().info("API do GitHub respondeu " + response.statusCode() + "; usando o caminho alternativo.");
+                release = GithubLatest.fallbackRelease(repository, "Vertexx-Updater", "Vertexx-{v}.jar");
+                if (release == null) {
+                    tell(feedback, "<red>O GitHub respondeu com o código " + response.statusCode()
+                            + " (limite de requisições) e o caminho alternativo também falhou. Tente de novo em alguns minutos.");
+                    return;
+                }
+            } else if (response.statusCode() == 404) {
                 tell(feedback, "<yellow>O repositório ainda não tem nenhuma release publicada.");
                 return;
-            }
-            if (response.statusCode() != 200) {
+            } else {
                 tell(feedback, "<red>O GitHub respondeu com o código " + response.statusCode() + ".");
                 return;
             }
-            JsonObject release = JsonParser.parseString(response.body()).getAsJsonObject();
             String latest = release.get("tag_name").getAsString().replaceFirst("^[vV]", "");
             if (compare(latest, currentVersion()) <= 0) {
                 tell(feedback, "<green>O servidor já está na versão mais recente (<white>" + currentVersion() + "</white>).");
