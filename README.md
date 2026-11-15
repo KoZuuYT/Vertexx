@@ -178,6 +178,8 @@ Vertexx/
 ├─ docs/                  guia de desenvolvimento
 ├─ resourcepack/          resource pack gerado (texturas, fontes, modelos, sons)
 ├─ tools/pack/            gerador do resource pack (Python) e zip determinístico
+├─ tools/models/          conversor bbmodel para o pack, análise de referências e modelos dos mobs (Python)
+├─ models/                refs/ (imagens de referência) e src/ (.bbmodel dos mobs e bosses)
 └─ src/main/
    ├─ resources/          plugin.yml e config.yml
    └─ java/dev/vertexx/
@@ -186,6 +188,7 @@ Vertexx/
       ├─ waystone/        WaystoneManager, ModelManager (display entities), menus, eventos
       ├─ panel/           painel, Guia (livro) e /vertexx
       ├─ grave/           túmulos e Chave de Túmulo
+      ├─ model/           ModelDef/ModelInstance: bbmodel compilado e animado em ItemDisplays
       ├─ pack/            resource pack: descoberta automática na release e envio
       └─ update/          auto-update pelo GitHub
 ```
@@ -213,6 +216,16 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.12.0 | Upgrades de fornalhas (velocidade) e baús (capacidade em páginas) por níveis com recursos e Essência Elite; menu de upgrade com tema próprio |
 | 0.13.0 | Bosses Wildfire (Câmara do Wildfire) e Iceologer (Castelo de Gelo) com salas construídas sozinhas; `/vertexx mob` com nível, elite e traits; autocomplete em todos os comandos; Wiki de traits, Elites e bosses no painel; comandos de admin no painel |
 | 0.14.0 | Rótulos de mobs nivelados não atravessam mais paredes; bosses colidem com blocos; mobs rejeitados Rascal, Golem de Tufo, Moobloom e Glare; aba Rejeitados na Wiki |
+| 0.15.0 | Modelos em bbmodel com animações (conversor para o resource pack), sistema de análise de referências pixel a pixel, mobs rejeitados e bosses remodelados a partir das imagens, correção do flicker de escala/rotação dos displays |
+
+## Modelos e animações (bbmodel)
+
+Os mobs rejeitados e os bosses são **modelos do Blockbench** em `models/src/*.bbmodel`, com textura embutida e
+animações por osso. `python tools/pack/build.py` os compila para o resource pack (um modelo de item por osso)
+e para `src/main/resources/models/*.json` (ossos e animações amostradas a 20 Hz); o plugin os desenha com uma
+ItemDisplay por osso. Formatos aceitos (modded entity, OptiFine, GeckoLib) e a ferramenta de análise:
+[docs/MODELOS.md](docs/MODELOS.md).
+
 ## Servidor de teste (Windows)
 
 `tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta

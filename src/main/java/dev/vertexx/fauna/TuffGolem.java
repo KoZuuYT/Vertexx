@@ -1,6 +1,5 @@
 package dev.vertexx.fauna;
 
-import dev.vertexx.boss.Rig;
 import java.util.concurrent.ThreadLocalRandom;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -27,12 +26,6 @@ final class TuffGolem extends Critter {
 
     private enum State { STATUE, FETCH, HOME }
 
-    private final Rig.Part[] legs = new Rig.Part[2];
-    private final Rig.Part[] arms = new Rig.Part[2];
-    private final Rig.Part[] eyes = new Rig.Part[2];
-    private Rig.Part cape;
-    private Rig.Part capeHem;
-    private Rig.Part head;
     private ItemDisplay display;
     private ItemStack held;
     private Location home;
@@ -108,31 +101,31 @@ final class TuffGolem extends Critter {
     }
 
     @Override
+    protected float modelScale() {
+        return 0.8f;
+    }
+
+    /** A capa só existe quando a estátua foi montada com lã (ou tufo) no meio; a cor vem do bloco. */
+    @Override
     protected void build() {
-        Material tuff = Material.TUFF;
-        // pernas curtas, tronco e cabeça quadrada de tufo
-        legs[0] = rig.add(tuff, 0.13f, 0.17f, 0, 0.2f, 0.34f, 0.24f);
-        legs[1] = rig.add(tuff, -0.13f, 0.17f, 0, 0.2f, 0.34f, 0.24f);
-        rig.add(Material.POLISHED_TUFF, 0, 0.55f, 0, 0.5f, 0.42f, 0.34f);
-        rig.add(Material.COBBLED_DEEPSLATE, 0, 0.35f, 0, 0.46f, 0.06f, 0.3f); // cinto escuro
-        head = rig.add(tuff, 0, 1.0f, 0.02f, 0.5f, 0.5f, 0.46f);
-        rig.add(Material.POLISHED_TUFF, 0, 1.0f, -0.18f, 0.42f, 0.38f, 0.12f);
-        rig.add(Material.COBBLED_DEEPSLATE, 0, 1.2f, 0.21f, 0.5f, 0.07f, 0.04f); // sobrancelha pesada
-        for (int i = 0; i < 2; i++) {
-            eyes[i] = rig.add(Material.LIGHT_BLUE_CONCRETE, i == 0 ? 0.12f : -0.12f, 1.04f, 0.26f, 0.1f, 0.1f, 0.03f);
-        }
-        rig.add(Material.CHISELED_TUFF, 0, 0.9f, 0.255f, 0.14f, 0.1f, 0.03f);
-        arms[0] = rig.add(tuff, 0.36f, 0.6f, 0, 0.16f, 0.46f, 0.16f);
-        arms[1] = rig.add(tuff, -0.36f, 0.6f, 0, 0.16f, 0.46f, 0.16f);
-        // manto de lã (opcional): capa nas costas e nos ombros, com a barra mais viva
-        if (capeMaterial != null) {
-            cape = rig.add(capeMaterial, 0, 0.58f, -0.2f, 0.56f, 0.5f, 0.06f);
-            capeHem = rig.add(capeMaterial, 0, 0.3f, -0.21f, 0.58f, 0.08f, 0.08f);
-            rig.add(capeMaterial, 0.29f, 0.78f, 0, 0.12f, 0.12f, 0.4f);
-            rig.add(capeMaterial, -0.29f, 0.78f, 0, 0.12f, 0.12f, 0.4f);
-            rig.add(capeMaterial, 0, 0.8f, 0.19f, 0.56f, 0.1f, 0.06f);
+        boolean cape = capeMaterial != null;
+        model.hide("cape_tint", !cape);
+        if (cape) {
+            model.tint("cape_tint", capeColor(capeMaterial));
         }
         refreshDisplay();
+    }
+
+    private static org.bukkit.Color capeColor(Material material) {
+        String name = material.name();
+        if (name.endsWith("_WOOL")) {
+            try {
+                return org.bukkit.DyeColor.valueOf(name.substring(0, name.length() - 5)).getColor();
+            } catch (IllegalArgumentException ignored) {
+                // cai no cinza abaixo
+            }
+        }
+        return org.bukkit.Color.fromRGB(140, 140, 128);
     }
 
     private void refreshDisplay() {
@@ -240,6 +233,9 @@ final class TuffGolem extends Critter {
                     stateTicks = 0;
                     return;
                 }
+                if (stateTicks < 26) {
+                    return; // ainda se espreguiçando
+                }
                 mob.getPathfinder().moveTo(target.getLocation(), 1.0);
                 if (mob.getLocation().distanceSquared(target.getLocation()) < 1.3 * 1.3) {
                     take(target);
@@ -327,36 +323,27 @@ final class TuffGolem extends Critter {
 
     @Override
     protected void pose() {
-        boolean awake = state != State.STATUE;
-        Material eye = awake ? Material.LIGHT_BLUE_CONCRETE : Material.GRAY_CONCRETE;
-        for (Rig.Part e : eyes) {
-            e.material(eye);
-        }
-        float swing = (float) Math.sin(phase) * 0.6f * gait();
-        swing(legs[0], 0.13f, 0.34f, 0, 0.34f, swing);
-        swing(legs[1], -0.13f, 0.34f, 0, 0.34f, -swing);
-        // braço direito levantado segurando o item; o esquerdo balança
         boolean holding = held != null;
-        float raise = holding ? -1.15f : swing * 0.8f;
-        arms[0].pos.set(0.36f, 0.64f + (holding ? 0.06f : 0), holding ? 0.14f : 0);
-        arms[0].rot.identity().rotateX(raise);
-        arms[1].pos.set(-0.36f, 0.64f, 0);
-        arms[1].rot.identity().rotateX(-swing * 0.8f);
-        head.rot.identity().rotateX(awake ? (float) Math.sin(age * 0.3) * 0.04f : 0);
-        if (cape != null) {
-            float flap = awake ? (float) Math.sin(age * 0.25) * 0.08f * (0.4f + gait()) : 0;
-            cape.rot.identity().rotateX(flap);
-            capeHem.rot.identity().rotateX(flap * 1.4f);
+        if (state == State.STATUE) {
+            model.play("idle");
+            model.speed(1f);
+        } else if (state == State.FETCH && stateTicks <= 24) {
+            model.play("wake");
+            model.speed(1f);
+        } else {
+            model.play(holding ? "carry" : "walk");
+            model.speed(0.7f + (float) Math.min(1.0, speed * 5));
         }
         if (display != null && display.isValid()) {
-            double yawRad = Math.toRadians(-yaw());
-            Vector3f hand = new Quaternionf().rotateY((float) yawRad).transform(new Vector3f(0.36f, 0.98f, 0.5f));
-            Location at = mob.getLocation().add(hand.x, hand.y, hand.z);
-            at.setYaw(yaw());
-            display.teleport(at);
-            display.setInterpolationDelay(0);
-            display.setTransformation(new Transformation(new Vector3f(0, (float) Math.sin(age * 0.1) * 0.03f, 0),
-                    new Quaternionf().rotateY((float) Math.toRadians(age * 3.0)), new Vector3f(0.42f), new Quaternionf()));
+            Location at = model.locator("hand_item");
+            if (at != null) {
+                at.add(0, Math.sin(age * 0.1) * 0.03, 0);
+                at.setYaw(yaw());
+                display.teleport(at);
+                display.setInterpolationDelay(0);
+                display.setTransformation(new Transformation(new Vector3f(), new Quaternionf().rotateY((float) Math.toRadians(age * 3.0)),
+                        new Vector3f(0.42f), new Quaternionf()));
+            }
         }
     }
 }

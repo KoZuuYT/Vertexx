@@ -651,6 +651,14 @@ def zip_pack():
     return OUT_ZIP
 
 
+def build_models():
+    """Modelos de entidade (bbmodel → item models + texturas) e os dados de runtime do plugin."""
+    sys.path.insert(0, str(ROOT / "tools" / "models"))
+    import convert
+    for name, rt in convert.build(NS):
+        print(f"modelo {name}: {len(rt['bones'])} ossos, {len(rt['anim'])} animações")
+
+
 def main():
     # preserva o README, recria o resto
     readme = PACK / "README.md"
@@ -661,6 +669,7 @@ def main():
     if keep is not None:
         readme.write_text(keep, encoding="utf-8")
     build_assets()
+    build_models()
     build_sounds()
     out = zip_pack()
     import hashlib

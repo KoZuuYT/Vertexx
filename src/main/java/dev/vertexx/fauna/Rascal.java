@@ -1,6 +1,5 @@
 package dev.vertexx.fauna;
 
-import dev.vertexx.boss.Rig;
 import dev.vertexx.core.Msg;
 import dev.vertexx.rpg.Stat;
 import java.util.List;
@@ -27,11 +26,6 @@ final class Rascal extends Critter {
 
     private enum State { HIDING, FLEEING }
 
-    private final Rig.Part[] legs = new Rig.Part[4];
-    private Rig.Part face;
-    private Rig.Part[] eyes = new Rig.Part[2];
-    private Rig.Part mouth;
-    private Rig.Part tail;
     private State state = State.HIDING;
     private int stateTicks;
     private int finds;
@@ -50,34 +44,8 @@ final class Rascal extends Critter {
     }
 
     @Override
-    protected void build() {
-        rig.scale(0.8f);
-        // corpo e cabeleira turquesa
-        rig.add(Material.CYAN_WOOL, 0, 0.62f, -0.05f, 0.9f, 0.6f, 1.0f);
-        rig.add(Material.CYAN_TERRACOTTA, 0.46f, 0.6f, -0.1f, 0.03f, 0.4f, 0.6f);
-        rig.add(Material.CYAN_TERRACOTTA, -0.46f, 0.6f, -0.1f, 0.03f, 0.4f, 0.6f);
-        rig.add(Material.CYAN_WOOL, 0, 0.58f, 0.62f, 0.8f, 0.7f, 0.5f); // cabeça
-        rig.add(Material.CYAN_TERRACOTTA, 0, 0.95f, 0.62f, 0.7f, 0.06f, 0.42f);
-        rig.add(Material.CYAN_TERRACOTTA, 0.25f, 0.4f, 0.9f, 0.18f, 0.35f, 0.08f); // franja
-        rig.add(Material.CYAN_TERRACOTTA, -0.25f, 0.4f, 0.9f, 0.18f, 0.35f, 0.08f);
-        face = rig.add(Material.LIGHT_GRAY_CONCRETE, 0, 0.5f, 0.88f, 0.5f, 0.38f, 0.04f);
-        for (int i = 0; i < 2; i++) {
-            float x = i == 0 ? 0.13f : -0.13f;
-            rig.add(Material.WHITE_CONCRETE, x, 0.56f, 0.91f, 0.14f, 0.14f, 0.03f);
-            eyes[i] = rig.add(Material.BLACK_CONCRETE, x, 0.56f, 0.93f, 0.07f, 0.1f, 0.03f);
-        }
-        mouth = rig.add(Material.PINK_CONCRETE, 0, 0.4f, 0.91f, 0.14f, 0.07f, 0.03f);
-        // caixa de madeira nas costas, com a faixa clara no meio
-        rig.add(Material.DARK_OAK_PLANKS, 0, 1.02f, -0.1f, 0.96f, 0.22f, 0.96f);
-        rig.add(Material.BIRCH_PLANKS, 0, 1.05f, -0.1f, 0.26f, 0.22f, 1.0f);
-        rig.add(Material.SPRUCE_PLANKS, 0.4f, 1.13f, -0.1f, 0.1f, 0.12f, 0.9f);
-        rig.add(Material.SPRUCE_PLANKS, -0.4f, 1.13f, -0.1f, 0.1f, 0.12f, 0.9f);
-        tail = rig.add(Material.CYAN_WOOL, 0, 0.62f, -0.62f, 0.3f, 0.3f, 0.3f);
-        float[] lx = {0.27f, -0.27f, 0.27f, -0.27f};
-        float[] lz = {0.5f, 0.5f, -0.5f, -0.5f};
-        for (int i = 0; i < 4; i++) {
-            legs[i] = rig.add(Material.LIGHT_GRAY_CONCRETE, lx[i], 0.18f, lz[i], 0.22f, 0.36f, 0.22f);
-        }
+    protected float modelScale() {
+        return 1.15f;
     }
 
     // ── Comportamento ──────────────────────────────────────────
@@ -247,21 +215,16 @@ final class Rascal extends Critter {
 
     @Override
     protected void pose() {
-        float swing = (float) Math.sin(phase) * 0.7f * gait();
-        float[] sign = {1, -1, -1, 1};
-        float[] hx = {0.27f, -0.27f, 0.27f, -0.27f};
-        float[] hz = {0.5f, 0.5f, -0.5f, -0.5f};
-        for (int i = 0; i < 4; i++) {
-            swing(legs[i], hx[i], 0.36f, hz[i], 0.36f, swing * sign[i]);
+        if (state == State.FLEEING) {
+            model.play("flee");
+            model.speed(1f);
+        } else if (gait() > 0.1f) {
+            model.play("walk");
+            model.speed(0.8f + gait() * 0.6f);
+        } else {
+            // escondido: agachado, só a caixa balançando; espia de vez em quando
+            model.play((age / 120) % 3 == 2 ? "idle" : "hide");
+            model.speed(1f);
         }
-        // espiando: as pupilas olham para o lado de vez em quando; ao fugir, a boca abre
-        float look = (float) Math.sin(age * 0.05) * 0.03f;
-        for (int i = 0; i < 2; i++) {
-            eyes[i].pos.x = (i == 0 ? 0.13f : -0.13f) + look;
-        }
-        boolean flee = state == State.FLEEING;
-        mouth.size(flee ? 0.12f : 0.14f, flee ? 0.14f : 0.07f, 0.03f);
-        face.pos.y = 0.5f;
-        tail.rot.identity().rotateY((float) Math.sin(age * 0.25) * 0.5f * (0.3f + gait()));
     }
 }

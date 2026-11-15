@@ -28,6 +28,12 @@ public final class Rig {
         /** Peças em espaço do mundo não giram junto com o boss (escudos, auras). */
         public boolean world;
         public boolean visible = true;
+        // último estado enviado ao cliente: evita reenvios idênticos, saltos de sinal do quaternion e
+        // interpolações indevidas (crescer a partir de 0, girar a partir da identidade) ao aparecer
+        private Vector3f sentTranslation;
+        private Vector3f sentSize;
+        private Quaternionf sentRotation;
+        private boolean sentVisible = true;
 
         private Part(BlockDisplay display) {
             this.display = display;
@@ -79,10 +85,11 @@ public final class Rig {
             entity.setViewRange(1.6f);
             entity.setBrightness(new Display.Brightness(13, 15));
             entity.setTeleportDuration(2);
-            entity.setInterpolationDuration(2);
+            entity.setInterpolationDuration(0);
             entity.setShadowRadius(0f);
-            entity.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(0.001f),
-                    new Quaternionf()));
+            // já nasce no tamanho e no lugar finais (sem rotação), em vez de crescer a partir de 0,001
+            entity.setTransformation(new Transformation(new Vector3f(-sx / 2 + x, -sy / 2 + y, -sz / 2 + z),
+                    new Quaternionf(), new Vector3f(sx, sy, sz), new Quaternionf()));
             entity.getPersistentDataContainer().set(tag, PersistentDataType.BYTE, (byte) 1);
         });
         Part part = new Part(display);
@@ -117,20 +124,40 @@ public final class Rig {
             if (!display.isValid()) {
                 continue;
             }
-            if (moved) {
-                display.teleport(base);
-            }
             Vector3f size = new Vector3f(part.size).mul(part.visible ? scale : 0.0005f);
             Quaternionf basisQ = part.world ? new Quaternionf() : basis;
             Vector3f center = basisQ.transform(new Vector3f(part.pos).mul(scale));
-            Quaternionf rotation = new Quaternionf(basisQ).mul(part.rot);
+            Quaternionf rotation = new Quaternionf(basisQ).mul(part.rot).normalize();
+            if (part.sentRotation != null && part.sentRotation.dot(rotation) < 0) {
+                // q e -q são a mesma rotação, mas o cliente interpolaria pelo caminho longo (pisca/gira)
+                rotation.set(-rotation.x, -rotation.y, -rotation.z, -rotation.w);
+            }
             Vector3f half = rotation.transform(new Vector3f(size).mul(0.5f));
             Vector3f translation = center.sub(half);
+            boolean snap = part.sentTranslation == null || part.sentVisible != part.visible;
+            if (!snap && !moved && same(part, translation, size, rotation)) {
+                continue;
+            }
+            // durações antes do teleporte: o cliente aplica cada pacote com a duração anterior
+            int steps = snap ? 0 : duration;
             display.setInterpolationDelay(0);
-            display.setInterpolationDuration(duration);
-            display.setTeleportDuration(Math.min(duration, 59));
+            display.setInterpolationDuration(steps);
+            display.setTeleportDuration(snap ? 0 : Math.min(duration, 59));
+            if (moved) {
+                display.teleport(base);
+            }
             display.setTransformation(new Transformation(translation, rotation, size, new Quaternionf()));
+            part.sentTranslation = translation;
+            part.sentSize = size;
+            part.sentRotation = rotation;
+            part.sentVisible = part.visible;
         }
+    }
+
+    private static boolean same(Part part, Vector3f translation, Vector3f size, Quaternionf rotation) {
+        return part.sentTranslation.distanceSquared(translation) < 1e-8f
+                && part.sentSize.distanceSquared(size) < 1e-8f
+                && Math.abs(part.sentRotation.dot(rotation)) > 0.9999999f;
     }
 
     public void remove() {

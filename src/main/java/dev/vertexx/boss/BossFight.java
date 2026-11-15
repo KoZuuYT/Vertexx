@@ -37,6 +37,7 @@ abstract class BossFight {
     protected final World world;
     protected IronGolem hitbox;
     protected Rig rig;
+    protected dev.vertexx.model.ModelInstance model;
     protected State state = State.DORMANT;
     protected int age;
     protected int stateTicks;
@@ -79,6 +80,14 @@ abstract class BossFight {
 
     protected abstract double hitboxScale();
 
+    /** Modelo (bbmodel compilado) que desenha o corpo do boss. */
+    protected abstract String modelId();
+
+    protected float modelScale() {
+        return 1f;
+    }
+
+    /** Peças extras (efeitos, aura, gelo) em BlockDisplays; o corpo vem do modelo. */
     protected abstract void buildRig();
 
     protected abstract void animate();
@@ -133,9 +142,12 @@ abstract class BossFight {
             }
             golem.setHealth(maxHealth);
         });
+        model = plugin.entityModels().spawn(modelId(), manager.partKey(), feet, modelScale());
         rig = new Rig(manager.partKey(), feet);
         buildRig();
         idlePose();
+        animate();
+        model.update(pos, yaw, 0);
         rig.update(pos, Rig.yaw(yaw), 2);
     }
 
@@ -221,6 +233,10 @@ abstract class BossFight {
             Location at = pos.clone();
             at.setYaw(yaw);
             rig.update(at, Rig.yaw(yaw), 2);
+            if (model != null) {
+                model.advance(2);
+                model.update(at, yaw, 2);
+            }
         }
         syncHitbox();
         if (age % 5 == 0) {
@@ -334,6 +350,9 @@ abstract class BossFight {
     void remove() {
         if (rig != null) {
             rig.remove();
+        }
+        if (model != null) {
+            model.remove();
         }
         if (hitbox != null) {
             hitbox.remove();

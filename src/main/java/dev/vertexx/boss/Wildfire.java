@@ -46,10 +46,7 @@ final class Wildfire extends BossFight {
     private double shieldTilt = 8;
     private double shieldTiltGoal = 8;
     private final int[] flash = new int[4];
-    private final Rig.Part[][] shields = new Rig.Part[4][4];
-    private Rig.Part eye;
-    private Rig.Part pupil;
-    private Rig.Part[] body;
+    private static final String[] BLADES = {"blade_fl", "blade_fr", "blade_bl", "blade_br"};
     private boolean eyeOpen;
 
     // Onda de choque
@@ -119,33 +116,13 @@ final class Wildfire extends BossFight {
     // ── Modelo ─────────────────────────────────────────────────
 
     @Override
+    protected String modelId() {
+        return "wildfire";
+    }
+
+    @Override
     protected void buildRig() {
-        body = new Rig.Part[] {
-                rig.add(Material.ORANGE_TERRACOTTA, 0, 0.6f, 0, 0.95f, 0.6f, 0.95f),
-                rig.add(Material.ORANGE_CONCRETE, 0, 1.2f, 0, 0.95f, 0.6f, 0.95f),
-                rig.add(Material.RAW_GOLD_BLOCK, 0, 1.8f, 0, 0.95f, 0.6f, 0.95f),
-                rig.add(Material.GOLD_BLOCK, 0, 2.4f, 0, 0.95f, 0.6f, 0.95f)};
-        // gotejados marrons na base, como no modelo original
-        rig.add(Material.BROWN_TERRACOTTA, 0.36f, 0.2f, 0.36f, 0.22f, 0.5f, 0.22f);
-        rig.add(Material.BROWN_TERRACOTTA, -0.36f, 0.15f, 0.36f, 0.22f, 0.6f, 0.22f);
-        rig.add(Material.BROWN_TERRACOTTA, 0.36f, 0.12f, -0.36f, 0.22f, 0.65f, 0.22f);
-        rig.add(Material.BROWN_TERRACOTTA, -0.36f, 0.2f, -0.36f, 0.22f, 0.5f, 0.22f);
-        rig.add(Material.BROWN_TERRACOTTA, 0, 0.1f, 0, 0.3f, 0.45f, 0.3f);
-        // cabeça: máscara escura com um olho vermelho e coroa dourada
-        rig.add(Material.DARK_OAK_PLANKS, 0, 3.15f, 0, 0.95f, 0.9f, 0.95f);
-        rig.add(Material.GOLD_BLOCK, 0, 3.7f, 0, 1.02f, 0.24f, 1.02f);
-        rig.add(Material.RAW_GOLD_BLOCK, 0.34f, 3.95f, 0, 0.2f, 0.3f, 0.2f);
-        rig.add(Material.RAW_GOLD_BLOCK, -0.34f, 3.95f, 0, 0.2f, 0.3f, 0.2f);
-        rig.add(Material.BROWN_TERRACOTTA, 0, 2.82f, 0.2f, 0.7f, 0.12f, 0.6f);
-        eye = rig.add(Material.BLACK_CONCRETE, 0, 3.2f, 0.49f, 0.3f, 0.3f, 0.06f);
-        pupil = rig.add(Material.WHITE_CONCRETE, 0, 3.2f, 0.53f, 0.1f, 0.12f, 0.05f);
-        // escudos: três placas empilhadas (amarelo → laranja) e um pingo marrom
-        for (int i = 0; i < 4; i++) {
-            shields[i][0] = rig.add(Material.GOLD_BLOCK, 0, 0, 0, 1.25f, 0.9f, 0.2f).world();
-            shields[i][1] = rig.add(Material.RAW_GOLD_BLOCK, 0, 0, 0, 1.25f, 0.8f, 0.2f).world();
-            shields[i][2] = rig.add(Material.ORANGE_CONCRETE, 0, 0, 0, 1.25f, 0.7f, 0.2f).world();
-            shields[i][3] = rig.add(Material.BROWN_TERRACOTTA, 0, 0, 0, 0.5f, 0.45f, 0.2f).world();
-        }
+        // corpo, cabeça e as quatro lâminas vêm do modelo; nada extra em BlockDisplays
     }
 
     @Override
@@ -179,30 +156,27 @@ final class Wildfire extends BossFight {
             float cx = (float) (Math.cos(aw) * radius);
             float cz = (float) (Math.sin(aw) * radius);
             float cy = 1.75f + (float) Math.sin((age + i * 11) * 0.09) * 0.1f;
-            float grow = flash[i] > 0 ? 1.12f : 1f;
-            float[] offsets = {0.85f, 0f, -0.8f, -1.35f};
-            float[] tangent = {0f, 0f, 0f, 0.3f};
-            for (int k = 0; k < 4; k++) {
-                org.joml.Vector3f local = plate.transform(new org.joml.Vector3f(tangent[k], offsets[k], 0));
-                Rig.Part part = shields[i][k];
-                part.pos.set(cx + local.x, cy + local.y, cz + local.z);
-                part.rot.set(plate);
-                part.size.set(k == 3 ? 0.5f : 1.25f, new float[] {0.9f, 0.8f, 0.7f, 0.45f}[k], 0.2f).mul(grow);
-            }
+            // a lâmina sai do corpo e passa a orbitar em volta dele, presa a uma pose absoluta
+            model.pin(BLADES[i], new org.joml.Vector3f(cx, cy, cz), plate);
             if (flash[i] > 0) {
                 flash[i]--;
             }
         }
-        if (eye != null) {
-            eye.material(eyeOpen ? Material.RED_CONCRETE : Material.BLACK_CONCRETE);
-            pupil.visible = eyeOpen;
-            float pulse = eyeOpen ? 1f + (float) Math.sin(age * 0.4) * 0.12f : 1f;
-            eye.size.set(0.3f * pulse, 0.3f * pulse, 0.06f);
+        model.hide("eye_glow", !eyeOpen);
+        String clip;
+        if (state == State.DYING) {
+            clip = "death";
+        } else if (move == Move.RUSH) {
+            clip = "spin";
+        } else if (move == Move.LUNGE) {
+            clip = phase == 0 ? "windup" : (phase < 3 ? "lunge" : "idle");
+        } else if (move == Move.SHOCKWAVE && moveT < 26) {
+            clip = "windup";
+        } else {
+            clip = "idle";
         }
-        float shake = hurtTicks > 0 ? 0.03f : 0f;
-        for (Rig.Part part : body) {
-            part.pos.x = (hurtTicks > 0 ? (float) (Math.random() - 0.5) * 2 * shake : 0);
-        }
+        model.play(clip);
+        model.offset("core", hurtTicks > 0 ? (float) (Math.random() - 0.5) * 0.8f : 0f, 0, 0);
         // brasas flutuando ao redor do corpo
         if (age % 4 == 0) {
             Location around = pos.clone().add(Math.random() * 1.4 - 0.7, 0.4 + Math.random() * 2.8, Math.random() * 1.4 - 0.7);
@@ -828,6 +802,7 @@ final class Wildfire extends BossFight {
             Shards.burst(plugin, pos.clone().add(0, 1.8, 0), 40, 0.8, 0.45f, Material.GOLD_BLOCK,
                     Material.RAW_GOLD_BLOCK, Material.ORANGE_CONCRETE, Material.BROWN_TERRACOTTA);
             rig.parts().forEach(part -> part.visible = false);
+            model.hideAll(true);
         }
     }
 

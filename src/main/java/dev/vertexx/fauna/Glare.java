@@ -1,6 +1,5 @@
 package dev.vertexx.fauna;
 
-import dev.vertexx.boss.Rig;
 import dev.vertexx.core.Msg;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -23,15 +22,6 @@ import org.bukkit.persistence.PersistentDataType;
  */
 final class Glare extends Critter {
 
-    private static final int STRANDS = 10;
-
-    private final Rig.Part[] skirt = new Rig.Part[3];
-    private final Rig.Part[] strands = new Rig.Part[STRANDS];
-    private final Rig.Part[] tips = new Rig.Part[STRANDS];
-    private final Rig.Part[] eyes = new Rig.Part[2];
-    private final Rig.Part[] pupils = new Rig.Part[2];
-    private Rig.Part head;
-    private Rig.Part brow;
     private Location spot;
     private boolean angry;
     private int calmUntil;
@@ -57,33 +47,8 @@ final class Glare extends Critter {
     }
 
     @Override
-    protected void build() {
-        head = rig.add(Material.MOSS_BLOCK, 0, 1.15f, 0, 0.78f, 0.78f, 0.78f);
-        // retalhos de folhagem em tons diferentes, como o padrão do modelo original
-        rig.add(Material.GREEN_TERRACOTTA, 0.2f, 1.38f, 0.395f, 0.3f, 0.26f, 0.03f);
-        rig.add(Material.LIME_TERRACOTTA, -0.22f, 0.98f, 0.395f, 0.26f, 0.22f, 0.03f);
-        rig.add(Material.GREEN_TERRACOTTA, 0.395f, 1.1f, -0.1f, 0.03f, 0.34f, 0.3f);
-        rig.add(Material.LIME_TERRACOTTA, -0.395f, 1.25f, 0.12f, 0.03f, 0.28f, 0.34f);
-        rig.add(Material.GREEN_TERRACOTTA, -0.15f, 1.545f, 0.1f, 0.36f, 0.03f, 0.3f);
-        rig.add(Material.LIME_TERRACOTTA, 0.2f, 1.545f, -0.15f, 0.28f, 0.03f, 0.3f);
-        rig.add(Material.GREEN_TERRACOTTA, 0, 1.15f, -0.395f, 0.5f, 0.4f, 0.03f);
-        brow = rig.add(Material.BLACK_CONCRETE, 0, 1.2f, 0.4f, 0.64f, 0.2f, 0.03f);
-        for (int i = 0; i < 2; i++) {
-            float x = i == 0 ? 0.17f : -0.17f;
-            eyes[i] = rig.add(Material.WHITE_CONCRETE, x, 1.2f, 0.415f, 0.18f, 0.16f, 0.03f);
-            pupils[i] = rig.add(Material.RED_CONCRETE, x, 1.2f, 0.435f, 0.08f, 0.08f, 0.03f);
-        }
-        skirt[0] = rig.add(Material.MOSS_BLOCK, 0, 0.66f, 0, 0.84f, 0.3f, 0.84f);
-        skirt[1] = rig.add(Material.GREEN_TERRACOTTA, 0, 0.44f, 0, 0.66f, 0.24f, 0.66f);
-        skirt[2] = rig.add(Material.LIME_TERRACOTTA, 0, 0.26f, 0, 0.46f, 0.2f, 0.46f);
-        for (int i = 0; i < STRANDS; i++) {
-            double a = i * Math.PI * 2 / STRANDS + 0.3;
-            float r = 0.3f + (i % 3) * 0.06f;
-            float x = (float) Math.cos(a) * r;
-            float z = (float) Math.sin(a) * r;
-            strands[i] = rig.add(i % 2 == 0 ? Material.MOSS_BLOCK : Material.GREEN_TERRACOTTA, x, 0.3f, z, 0.1f, 0.4f, 0.1f);
-            tips[i] = rig.add(Material.BROWN_TERRACOTTA, x, 0.02f, z, 0.07f, 0.2f, 0.07f);
-        }
+    protected float modelScale() {
+        return 0.9f;
     }
 
     // ── Comportamento ──────────────────────────────────────────
@@ -200,30 +165,7 @@ final class Glare extends Critter {
 
     @Override
     protected void pose() {
-        float bob = (float) Math.sin(age * 0.12) * 0.06f;
-        float shake = angry ? (float) Math.sin(age * 1.6) * 0.02f : 0;
-        head.pos.set(shake, 1.15f + bob, 0);
-        head.rot.identity().rotateZ((float) Math.sin(age * 0.05) * 0.05f);
-        brow.pos.set(shake, 1.2f + bob, 0.4f);
-        for (int i = 0; i < 2; i++) {
-            float x = i == 0 ? 0.17f : -0.17f;
-            eyes[i].pos.set(x + shake, 1.2f + bob, 0.415f);
-            pupils[i].pos.set(x + shake, 1.2f + bob, 0.435f);
-            eyes[i].material(angry ? Material.PINK_CONCRETE : Material.WHITE_CONCRETE);
-            float p = angry ? 0.12f : 0.07f;
-            pupils[i].size(p, p, 0.03f);
-        }
-        for (int i = 0; i < 3; i++) {
-            skirt[i].pos.y = 0.66f - i * 0.2f + bob * (0.8f - i * 0.2f);
-            skirt[i].rot.identity().rotateY((float) Math.sin(age * 0.04 + i) * 0.12f);
-        }
-        for (int i = 0; i < STRANDS; i++) {
-            float sway = (float) Math.sin(age * 0.1 + i * 1.3) * 0.18f + (float) Math.min(0.5, speed * 4) * 0.3f;
-            float baseY = 0.3f + bob * 0.5f;
-            strands[i].pos.y = baseY;
-            strands[i].rot.identity().rotateX(sway * 0.5f).rotateZ(sway);
-            tips[i].pos.y = baseY - 0.3f + (float) Math.abs(Math.sin(age * 0.1 + i * 1.3)) * 0.02f;
-            tips[i].rot.identity().rotateX(sway).rotateZ(sway * 1.4f);
-        }
+        model.play(angry ? "angry" : "idle");
+        model.speed(angry ? 1f : 0.8f + (float) Math.min(1.2, speed * 6));
     }
 }

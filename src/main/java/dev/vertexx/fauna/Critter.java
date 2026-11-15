@@ -1,14 +1,14 @@
 package dev.vertexx.fauna;
 
 import dev.vertexx.PluginMain;
-import dev.vertexx.boss.Rig;
+import dev.vertexx.model.ModelInstance;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Mob;
 
 /**
  * Uma criatura rejeitada em jogo: um mob de verdade (invisível) cuida de vida, colisão e navegação, e um
- * {@link Rig} de displays desenha o modelo. A lógica roda a cada 2 ticks e o desenho só é atualizado
+ * {@link ModelInstance} (modelo bbmodel animado) desenha a criatura. A lógica roda a cada 2 ticks e o desenho só é atualizado
  * quando há jogadores por perto.
  */
 abstract class Critter {
@@ -16,7 +16,7 @@ abstract class Critter {
     protected final FaunaManager manager;
     protected final PluginMain plugin;
     protected final Mob mob;
-    protected final Rig rig;
+    protected final ModelInstance model;
     protected int age;
     protected double speed;
     protected float phase;
@@ -28,7 +28,7 @@ abstract class Critter {
         this.manager = manager;
         this.plugin = manager.plugin();
         this.mob = mob;
-        this.rig = new Rig(manager.partKey(), mob.getLocation());
+        this.model = plugin.entityModels().spawn(modelId(), manager.partKey(), mob.getLocation(), modelScale());
         mob.setInvisible(true);
         if (wild()) {
             mob.setSilent(true);
@@ -46,7 +46,19 @@ abstract class Critter {
 
     abstract FaunaKind kind();
 
-    protected abstract void build();
+    /** Arquivo do modelo em {@code models/src} (sem extensão). */
+    protected String modelId() {
+        return kind().name().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    /** Multiplicador sobre a escala padrão do modelo. */
+    protected float modelScale() {
+        return 1f;
+    }
+
+    /** Ajustes depois que o modelo existe (ossos escondidos, tinta…). */
+    protected void build() {
+    }
 
     protected abstract void think();
 
@@ -54,7 +66,8 @@ abstract class Critter {
 
     final void start() {
         build();
-        rig.update(mob.getLocation(), Rig.yaw(yaw()), 1);
+        pose();
+        model.update(mob.getLocation(), yaw(), 0);
     }
 
     protected float yaw() {
@@ -84,8 +97,8 @@ abstract class Critter {
         }
         if (near) {
             pose();
-            Location at = mob.getLocation();
-            rig.update(at, Rig.yaw(yaw()), 2);
+            model.advance(2);
+            model.update(mob.getLocation(), yaw(), 2);
         }
         return true;
     }
@@ -95,15 +108,9 @@ abstract class Critter {
         return (float) Math.min(1.0, speed * 7.0);
     }
 
-    /** Posiciona uma perna (e o casco/filho) girando em torno do quadril. */
-    protected static void swing(Rig.Part part, float x, float hipY, float hipZ, float length, float angle) {
-        part.at(x, hipY - (float) Math.cos(angle) * length / 2f, hipZ - (float) Math.sin(angle) * length / 2f);
-        part.rot.identity().rotateX(angle);
-    }
-
     /** Chamado ao remover a criatura do mundo (descarregar, morrer, sumir). */
     void remove() {
-        rig.remove();
+        model.remove();
         cleanup();
     }
 

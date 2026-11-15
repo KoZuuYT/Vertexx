@@ -39,12 +39,12 @@ final class Iceologer extends BossFight {
     private double cast;
     private double castGoal;
 
-    private final Rig.Part[][] arms = new Rig.Part[2][3];
     private Rig.Part casing;
     private Rig.Part casingBase;
     private final Rig.Part[] circle = new Rig.Part[2];
     private final Rig.Part[] orbit = new Rig.Part[4];
-    private Rig.Part[] body;
+    private double lastX;
+    private double lastZ;
 
     // Espinhos
     private final List<Spike> spikes = new ArrayList<>();
@@ -114,41 +114,12 @@ final class Iceologer extends BossFight {
     // ── Modelo ─────────────────────────────────────────────────
 
     @Override
+    protected String modelId() {
+        return "iceologer";
+    }
+
+    @Override
     protected void buildRig() {
-        // botas e barra do manto
-        rig.add(Material.DEEPSLATE, -0.22f, 0.12f, 0.05f, 0.3f, 0.26f, 0.42f);
-        rig.add(Material.DEEPSLATE, 0.22f, 0.12f, 0.05f, 0.3f, 0.26f, 0.42f);
-        Rig.Part hem = rig.add(Material.LAPIS_BLOCK, 0, 0.5f, 0, 1.05f, 0.4f, 0.75f);
-        rig.add(Material.LIGHT_GRAY_CONCRETE, 0, 0.72f, 0, 1.08f, 0.07f, 0.78f);
-        rig.add(Material.CYAN_CONCRETE, 0, 0.64f, 0, 1.09f, 0.05f, 0.79f);
-        // corpo do manto, painel central turquesa com frisos claros
-        Rig.Part robe = rig.add(Material.BLUE_CONCRETE, 0, 1.2f, 0, 0.92f, 1.1f, 0.64f);
-        rig.add(Material.CYAN_CONCRETE, 0, 1.15f, 0.335f, 0.34f, 1.3f, 0.04f);
-        rig.add(Material.LIGHT_GRAY_CONCRETE, -0.2f, 1.15f, 0.34f, 0.07f, 1.3f, 0.05f);
-        rig.add(Material.LIGHT_GRAY_CONCRETE, 0.2f, 1.15f, 0.34f, 0.07f, 1.3f, 0.05f);
-        Rig.Part shoulders = rig.add(Material.LAPIS_BLOCK, 0, 1.9f, 0, 1.02f, 0.5f, 0.72f);
-        rig.add(Material.WHITE_CONCRETE, 0, 1.78f, 0.37f, 0.8f, 0.07f, 0.05f);
-        // capuz azul com marcas claras no topo
-        Rig.Part hood = rig.add(Material.LAPIS_BLOCK, 0, 2.5f, 0, 0.96f, 0.9f, 0.96f);
-        rig.add(Material.BLUE_ICE, -0.2f, 2.96f, 0.1f, 0.34f, 0.04f, 0.32f);
-        rig.add(Material.BLUE_ICE, 0.18f, 2.96f, -0.12f, 0.32f, 0.04f, 0.3f);
-        rig.add(Material.LIGHT_BLUE_CONCRETE, 0.0f, 2.96f, 0.28f, 0.5f, 0.04f, 0.16f);
-        rig.add(Material.LAPIS_BLOCK, 0, 2.2f, -0.52f, 0.96f, 0.6f, 0.14f);
-        // rosto de saqueador: máscara cinza, olhos vermelhos e nariz comprido
-        rig.add(Material.LIGHT_GRAY_CONCRETE, 0, 2.46f, 0.49f, 0.64f, 0.7f, 0.06f);
-        rig.add(Material.BLACK_CONCRETE, -0.17f, 2.56f, 0.53f, 0.15f, 0.1f, 0.04f);
-        rig.add(Material.BLACK_CONCRETE, 0.17f, 2.56f, 0.53f, 0.15f, 0.1f, 0.04f);
-        rig.add(Material.RED_CONCRETE, -0.17f, 2.56f, 0.555f, 0.07f, 0.07f, 0.03f);
-        rig.add(Material.RED_CONCRETE, 0.17f, 2.56f, 0.555f, 0.07f, 0.07f, 0.03f);
-        rig.add(Material.CYAN_TERRACOTTA, 0, 2.36f, 0.6f, 0.17f, 0.36f, 0.2f);
-        rig.add(Material.GRAY_CONCRETE, 0, 2.24f, 0.54f, 0.5f, 0.06f, 0.04f);
-        body = new Rig.Part[] {hem, robe, shoulders, hood};
-        // mangas: cruzadas à frente em repouso, erguidas ao invocar
-        for (int i = 0; i < 2; i++) {
-            arms[i][0] = rig.add(Material.LAPIS_BLOCK, 0, 0, 0, 0.42f, 0.66f, 0.42f);
-            arms[i][1] = rig.add(Material.LIGHT_GRAY_CONCRETE, 0, 0, 0, 0.44f, 0.1f, 0.44f);
-            arms[i][2] = rig.add(Material.CYAN_CONCRETE, 0, 0, 0, 0.45f, 0.1f, 0.45f);
-        }
         // fragmentos de gelo orbitando
         for (int i = 0; i < orbit.length; i++) {
             orbit[i] = rig.add(i % 2 == 0 ? Material.BLUE_ICE : Material.PACKED_ICE, 0, 0, 0, 0.2f, 0.34f, 0.2f).world();
@@ -176,21 +147,19 @@ final class Iceologer extends BossFight {
         boolean sleeping = state == State.DORMANT || state == State.WAKING && stateTicks < 42;
         casing.visible = sleeping;
         casingBase.visible = sleeping || state == State.WAKING;
-        for (int i = 0; i < 2; i++) {
-            double s = i == 0 ? -1 : 1;
-            double c = ease(cast);
-            double theta = Math.toRadians(-s * (90 - 60 * c));
-            double ax = -Math.sin(theta);
-            double ay = Math.cos(theta);
-            float cx = (float) (s * (0.2 + 0.6 * c));
-            float cy = (float) (1.3 + 0.7 * c + Math.sin(age * 0.2 + i) * 0.02 * c);
-            float cz = (float) (0.42 - 0.12 * c);
-            double[] reach = {0, 0.31, 0.22};
-            for (int k = 0; k < 3; k++) {
-                Rig.Part part = arms[i][k];
-                part.pos.set((float) (cx + ax * reach[k]), (float) (cy + ay * reach[k]), cz);
-                part.rot.identity().rotateZ((float) theta);
-            }
+        double moved = Math.hypot(pos.getX() - lastX, pos.getZ() - lastZ);
+        lastX = pos.getX();
+        lastZ = pos.getZ();
+        if (state == State.DYING) {
+            model.play("death");
+        } else if (cast > 0.35 && state != State.DORMANT) {
+            model.play("cast");
+        } else if (moved > 0.02 && state == State.ACTIVE) {
+            model.play("walk");
+            model.speed((float) Math.min(2.0, 0.7 + moved * 5));
+        } else {
+            model.play("idle");
+            model.speed(1f);
         }
         for (int i = 0; i < orbit.length; i++) {
             double a = age * 0.06 + i * Math.PI / 2;
@@ -216,10 +185,7 @@ final class Iceologer extends BossFight {
                         pos.getZ() + Math.sin(-ang) * 1.2, 1, 0, 0, 0, 0, CYAN);
             }
         }
-        float shake = hurtTicks > 0 ? 0.04f : 0f;
-        for (Rig.Part part : body) {
-            part.pos.x = hurtTicks > 0 ? (float) (Math.random() - 0.5) * 2 * shake : 0f;
-        }
+        model.offset("body", hurtTicks > 0 ? (float) (Math.random() - 0.5) * 1.2f : 0f, 0, 0);
         if (age % 8 == 0 && state != State.DORMANT) {
             world.spawnParticle(Particle.SNOWFLAKE, pos.clone().add(0, 1.4, 0), 3, 0.6, 0.8, 0.6, 0.01);
         }
@@ -757,6 +723,7 @@ final class Iceologer extends BossFight {
             Shards.burst(plugin, pos.clone().add(0, 1.8, 0), 40, 0.8, 0.45f, Material.LAPIS_BLOCK, Material.BLUE_CONCRETE,
                     Material.PACKED_ICE, Material.BLUE_ICE, Material.LIGHT_GRAY_CONCRETE);
             rig.parts().forEach(part -> part.visible = false);
+            model.hideAll(true);
         }
     }
 

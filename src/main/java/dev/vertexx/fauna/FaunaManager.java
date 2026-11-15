@@ -5,7 +5,6 @@ import dev.vertexx.core.Msg;
 import dev.vertexx.core.Tab;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -142,9 +141,8 @@ public final class FaunaManager implements Listener {
 
     private void tickAll() {
         tick += 2;
-        Iterator<Critter> it = critters.values().iterator();
-        while (it.hasNext()) {
-            Critter critter = it.next();
+        // cópia: remover o mob (Rascal sumindo, golem desmontado…) dispara EntityRemoveEvent, que mexe no mapa
+        for (Critter critter : new java.util.ArrayList<>(critters.values())) {
             boolean keep;
             try {
                 keep = critter.tick();
@@ -154,7 +152,7 @@ public final class FaunaManager implements Listener {
             }
             if (!keep) {
                 critter.remove();
-                it.remove();
+                critters.values().removeIf(other -> other == critter);
             }
         }
         long interval = Math.max(2, plugin.getConfig().getInt("fauna.spawn-interval-seconds", 12)) * 20L;

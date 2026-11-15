@@ -41,6 +41,7 @@ public final class PluginMain extends JavaPlugin {
     private MobManager mobs;
     private BossManager bosses;
     private FaunaManager fauna;
+    private dev.vertexx.model.Models entityModels;
     private RpgManager rpg;
     private SkillManager skills;
     private UpgradeManager upgrades;
@@ -58,6 +59,7 @@ public final class PluginMain extends JavaPlugin {
         resourcePack = new ResourcePackManager(this);
         models = new ModelManager(this);
         panel = new PanelManager(this);
+        entityModels = new dev.vertexx.model.Models(this);
         mobs = new MobManager(this);
         bosses = new BossManager(this);
         fauna = new FaunaManager(this);
@@ -189,6 +191,11 @@ public final class PluginMain extends JavaPlugin {
 
     public FaunaManager fauna() {
         return fauna;
+    }
+
+    /** Modelos de entidade (bbmodel compilado) usados por bosses e criaturas. */
+    public dev.vertexx.model.Models entityModels() {
+        return entityModels;
     }
 
     public BossManager bosses() {
