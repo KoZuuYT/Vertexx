@@ -369,6 +369,12 @@ def build_assets():
     import menus
     menus.build(NS, KINGDOMS, render_emblem, save, write_json)
 
+    # atlas: as texturas dos modelos de entidade ficam em textures/entity/, que o atlas padrão (block/ e item/)
+    # não inclui; sem isso o modelo aparece com a textura "faltando"
+    atlas = {"sources": [{"type": "minecraft:directory", "source": "entity", "prefix": "entity/"}]}
+    write_json(NS / "atlases" / "blocks.json", atlas)
+    write_json(NS / "atlases" / "items.json", atlas)
+
     # pack.mcmeta (formato com versão maior/menor do 26.x)
     write_json(PACK / "pack.mcmeta", {"pack": {
         "description": "§dVertexx §7— menus, status e cinemáticas",

@@ -195,6 +195,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
             return;
         }
         Player player = event.getPlayer();
+        plugin.getLogger().info("Pacote de " + player.getName() + ": " + event.getStatus());
         boolean cinematic = false;
         switch (event.getStatus()) {
             case SUCCESSFULLY_LOADED -> {
