@@ -2,7 +2,7 @@ name: Vertexx
 version: '${version}'
 main: dev.vertexx.PluginMain
 api-version: '26.3'
-description: Plugin customizado do SMP pacífico Vertexx (waystones, túmulos, mobs nivelados, status e upgrades).
+description: Plugin customizado do SMP pacífico Vertexx (waystones, túmulos, mobs nivelados, bosses, status e upgrades).
 author: KoZuuYT
 website: https://github.com/KoZuuYT/Vertexx
 
@@ -20,7 +20,7 @@ commands:
     aliases: [status, skills]
   vertexx:
     description: Painel do Vertexx (administradores), Guia em livro para todos e atualização pelo GitHub.
-    usage: /vertexx [painel|livro|versao|atualizar]
+    usage: /vertexx [painel|livro|mob|xp|boss|versao|atualizar]
 
 permissions:
   vertexx.admin:

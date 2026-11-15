@@ -281,6 +281,6 @@ public final class AutoUpdater implements Listener, TabExecutor {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-        return args.length == 1 ? List.of("versao", "atualizar") : List.of();
+        return args.length == 1 ? dev.vertexx.core.Tab.of(args[0], "versao", "atualizar") : List.of();
     }
 }

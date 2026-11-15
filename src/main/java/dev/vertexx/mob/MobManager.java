@@ -72,6 +72,12 @@ public final class MobManager implements Listener {
     private record Calc(int level, int structureBonus) {
     }
 
+    /** Pedido de teste: aplicado ao próximo mob do tipo criado por {@link #spawnTest}. */
+    private record Forced(EntityType type, int level, boolean elite, List<Trait> traits) {
+    }
+
+    private Forced forced;
+
     private static final class Tracker {
         final BossBar bar;
         final UUID mob;
@@ -155,7 +161,13 @@ public final class MobManager implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSpawn(CreatureSpawnEvent event) {
         if (enabled() && event.getEntity() instanceof LivingEntity living) {
-            assign(living, event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.SLIME_SPLIT, -1, false, false);
+            Forced request = forced;
+            if (request != null && living.getType() == request.type()) {
+                forced = null;
+                assign(living, false, request.level(), request.elite(), true, request.traits());
+                return;
+            }
+            assign(living, event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.SLIME_SPLIT, -1, false, false, null);
         }
     }
 
@@ -167,22 +179,39 @@ public final class MobManager implements Listener {
         }
         for (Entity entity : event.getEntities()) {
             if (entity instanceof LivingEntity living && level(living) == 0) {
-                assign(living, true, -1, false, false);
+                assign(living, true, -1, false, false, null);
             }
         }
     }
 
-    /** Cria um mob de teste com nível/elite definidos (comando de administração). */
-    public LivingEntity spawnTest(Location at, EntityType type, int level, boolean elite) {
-        Entity entity = at.getWorld().spawnEntity(at, type, CreatureSpawnEvent.SpawnReason.CUSTOM);
-        if (entity instanceof LivingEntity living && level(living) == 0) {
-            assign(living, false, level, elite, true);
-            return living;
+    /**
+     * Cria um mob com nível, elite e traits definidos (comando e painel de administração).
+     * O pedido é registrado antes do spawn porque o próprio evento de nascimento já atribui um nível natural.
+     *
+     * @param traits traits desejados; vazio sorteia pelas regras normais
+     * @return o mob criado, ou {@code null} se o tipo não aceita nível (ex.: aldeões, bosses)
+     */
+    public LivingEntity spawnTest(Location at, EntityType type, int level, boolean elite, List<Trait> traits) {
+        forced = new Forced(type, level, elite, traits == null ? List.of() : traits);
+        Entity entity;
+        try {
+            entity = at.getWorld().spawnEntity(at, type, CreatureSpawnEvent.SpawnReason.CUSTOM);
+        } finally {
+            forced = null;
         }
-        return entity instanceof LivingEntity living ? living : null;
+        return entity instanceof LivingEntity living && level(living) > 0 ? living : null;
     }
 
-    private void assign(LivingEntity entity, boolean noElite, int forcedLevel, boolean forceElite, boolean force) {
+    /** Tipos que recebem nível (hostis comuns), para sugestões e para o painel. */
+    public static boolean accepts(EntityType type) {
+        Class<? extends Entity> cls = type.getEntityClass();
+        return type.isSpawnable() && cls != null && Enemy.class.isAssignableFrom(cls)
+                && LivingEntity.class.isAssignableFrom(cls) && !Boss.class.isAssignableFrom(cls)
+                && type != EntityType.WARDEN;
+    }
+
+    private void assign(LivingEntity entity, boolean noElite, int forcedLevel, boolean forceElite, boolean force,
+                        List<Trait> forcedTraits) {
         if (!eligible(entity) || level(entity) > 0) {
             return;
         }
@@ -198,6 +227,9 @@ public final class MobManager implements Listener {
         }
 
         List<Trait> traits = new ArrayList<>();
+        if (forcedTraits != null && !forcedTraits.isEmpty()) {
+            traits.addAll(forcedTraits);
+        } else {
         double traitChance = c.getDouble("trait-chance", 0.30) + calc.structureBonus() * 0.01;
         if (elite) {
             traits.addAll(pick(Trait.normal(), 1 + random.nextInt(2), traits));
@@ -207,6 +239,7 @@ public final class MobManager implements Listener {
             if (random.nextDouble() < 0.5) {
                 traits.addAll(pick(Trait.normal(), 1, traits));
             }
+        }
         }
 
         applyAttributes(entity, level, elite, traits);

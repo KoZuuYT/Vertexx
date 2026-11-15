@@ -147,4 +147,12 @@ public final class Cinematics {
     public void eliteSlain(Player player, String mobName) {
         play(player, Banner.ELITE, "<light_purple><bold>Elite derrotado", "<light_purple>" + mobName, false);
     }
+
+    public void bossAwakens(Player player, String fallbackName, String subtitle) {
+        play(player, Banner.ELITE, fallbackName, subtitle, true);
+    }
+
+    public void bossSlain(Player player, String bossName) {
+        play(player, Banner.LEVEL, "<gold><bold>✦ VITÓRIA ✦", "<white>Você derrotou " + bossName, true);
+    }
 }

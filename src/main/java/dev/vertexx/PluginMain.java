@@ -1,5 +1,6 @@
 package dev.vertexx;
 
+import dev.vertexx.boss.BossManager;
 import dev.vertexx.core.MenuListener;
 import dev.vertexx.grave.GraveCommand;
 import dev.vertexx.grave.GraveListener;
@@ -37,6 +38,7 @@ public final class PluginMain extends JavaPlugin {
     private ModelManager models;
     private PanelManager panel;
     private MobManager mobs;
+    private BossManager bosses;
     private RpgManager rpg;
     private SkillManager skills;
     private UpgradeManager upgrades;
@@ -55,6 +57,7 @@ public final class PluginMain extends JavaPlugin {
         models = new ModelManager(this);
         panel = new PanelManager(this);
         mobs = new MobManager(this);
+        bosses = new BossManager(this);
         rpg = new RpgManager(this);
         skills = new SkillManager(this);
         upgrades = new UpgradeManager(this);
@@ -67,6 +70,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(models, this);
         plugins.registerEvents(panel, this);
         plugins.registerEvents(mobs, this);
+        plugins.registerEvents(bosses, this);
         plugins.registerEvents(rpg, this);
         plugins.registerEvents(skills, this);
         plugins.registerEvents(upgrades, this);
@@ -82,6 +86,7 @@ public final class PluginMain extends JavaPlugin {
         updater.start();
         resourcePack.startResolver();
         mobs.start();
+        bosses.start();
         rpg.start();
 
         loadAsync();
@@ -95,12 +100,14 @@ public final class PluginMain extends JavaPlugin {
             YamlConfiguration packData = resourcePack.read();
             YamlConfiguration panelData = panel.read();
             YamlConfiguration rpgData = rpg.read();
+            YamlConfiguration bossData = bosses.read();
             Bukkit.getScheduler().runTask(this, () -> {
                 waystones.apply(waystoneData);
                 graves.apply(graveData);
                 resourcePack.apply(packData);
                 panel.apply(panelData);
                 rpg.apply(rpgData);
+                bosses.apply(bossData);
                 models.load(waystones.all());
                 models.start();
                 waystones.startAmbient();
@@ -121,9 +128,11 @@ public final class PluginMain extends JavaPlugin {
             resourcePack.saveNow();
             panel.saveNow();
             rpg.saveNow();
+            bosses.saveNow();
         }
         models.shutdown();
         mobs.shutdown();
+        bosses.shutdown();
         rpg.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }
@@ -170,6 +179,10 @@ public final class PluginMain extends JavaPlugin {
 
     public MobManager mobs() {
         return mobs;
+    }
+
+    public BossManager bosses() {
+        return bosses;
     }
 
     public AutoUpdater updater() {

@@ -136,3 +136,33 @@ updater:
   # true = desliga o servidor quando estiver vazio e houver atualização baixada.
   # Só ative se o seu painel/script reinicia o servidor sozinho.
   restart-when-empty: false
+
+bosses:
+  # Bosses com sala propria: Iceologer (Castelo de Gelo, em terras geladas) e Wildfire
+  # (Camara do Wildfire, anexa a fortalezas do Nether). As salas sao construidas sozinhas
+  # quando um jogador explora a regiao.
+  enabled: true
+  # Minutos ate o boss voltar depois de derrotado (0 = nunca).
+  respawn-minutes: 90
+  # Multiplicador de dano de todos os ataques dos bosses.
+  damage-multiplier: 1.0
+  # XP de Luta concedido a cada participante ao vencer.
+  xp-reward: 600
+  scan-interval-seconds: 5
+  wildfire:
+    health: 450
+    shockwave-damage: 9
+    fireball-damage: 5
+    lunge-damage: 8
+    graze-damage: 3
+    # Chance de cada fortaleza ganhar uma Camara do Wildfire.
+    fortress-chance: 0.8
+  iceologer:
+    health: 380
+    spike-damage: 6
+    iceberg-damage: 11
+    # Tamanho (em blocos) da celula usada para sortear castelos e chance por celula gelada.
+    cell-size: 1100
+    castle-chance: 0.6
+    min-spawn-distance: 500
+    min-spacing: 900

@@ -56,8 +56,12 @@ Depois de instalado, o plugin se atualiza sozinho:
 
 - **Guia do Vertexx:** um livro entregue no primeiro login (e com `/vertexx livro`). Clique direito abre o
   painel com Waystones, túmulos e comandos.
+- **Wiki** (na tela inicial do painel, para todos): todos os traits dos mobs, os mobs Elite (chances, drops,
+  níveis) e os bosses.
 - **Administradores** (`/vertexx` ou o próprio livro) veem também a aba *Administração*: status, modelos
-  renderizados, atualização pelo GitHub, alternadores de configuração e a lista de todos os Waystones.
+  renderizados, atualização pelo GitHub, alternadores de configuração, a lista de todos os Waystones e os
+  comandos de teste em forma de menu: **Criar mobs** (tipo, nível, elite, traits), **Conceder XP** e
+  **Bosses** (criar teste, construir sala, despertar, reiniciar).
   Quem não tem OP não vê nada disso, nem pelo livro.
 
 ### Túmulos
@@ -89,6 +93,23 @@ Controles: **F** usa a habilidade ativa selecionada, **Shift + F** troca, e agac
 Machadeiro. Nenhuma habilidade afeta jogadores. Subir de nível toca uma cinemática (banner do resource
 pack, clarão e sons; sem o pacote, título, partículas e sons vanilla).
 
+### Bosses
+
+Dois bosses com sala própria, feitos de *display entities* (visual 3D que não depende de resource pack),
+com animações, barra de chefe, cinemática ao despertar e sala selada durante a luta:
+
+| Boss | Onde vive | Ataques |
+| --- | --- | --- |
+| **Wildfire** (o Blaze chefe da Mojang) | **Câmara do Wildfire**: uma ala especial de tijolos do Nether, anexa às fortalezas, ligada por um corredor | **Onda de Choque** (anel de chamas: pule), **Chuva de Bolas de Fogo** (leque e anel), **Investida Aérea** (agarra, queima e arremessa; se errar, fica exposto por 3,5 s com +50% de dano). Quatro **escudos giratórios** bloqueiam projéteis |
+| **Iceologer** (o saqueador do gelo da Mojang) | **Castelo de Gelo**: muralha, quatro torres e um torreão cujo salão é a sala do boss, em terras geladas | **Espinhos de Gelo** (invoca à la Evoker e lança um a um), **Iceberg** (arranca o chão, carrega, marca o alvo e arremessa) |
+
+- As salas são **construídas sozinhas** quando alguém explora a região (fortalezas do Nether e biomas
+  gelados), com chance e distâncias mínimas configuráveis; nada é alterado antes disso.
+- Entrar no salão desperta o boss; a porta é **selada** até a luta acabar (ou todos caírem, e então ele reinicia).
+- A vida cresce 60% por jogador extra (até 4). Abaixo de 50% o boss entra em **fúria**.
+- Drops: Essência Elite, recursos raros e um troféu, mais XP de Luta. Renasce depois de `respawn-minutes`.
+- Admin: `/vertexx boss list|spawn|build|wake|attack|reset|kill|tp` (`bosses:` no `config.yml`).
+
 ### Upgrades de fornalhas e baús
 
 **Agache e clique com a mão vazia** em uma fornalha (comum, alto-forno ou defumador) ou baú (baú, baú
@@ -114,13 +135,15 @@ emblemas próprios. Sem o pacote, aparecem com os painéis de vidro vanilla.
 | `/tumulo chave [jogador] [qtd]` | admin | Entrega Chaves de Túmulo |
 | `/pacote [aceitar\|recusar]` | todos | Resource pack do servidor |
 | `/vstats [habilidades\|info]` | todos | Status, árvore de habilidades e informações |
-| `/vertexx mob <tipo> [nivel] [elite]` | admin | Cria um mob nivelado para teste |
+| `/vertexx mob <tipo> [nível] [elite] [traits...]` | admin | Cria um mob nivelado (parâmetros em qualquer ordem) |
 | `/vertexx xp <jogador> <status> <qtd>` | admin | Concede XP de status |
+| `/vertexx boss <list\|spawn\|build\|wake\|attack\|reset\|kill\|tp>` | admin | Controle dos bosses |
 | `/vertexx` | admin | Abre o painel completo |
 | `/vertexx livro` | todos | Recebe o Guia do Vertexx |
 | `/vertexx versao\|atualizar` | admin | Versão e atualização |
 
-Administrador = permissão `vertexx.admin` (padrão: OP).
+Administrador = permissão `vertexx.admin` (padrão: OP). Todos os comandos têm **autocomplete** (tipos de mob,
+traits, status, jogadores online, bosses, mundos...).
 
 ## Arquivos no servidor
 
@@ -134,6 +157,7 @@ Tudo fica em `plugins/Vertexx/`, salvo de forma assíncrona:
 | `resourcepack.yml` | Quem aceitou ou recusou o pacote |
 | `panel.yml` | Quem já recebeu o Guia |
 | `rpg.yml` | Status, nível geral, pontos e habilidades dos jogadores |
+| `bosses.yml` | Salas de boss construídas, renascimento, selos e locais já sorteados |
 
 ## Estrutura do projeto
 
@@ -178,6 +202,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.10.0 | Mobs nivelados por distância, dimensão e estruturas; traits; mobs Elite com barra de chefe e Essência Elite |
 | 0.11.0 | Status de atividade, nível geral, árvore de habilidades (16), `/vstats` com 3 páginas, cinemáticas com banners do resource pack |
 | 0.12.0 | Upgrades de fornalhas (velocidade) e baús (capacidade em páginas) por níveis com recursos e Essência Elite; menu de upgrade com tema próprio |
+| 0.13.0 | Bosses Wildfire (Câmara do Wildfire) e Iceologer (Castelo de Gelo) com salas construídas sozinhas; `/vertexx mob` com nível, elite e traits; autocomplete em todos os comandos; Wiki de traits, Elites e bosses no painel; comandos de admin no painel |
 ## Servidor de teste (Windows)
 
 `tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta

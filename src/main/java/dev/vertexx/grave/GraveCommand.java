@@ -3,7 +3,6 @@ package dev.vertexx.grave;
 import dev.vertexx.PluginMain;
 import dev.vertexx.core.Fx;
 import dev.vertexx.core.Msg;
-import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -79,19 +78,18 @@ public final class GraveCommand implements TabExecutor {
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
-        List<String> options = new ArrayList<>();
         if (!sender.hasPermission("vertexx.admin")) {
-            return options;
+            return List.of();
         }
-        if (args.length == 1 && "chave".startsWith(args[0].toLowerCase())) {
-            options.add("chave");
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("chave")) {
-            for (Player online : Bukkit.getOnlinePlayers()) {
-                if (online.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
-                    options.add(online.getName());
-                }
-            }
+        if (args.length == 1) {
+            return dev.vertexx.core.Tab.of(args[0], "chave");
         }
-        return options;
+        if (args.length == 2 && args[0].equalsIgnoreCase("chave")) {
+            return dev.vertexx.core.Tab.players(args[1]);
+        }
+        if (args.length == 3 && args[0].equalsIgnoreCase("chave")) {
+            return dev.vertexx.core.Tab.of(args[2], "1", "2", "5", "10");
+        }
+        return List.of();
     }
 }
