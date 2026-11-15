@@ -1,0 +1,55 @@
+{
+  "intro.drone": {
+    "sounds": [
+      {
+        "name": "vertexx:intro/drone",
+        "stream": true
+      }
+    ]
+  },
+  "intro.riser": {
+    "sounds": [
+      "vertexx:intro/riser"
+    ]
+  },
+  "intro.boom": {
+    "sounds": [
+      "vertexx:intro/boom"
+    ]
+  },
+  "intro.whoosh": {
+    "sounds": [
+      "vertexx:intro/whoosh"
+    ]
+  },
+  "intro.tick": {
+    "sounds": [
+      "vertexx:intro/tick"
+    ]
+  },
+  "intro.confirm": {
+    "sounds": [
+      "vertexx:intro/confirm"
+    ]
+  },
+  "intro.title": {
+    "sounds": [
+      "vertexx:intro/title"
+    ]
+  },
+  "intro.stinger.enternais": {
+    "sounds": [
+      "vertexx:intro/stinger_enternais"
+    ]
+  },
+  "intro.stinger.aurudos": {
+    "sounds": [
+      "vertexx:intro/stinger_aurudos"
+    ]
+  },
+  "intro.stinger.cafetoes": {
+    "sounds": [
+      "vertexx:intro/stinger_cafetoes"
+    ]
+  }
+}

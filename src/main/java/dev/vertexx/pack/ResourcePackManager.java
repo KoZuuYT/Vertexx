@@ -10,7 +10,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.kyori.adventure.resource.ResourcePackInfo;
 import net.kyori.adventure.resource.ResourcePackRequest;
 import org.bukkit.Sound;
@@ -35,10 +37,28 @@ public final class ResourcePackManager implements Listener, TabExecutor {
     private final YamlStore store;
     /** {@code true} = aceitou, {@code false} = recusou, ausente = ainda não respondeu. */
     private final Map<UUID, Boolean> choices = new HashMap<>();
+    /** Quem já tem o pacote carregado nesta sessão de jogo. */
+    private final Set<UUID> loaded = ConcurrentHashMap.newKeySet();
+    private final PackResolver resolver;
 
     public ResourcePackManager(PluginMain plugin) {
         this.plugin = plugin;
         this.store = new YamlStore(plugin, "resourcepack.yml");
+        this.resolver = new PackResolver(plugin);
+    }
+
+    /** Inicia a busca automática do pacote na release mais recente do GitHub. */
+    public void startResolver() {
+        resolver.start();
+    }
+
+    public boolean isLoaded(Player player) {
+        return loaded.contains(player.getUniqueId());
+    }
+
+    /** {@code true} se o jogador recusou o pacote anteriormente. */
+    public boolean declined(Player player) {
+        return Boolean.FALSE.equals(choices.get(player.getUniqueId()));
     }
 
     // ── Persistência ────────────────────────────────────────────
@@ -78,8 +98,16 @@ public final class ResourcePackManager implements Listener, TabExecutor {
 
     // ── Fluxo ───────────────────────────────────────────────────
 
+    /** O link manual do config.yml tem prioridade; sem ele, vale o pacote descoberto na release do GitHub. */
     private String url() {
-        return plugin.getConfig().getString("resource-pack.url", "").strip();
+        String manual = plugin.getConfig().getString("resource-pack.url", "").strip();
+        return manual.isEmpty() ? resolver.url() : manual;
+    }
+
+    private String sha1() {
+        String manual = plugin.getConfig().getString("resource-pack.url", "").strip();
+        return manual.isEmpty() ? resolver.sha1()
+                : plugin.getConfig().getString("resource-pack.sha1", "").strip().toLowerCase(Locale.ROOT);
     }
 
     public boolean isConfigured() {
@@ -93,6 +121,9 @@ public final class ResourcePackManager implements Listener, TabExecutor {
     /** Chamado quando o jogador entra (já com reino) ou conclui o onboarding. */
     public void greet(Player player) {
         if (!isConfigured()) {
+            return;
+        }
+        if (loaded.contains(player.getUniqueId())) {
             return;
         }
         Boolean choice = choices.get(player.getUniqueId());
@@ -119,15 +150,20 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         Fx.sound(player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.6f, 1.5f);
     }
 
+    /** Envia o pacote sem convite no chat (usado pela cerimônia de entrada, que depende dele). */
+    public void send(Player player) {
+        apply(player);
+    }
+
     private void apply(Player player) {
-        String hash = plugin.getConfig().getString("resource-pack.sha1", "").strip().toLowerCase(Locale.ROOT);
+        String hash = sha1();
         try {
             ResourcePackInfo info = ResourcePackInfo.resourcePackInfo(packId(), URI.create(url()), hash);
             player.sendResourcePacks(ResourcePackRequest.resourcePackRequest()
                     .packs(info)
                     .required(false)
                     .replace(false)
-                    .prompt(Msg.mm("<gray>Pacote visual opcional do servidor."))
+                    .prompt(Msg.mm("<gray>Pacote visual do servidor (cerimônia dos reinos, sons e ícones)."))
                     .build());
         } catch (IllegalArgumentException e) {
             plugin.getLogger().warning("resource-pack.url inválida no config.yml: " + e.getMessage());
@@ -140,19 +176,43 @@ public final class ResourcePackManager implements Listener, TabExecutor {
             return;
         }
         Player player = event.getPlayer();
+        boolean cinematic = plugin.intro().isActive(player);
         switch (event.getStatus()) {
             case SUCCESSFULLY_LOADED -> {
-                Msg.actionBar(player, "<green>✔ Pacote visual carregado");
-                Fx.sound(player, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 1.2f);
+                loaded.add(player.getUniqueId());
+                if (!Boolean.TRUE.equals(choices.get(player.getUniqueId()))) {
+                    choices.put(player.getUniqueId(), true);
+                    store.saveAsync(snapshot());
+                }
+                if (!cinematic) {
+                    Msg.actionBar(player, "<green>✔ Pacote visual carregado");
+                    Fx.sound(player, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 1.2f);
+                }
             }
-            case DECLINED -> Msg.send(player, "<gray>Pacote recusado no cliente. Sem problemas: use <white>/pacote aceitar</white> se mudar de ideia.");
+            case DECLINED -> {
+                loaded.remove(player.getUniqueId());
+                choices.put(player.getUniqueId(), false);
+                store.saveAsync(snapshot());
+                if (!cinematic) {
+                    Msg.send(player, "<gray>Pacote recusado no cliente. Sem problemas: use <white>/pacote aceitar</white> se mudar de ideia.");
+                }
+            }
             case FAILED_DOWNLOAD, FAILED_RELOAD, INVALID_URL -> {
-                Msg.send(player, "<red>Não foi possível carregar o pacote visual. <gray>O jogo segue normalmente sem ele.");
-                Fx.deny(player);
+                loaded.remove(player.getUniqueId());
+                if (!cinematic) {
+                    Msg.send(player, "<red>Não foi possível carregar o pacote visual. <gray>O jogo segue normalmente sem ele.");
+                    Fx.deny(player);
+                }
             }
             default -> {
             }
         }
+        plugin.intro().onPackStatus(player, event.getStatus());
+    }
+
+    @EventHandler
+    public void onQuit(org.bukkit.event.player.PlayerQuitEvent event) {
+        loaded.remove(event.getPlayer().getUniqueId());
     }
 
     // ── /pacote ─────────────────────────────────────────────────
@@ -180,6 +240,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
                 choices.put(player.getUniqueId(), false);
                 store.saveAsync(snapshot());
                 player.removeResourcePacks(packId());
+                loaded.remove(player.getUniqueId());
                 Fx.click(player);
                 Msg.send(player, "<gray>Tudo certo, você segue com o visual vanilla.");
             }

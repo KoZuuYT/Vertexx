@@ -60,6 +60,9 @@ public final class KingdomListener implements Listener {
 
     public void begin(Player player) {
         pending.put(player.getUniqueId(), plugin.getConfig().getInt("onboarding.open-delay-ticks", 40));
+        if (plugin.intro().enabled()) {
+            plugin.intro().schedule(player); // cerimônia cinematográfica; o menu só entra como reserva
+        }
         if (task == null) {
             task = Bukkit.getScheduler().runTaskTimer(plugin, this::tick, TASK_PERIOD, TASK_PERIOD);
         }
@@ -75,6 +78,9 @@ public final class KingdomListener implements Listener {
             if (player == null) {
                 iterator.remove();
                 continue;
+            }
+            if (plugin.intro().isActive(player)) {
+                continue; // a cerimônia cuida da câmera, dos efeitos e da escolha
             }
             boolean open = player.getOpenInventory().getTopInventory().getHolder(false) instanceof KingdomGUI;
             if (!open) {
@@ -107,6 +113,14 @@ public final class KingdomListener implements Listener {
 
     /** Chamado pelo {@link KingdomGUI} quando o jogador confirma a escolha. */
     public void complete(Player player, Kingdom kingdom) {
+        complete(player, kingdom, false);
+    }
+
+    /**
+     * Atribui o reino. Com {@code cinematic}, a cerimônia já exibiu o título e os efeitos,
+     * então aqui só ficam a atribuição, o anúncio e os ganchos seguintes.
+     */
+    public void complete(Player player, Kingdom kingdom, boolean cinematic) {
         if (pending.remove(player.getUniqueId()) == null) {
             return;
         }
@@ -114,14 +128,16 @@ public final class KingdomListener implements Listener {
         player.closeInventory();
         updateTab(player);
 
-        player.showTitle(Title.title(
-                Msg.mm("<bold>" + kingdom.styled()),
-                Msg.mm("<gray>Você agora é <white>" + Rank.MEMBRO.displayName() + "</white> do reino"),
-                Title.Times.times(Duration.ofMillis(400), Duration.ofSeconds(3), Duration.ofMillis(900))));
-        Fx.sound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f);
-        Location center = player.getLocation().add(0, 1, 0);
-        Fx.burst(center, Particle.TOTEM_OF_UNDYING, 60, 0.4, 0.45);
-        Fx.ring(player.getLocation().add(0, 0.1, 0), Particle.END_ROD, 1.6, 28);
+        if (!cinematic) {
+            player.showTitle(Title.title(
+                    Msg.mm("<bold>" + kingdom.styled()),
+                    Msg.mm("<gray>Você agora é <white>" + Rank.MEMBRO.displayName() + "</white> do reino"),
+                    Title.Times.times(Duration.ofMillis(400), Duration.ofSeconds(3), Duration.ofMillis(900))));
+            Fx.sound(player, Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.8f, 1.0f);
+            Location center = player.getLocation().add(0, 1, 0);
+            Fx.burst(center, Particle.TOTEM_OF_UNDYING, 60, 0.4, 0.45);
+            Fx.ring(player.getLocation().add(0, 0.1, 0), Particle.END_ROD, 1.6, 28);
+        }
 
         Bukkit.broadcast(Msg.mm(Msg.PREFIX + "<white><player></white> <gray>juntou-se ao reino " + kingdom.styled() + "<gray>.",
                 Placeholder.unparsed("player", player.getName())));
@@ -207,7 +223,7 @@ public final class KingdomListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onMove(PlayerMoveEvent event) {
-        if (pending.isEmpty() || !isPending(event.getPlayer())) {
+        if (pending.isEmpty() || !isPending(event.getPlayer()) || plugin.intro().isActive(event.getPlayer())) {
             return;
         }
         Location from = event.getFrom();

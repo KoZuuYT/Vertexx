@@ -83,6 +83,11 @@ public enum Kingdom {
         return colorFrom;
     }
 
+    /** Segunda cor do gradiente (mais saturada). */
+    public String colorTo() {
+        return colorTo;
+    }
+
     /** Nome oficial em MiniMessage, com o gradiente do reino. O nome não contém tags. */
     public String styled() {
         return "<gradient:" + colorFrom + ":" + colorTo + ">" + displayName + "</gradient>";

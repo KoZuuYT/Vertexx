@@ -7,6 +7,7 @@ import dev.vertexx.grave.GraveManager;
 import dev.vertexx.honor.CombatListener;
 import dev.vertexx.honor.HonorCommand;
 import dev.vertexx.honor.HonorManager;
+import dev.vertexx.intro.IntroManager;
 import dev.vertexx.kingdom.KingdomCommand;
 import dev.vertexx.kingdom.KingdomListener;
 import dev.vertexx.kingdom.KingdomManager;
@@ -39,6 +40,7 @@ public final class PluginMain extends JavaPlugin {
     private HonorManager honor;
     private CombatListener combat;
     private ResourcePackManager resourcePack;
+    private IntroManager intro;
     private ModelManager models;
     private PanelManager panel;
     private AutoUpdater updater;
@@ -57,6 +59,7 @@ public final class PluginMain extends JavaPlugin {
         honor = new HonorManager(this);
         combat = new CombatListener(this);
         resourcePack = new ResourcePackManager(this);
+        intro = new IntroManager(this);
         models = new ModelManager(this);
         panel = new PanelManager(this);
 
@@ -66,6 +69,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(new GraveListener(this), this);
         plugins.registerEvents(combat, this);
         plugins.registerEvents(resourcePack, this);
+        plugins.registerEvents(intro, this);
         plugins.registerEvents(models, this);
         plugins.registerEvents(panel, this);
 
@@ -78,6 +82,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(updater, this);
         register("vertexx", new PanelCommand(this));
         updater.start();
+        resourcePack.startResolver();
 
         loadAsync();
     }
@@ -112,6 +117,7 @@ public final class PluginMain extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        intro.shutdown();
         if (ready) {
             kingdoms.saveNow();
             waystones.saveNow();
@@ -146,6 +152,14 @@ public final class PluginMain extends JavaPlugin {
 
     public WaystoneManager waystones() {
         return waystones;
+    }
+
+    public IntroManager intro() {
+        return intro;
+    }
+
+    public ResourcePackManager resourcePack() {
+        return resourcePack;
     }
 
     public ModelManager models() {

@@ -9,14 +9,16 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 
 & (Join-Path $PSScriptRoot 'build.ps1')
+& (Join-Path $PSScriptRoot 'build-pack.ps1')
 
 $version = (Select-String -Path (Join-Path $root 'gradle.properties') -Pattern '^version=(.+)$').Matches[0].Groups[1].Value
 $tag = "v$version"
 $jar = Join-Path $root "libs\Vertexx-$version.jar"
+$pack = Join-Path $root "libs\Vertexx-Pack.zip"
 
 Push-Location $root
 try {
-    git add "libs/Vertexx-$version.jar"
+    git add "libs/Vertexx-$version.jar" "libs/Vertexx-Pack.zip" resourcepack
     git diff --cached --quiet
     if ($LASTEXITCODE -ne 0) { git commit -m "Exporta Vertexx-$version.jar" }
 
@@ -26,7 +28,7 @@ try {
     git push origin HEAD --tags
     if ($LASTEXITCODE -ne 0) { throw 'git push falhou.' }
 
-    gh release create $tag $jar --title "Vertexx $version" --generate-notes --latest
+    gh release create $tag $jar $pack --title "Vertexx $version" --generate-notes --latest
     if ($LASTEXITCODE -ne 0) { throw 'gh release create falhou.' }
 } finally {
     Pop-Location

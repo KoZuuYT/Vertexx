@@ -41,9 +41,17 @@ Depois de instalado, o plugin se atualiza sozinho:
 
 Os três reinos são fixos: **Enternais**, **Reino dos aurudos+67+ego** e **cafetões**.
 
-No primeiro login, um menu bloqueia o jogador (sem andar, sem dano, sem comandos) até ele selecionar
-um reino e confirmar. A escolha é permanente e o jogador entra como **Membro**. O símbolo do reino
-aparece no chat e no TAB.
+No primeiro login o jogador assiste a uma **cerimônia cinematográfica**: a câmera sobe para um palco
+no céu noturno, três grandes bandeirões se erguem com música, partículas e a vinheta de cada reino, e
+ele escolhe segurando o **Cetro do Escolhido**: **botão esquerdo** move a seleção para a esquerda,
+**botão direito** para a direita e **agachar** confirma. A escolha é permanente; a câmera avança
+sobre o bandeirão, a tela escurece e o jogador volta ao ponto de origem com o título do reino
+(emblema + nome) e o cargo **Membro**. O símbolo do reino aparece no chat e no TAB.
+
+A cerimônia usa o [resource pack do servidor](resourcepack/README.md) (modelos dos bandeirões,
+sons sintetizados, fontes de sobreposição). Quem recusa o pacote vê uma versão com estandartes
+vanilla e sons do jogo. Administradores podem rever tudo com `/vertexx cerimonia [jogador]`
+(ensaio, não altera o reino). Para voltar ao menu clássico: `onboarding.mode: menu` no `config.yml`.
 
 Alianças são tratadas pelos **Líderes** (definidos por um administrador): um líder propõe com
 `/reino aliar <reino>` e o outro aceita com o mesmo comando.
@@ -117,10 +125,11 @@ Membros do mesmo reino e de reinos aliados não se ferem (fogo amigo desativado)
 | `/tumulo chave [jogador] [qtd]` | admin | Entrega Chaves de Túmulo |
 | `/honra [jogador]` | todos | Mostra a honra |
 | `/honra definir <jogador> <valor>` | admin | Ajusta a honra |
-| `/pacote [aceitar\|recusar]` | todos | Resource pack opcional |
+| `/pacote [aceitar\|recusar]` | todos | Resource pack do servidor |
 | `/vertexx` | admin | Abre o painel completo |
 | `/vertexx livro` | todos | Recebe o Guia do Vertexx |
 | `/vertexx versao\|atualizar` | admin | Versão e atualização |
+| `/vertexx cerimonia [jogador]` | admin | Ensaio da cerimônia de escolha de reino |
 
 Os ids dos reinos nos comandos são `enternais`, `aurudos` e `cafetoes`.
 Administrador = permissão `vertexx.admin` (padrão: OP).
@@ -147,7 +156,8 @@ Vertexx/
 ├─ scripts/               build, release e sincronização
 ├─ tools/                 aplicativo VertexxServer.exe (liga/desliga o servidor de teste)
 ├─ docs/                  guia de desenvolvimento
-├─ resourcepack/          fontes do pacote visual (ainda vazio)
+├─ resourcepack/          resource pack gerado (texturas, fontes, modelos, sons)
+├─ tools/pack/            gerador do resource pack (Python) e zip determinístico
 └─ src/main/
    ├─ resources/          plugin.yml e config.yml
    └─ java/dev/vertexx/
@@ -158,7 +168,8 @@ Vertexx/
       ├─ panel/           painel, Guia (livro) e /vertexx
       ├─ grave/           túmulos e Chave de Túmulo
       ├─ honor/           honra e regras de combate
-      ├─ pack/            resource pack opcional
+      ├─ intro/           cerimônia cinematográfica de escolha de reino
+      ├─ pack/            resource pack: descoberta automática na release e envio
       └─ update/          auto-update pelo GitHub
 ```
 
@@ -175,6 +186,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.5.0 | Painel e Guia, modelo 3D animado das Waystones, personalização, rotas fixas, escolha de pagamento |
 | 0.6.0 | Modelo fiel à referência (olhos no lugar das runas), 8 skins, ondas de impacto e brilho na montagem, painel do reino (status, membros, diplomacia, mural), menu de Waystones com favoritos, ordenação e filtro |
 | 0.6.1 | Waystone menor que o jogador (escala 0,85) e display entities com brilho máximo (acabou o visual preto) |
+| 0.7.0 | Escolha de reino em cutscene (3 bandeirões, câmera, mouse + agachar), resource pack gerado e publicado na release, configurado automaticamente pelo plugin |
 
 ## Servidor de teste (Windows)
 

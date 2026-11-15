@@ -27,7 +27,7 @@ automaticamente pelo Gradle na primeira compilação.
    ```
 
 O script compila, exporta o jar para `libs/`, cria a tag `v<versão>`, envia tudo e cria a release
-no GitHub com o jar anexado. Os servidores baixam essa release sozinhos em até 30 minutos
+no GitHub com o jar e o `Vertexx-Pack.zip` (resource pack) anexados. Os servidores baixam essa release sozinhos em até 30 minutos
 (ou na hora, com `/vertexx atualizar`) e aplicam no reinício seguinte.
 
 A versão da release precisa ser **maior** que a instalada para o servidor atualizar

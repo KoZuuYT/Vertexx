@@ -1,0 +1,75 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/solid.png",
+      "ascent": 253,
+      "height": 512,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/emblem_enternais.png",
+      "ascent": 22,
+      "height": 22,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/emblem_aurudos.png",
+      "ascent": 22,
+      "height": 22,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/emblem_cafetoes.png",
+      "ascent": 22,
+      "height": 22,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/key_lmb.png",
+      "ascent": 8,
+      "height": 10,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/key_rmb.png",
+      "ascent": 8,
+      "height": 10,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/key_shift.png",
+      "ascent": 8,
+      "height": 10,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "space",
+      "advances": {
+        "": 4,
+        "": 12,
+        "": -4
+      }
+    }
+  ]
+}
