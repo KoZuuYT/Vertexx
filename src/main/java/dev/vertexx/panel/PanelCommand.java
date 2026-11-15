@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 /** {@code /vertexx}: painel (administradores), Guia para todos e utilitários de administração. */
 public final class PanelCommand implements TabExecutor {
 
-    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|versao|atualizar]";
+    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|versao|atualizar]";
 
     private final PluginMain plugin;
 
@@ -68,6 +68,13 @@ public final class PanelCommand implements TabExecutor {
                     Msg.send(sender, "<red>Você não tem permissão.");
                 } else {
                     giveXp(sender, args);
+                }
+            }
+            case "rejeitado", "rejeitados", "fauna" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else {
+                    plugin.fauna().command(sender, args);
                 }
             }
             case "boss" -> {
@@ -183,7 +190,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {
@@ -206,6 +213,8 @@ public final class PanelCommand implements TabExecutor {
                 return List.of();
             case "boss":
                 return plugin.bosses().tab(args);
+            case "rejeitado", "rejeitados", "fauna":
+                return plugin.fauna().tab(args);
             case "versao", "atualizar":
             default:
                 return List.of();

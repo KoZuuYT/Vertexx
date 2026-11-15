@@ -17,44 +17,44 @@ import org.joml.Vector3f;
  * a cada atualização o conjunto é girado para a base atual (rotação em Y do boss ou orientação livre) e
  * enviado ao cliente com interpolação, então o movimento fica suave mesmo atualizando a cada 2 ticks.
  */
-final class Rig {
+public final class Rig {
 
     /** Uma peça do modelo. Os campos são alterados livremente pela animação. */
-    static final class Part {
+    public static final class Part {
         final BlockDisplay display;
-        final Vector3f pos = new Vector3f();
-        final Vector3f size = new Vector3f(1, 1, 1);
-        final Quaternionf rot = new Quaternionf();
+        public final Vector3f pos = new Vector3f();
+        public final Vector3f size = new Vector3f(1, 1, 1);
+        public final Quaternionf rot = new Quaternionf();
         /** Peças em espaço do mundo não giram junto com o boss (escudos, auras). */
-        boolean world;
-        boolean visible = true;
+        public boolean world;
+        public boolean visible = true;
 
         private Part(BlockDisplay display) {
             this.display = display;
         }
 
-        Part at(float x, float y, float z) {
+        public Part at(float x, float y, float z) {
             pos.set(x, y, z);
             return this;
         }
 
-        Part size(float x, float y, float z) {
+        public Part size(float x, float y, float z) {
             size.set(x, y, z);
             return this;
         }
 
-        Part spin(float yawDeg, float pitchDeg, float rollDeg) {
+        public Part spin(float yawDeg, float pitchDeg, float rollDeg) {
             rot.identity().rotateY((float) Math.toRadians(yawDeg)).rotateX((float) Math.toRadians(pitchDeg))
                     .rotateZ((float) Math.toRadians(rollDeg));
             return this;
         }
 
-        Part world() {
+        public Part world() {
             world = true;
             return this;
         }
 
-        void material(Material material) {
+        public void material(Material material) {
             display.setBlock(material.createBlockData());
         }
     }
@@ -65,14 +65,14 @@ final class Rig {
     private float scale = 1f;
     private boolean placed;
 
-    Rig(NamespacedKey tag, Location base) {
+    public Rig(NamespacedKey tag, Location base) {
         this.tag = tag;
         this.base = base.clone();
         this.base.setYaw(0);
         this.base.setPitch(0);
     }
 
-    Part add(Material material, float x, float y, float z, float sx, float sy, float sz) {
+    public Part add(Material material, float x, float y, float z, float sx, float sy, float sz) {
         BlockDisplay display = base.getWorld().spawn(base, BlockDisplay.class, entity -> {
             entity.setBlock(material.createBlockData());
             entity.setPersistent(false);
@@ -91,20 +91,20 @@ final class Rig {
         return part;
     }
 
-    void scale(float value) {
+    public void scale(float value) {
         this.scale = value;
     }
 
-    List<Part> parts() {
+    public List<Part> parts() {
         return parts;
     }
 
-    static Quaternionf yaw(float yawDegrees) {
+    public static Quaternionf yaw(float yawDegrees) {
         return new Quaternionf().rotateY((float) Math.toRadians(-yawDegrees));
     }
 
     /** Envia a pose atual: {@code at} é a origem do modelo e {@code basis} a orientação das peças presas ao boss. */
-    void update(Location at, Quaternionf basis, int duration) {
+    public void update(Location at, Quaternionf basis, int duration) {
         boolean moved = !placed || at.getX() != base.getX() || at.getY() != base.getY() || at.getZ() != base.getZ();
         if (moved) {
             base.setX(at.getX());
@@ -133,7 +133,7 @@ final class Rig {
         }
     }
 
-    void remove() {
+    public void remove() {
         for (Part part : parts) {
             part.display.remove();
         }

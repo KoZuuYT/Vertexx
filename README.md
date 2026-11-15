@@ -110,6 +110,14 @@ com animações, barra de chefe, cinemática ao despertar e sala selada durante 
 - Drops: Essência Elite, recursos raros e um troféu, mais XP de Luta. Renasce depois de `respawn-minutes`.
 - Admin: `/vertexx boss list|spawn|build|wake|attack|reset|kill|tp` (`bosses:` no `config.yml`).
 
+### Mobs rejeitados da votação (pacíficos)
+Quatro criaturas que perderam a Mob Vote da Mojang, cada uma um mob invisível com modelo de displays (`fauna:` no `config.yml`):
+- **Rascal** (2022): nas minas abandonadas abaixo de Y=0. Brinca de esconde-esconde: olhe para ele de perto para achá-lo; ele foge e se esconde. Achado 3 vezes, dá uma *Picareta do Rascal* e vai embora.
+- **Golem de Tufo** (2022): construído por você com tufo, tufo (ou um bloco de lã, para ganhar manto) e tufo cinzelado no topo. Clique com um item para ele exibir; de tempos em tempos acorda, pega um item do chão e volta ao posto. Agache e bata para desmontar.
+- **Moobloom** (2020): vacas amarelas de florestas floridas e campos. Deixam rastro de flores, dão néctar às abelhas e podem ser tosquiadas.
+- **Glare** (2021): nas cavernas exuberantes. Paira ranzinza sobre pontos escuros e se acalma com luz; com bagas brilhantes passa a te acompanhar.
+- Admin: `/vertexx rejeitado spawn|limpar|lista`.
+
 ### Upgrades de fornalhas e baús
 
 **Agache e clique com a mão vazia** em uma fornalha (comum, alto-forno ou defumador) ou baú (baú, baú
@@ -138,6 +146,7 @@ emblemas próprios. Sem o pacote, aparecem com os painéis de vidro vanilla.
 | `/vertexx mob <tipo> [nível] [elite] [traits...]` | admin | Cria um mob nivelado (parâmetros em qualquer ordem) |
 | `/vertexx xp <jogador> <status> <qtd>` | admin | Concede XP de status |
 | `/vertexx boss <list\|spawn\|build\|wake\|attack\|reset\|kill\|tp>` | admin | Controle dos bosses |
+| `/vertexx rejeitado <spawn\|limpar\|lista>` | admin | Mobs rejeitados da votação |
 | `/vertexx` | admin | Abre o painel completo |
 | `/vertexx livro` | todos | Recebe o Guia do Vertexx |
 | `/vertexx versao\|atualizar` | admin | Versão e atualização |
@@ -203,6 +212,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.11.0 | Status de atividade, nível geral, árvore de habilidades (16), `/vstats` com 3 páginas, cinemáticas com banners do resource pack |
 | 0.12.0 | Upgrades de fornalhas (velocidade) e baús (capacidade em páginas) por níveis com recursos e Essência Elite; menu de upgrade com tema próprio |
 | 0.13.0 | Bosses Wildfire (Câmara do Wildfire) e Iceologer (Castelo de Gelo) com salas construídas sozinhas; `/vertexx mob` com nível, elite e traits; autocomplete em todos os comandos; Wiki de traits, Elites e bosses no painel; comandos de admin no painel |
+| 0.14.0 | Rótulos de mobs nivelados não atravessam mais paredes; bosses colidem com blocos; mobs rejeitados Rascal, Golem de Tufo, Moobloom e Glare; aba Rejeitados na Wiki |
 ## Servidor de teste (Windows)
 
 `tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta

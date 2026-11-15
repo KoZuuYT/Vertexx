@@ -187,6 +187,9 @@ abstract class BossFight {
         }
         age++;
         stateTicks++;
+        double prevX = pos.getX();
+        double prevY = pos.getY();
+        double prevZ = pos.getZ();
         if (hurtTicks > 0) {
             hurtTicks--;
         }
@@ -207,6 +210,9 @@ abstract class BossFight {
             }
             case ACTIVE -> activeTick();
             case DYING -> deathTick();
+        }
+        if (state != State.DYING && state != State.DORMANT) {
+            collide(prevX, prevY, prevZ);
         }
         if (age % 2 == 0) {
             animate();
@@ -448,6 +454,45 @@ abstract class BossFight {
             }
         }
         pos.setY(Math.max(arena.fy, Math.min(arena.fy + arena.height - 5, pos.getY())));
+    }
+
+    /** Meia largura e altura do corpo, usadas para impedir que o boss entre em blocos. */
+    protected double bodyRadius() {
+        return 0.8;
+    }
+
+    protected double bodyHeight() {
+        return 2.6;
+    }
+
+    protected boolean blocked(double x, double y, double z) {
+        double r = bodyRadius();
+        return world.hasCollisionsIn(new org.bukkit.util.BoundingBox(x - r, y + 0.05, z - r, x + r,
+                y + bodyHeight(), z + r));
+    }
+
+    /**
+     * Colisão com blocos: se o novo ponto está dentro de uma parede e o anterior não estava, o eixo
+     * correspondente volta atrás (o boss desliza ao longo da parede em vez de atravessá-la).
+     */
+    private void collide(double px, double py, double pz) {
+        if (!blocked(pos.getX(), pos.getY(), pos.getZ()) || blocked(px, py, pz)) {
+            return;
+        }
+        double x = pos.getX();
+        double y = pos.getY();
+        double z = pos.getZ();
+        double ax = blocked(x, py, pz) ? px : x;
+        double az = blocked(ax, py, z) ? pz : z;
+        double ay = blocked(ax, y, az) ? py : y;
+        if (blocked(ax, ay, az)) {
+            ax = px;
+            ay = py;
+            az = pz;
+        }
+        pos.setX(ax);
+        pos.setY(ay);
+        pos.setZ(az);
     }
 
     private void syncHitbox() {

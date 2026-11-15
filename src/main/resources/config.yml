@@ -166,3 +166,22 @@ bosses:
     castle-chance: 0.6
     min-spawn-distance: 500
     min-spacing: 900
+
+fauna:
+  # Criaturas rejeitadas da votacao de mobs: Rascal, Golem de Tufo, Moobloom e Glare.
+  enabled: true
+  spawn-interval-seconds: 12
+  rascal:
+    enabled: true
+    # Chance por verificacao, para jogadores abaixo de Y=0 perto de minas abandonadas.
+    chance: 0.12
+    # Quantas vezes o jogador precisa achar o Rascal para ganhar o presente.
+    finds-needed: 3
+  glare:
+    enabled: true
+    chance: 0.15
+  moobloom:
+    # Chance base de uma vaca natural virar Moobloom (x1 floresta de flores, x0.4 campo, x0.25 girassois).
+    chance: 0.35
+  tuff-golem:
+    enabled: true

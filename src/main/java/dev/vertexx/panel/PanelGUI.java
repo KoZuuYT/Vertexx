@@ -612,10 +612,10 @@ public final class PanelGUI implements InventoryHolder {
     // ── Wiki ───────────────────────────────────────────────────
 
     private void wiki() {
-        String[] names = {"Traits", "Elites", "Bosses"};
-        Material[] icons = {Material.NETHER_STAR, Material.GOLDEN_APPLE, Material.WITHER_SKELETON_SKULL};
-        int[] tabSlots = {11, 13, 15};
-        for (int i = 0; i < 3; i++) {
+        String[] names = {"Traits", "Elites", "Bosses", "Rejeitados"};
+        Material[] icons = {Material.NETHER_STAR, Material.GOLDEN_APPLE, Material.WITHER_SKELETON_SKULL, Material.MOSS_BLOCK};
+        int[] tabSlots = {10, 12, 14, 16};
+        for (int i = 0; i < 4; i++) {
             int index = i;
             set(tabSlots[i], Items.of(icons[i], (wikiTab == i ? "<green><bold>" : "<white>") + names[i],
                     List.of(wikiTab == i ? "<gray>Aberta agora." : "<yellow>▶ Clique para abrir"), wikiTab == i), c -> {
@@ -626,8 +626,33 @@ public final class PanelGUI implements InventoryHolder {
         switch (wikiTab) {
             case 0 -> wikiTraits();
             case 1 -> wikiElites();
-            default -> wikiBosses();
+            case 2 -> wikiBosses();
+            default -> wikiFauna();
         }
+    }
+
+    private void wikiFauna() {
+        set(19, Items.of(Material.CYAN_WOOL, "<aqua><bold>Rascal",
+                List.of("<gray>Mob Vote 2022. Criatura tímida das", "<gray>minas abandonadas, abaixo de Y=0.", "",
+                        "<white>Esconde-esconde: <gray>olhe para ele de perto", "<gray>para achá-lo; ele foge e se esconde.",
+                        "<white>Achado " + plugin.getConfig().getInt("fauna.rascal.finds-needed", 3) + " vezes: <gray>dá uma picareta",
+                        "<gray>de ferro encantada e vai embora.", "", "<dark_gray>Não pode ser ferido."), true), null);
+        set(21, Items.of(Material.TUFF, "<gray><bold>Golem de Tufo",
+                List.of("<gray>Mob Vote 2022. Estátua que você constrói.", "",
+                        "<white>Construção: <gray>tufo, tufo (ou um bloco de", "<gray>lã, para ganhar manto) e tufo cinzelado",
+                        "<gray>no topo.", "<white>Clique com um item: <gray>ele exibe.",
+                        "<gray>De tempos em tempos acorda, pega um item", "<gray>do chão e volta ao posto.", "",
+                        "<dark_gray>Agache e bata para desmontar."), true), null);
+        set(23, Items.of(Material.DANDELION, "<yellow><bold>Moobloom",
+                List.of("<gray>Mob Vote 2020. Vaca amarela coberta", "<gray>de botões-de-ouro.", "",
+                        "<white>Onde: <gray>florestas floridas e campos.", "<white>Deixa um rastro de flores, entrega",
+                        "<gray>néctar às abelhas e pode ser tosquiada", "<gray>para render flores."), true), null);
+        set(25, Items.of(Material.MOSS_BLOCK, "<green><bold>Glare",
+                List.of("<gray>Mob Vote 2021. Criatura de folhagem das", "<gray>cavernas exuberantes.", "",
+                        "<white>Aponta o escuro: <gray>paira ranzinza sobre", "<gray>pontos onde monstros podem nascer e se",
+                        "<gray>acalma quando você acende uma luz.", "<white>Bagas brilhantes: <gray>ele passa a te", "<gray>acompanhar e vigiar o escuro."), true), null);
+        set(31, Items.of(Material.BARRIER, "<white>Todos são pacíficos",
+                List.of("<gray>Nenhum deles ataca ou fere jogadores.")), null);
     }
 
     private void wikiTraits() {

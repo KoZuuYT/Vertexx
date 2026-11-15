@@ -1,6 +1,7 @@
 package dev.vertexx;
 
 import dev.vertexx.boss.BossManager;
+import dev.vertexx.fauna.FaunaManager;
 import dev.vertexx.core.MenuListener;
 import dev.vertexx.grave.GraveCommand;
 import dev.vertexx.grave.GraveListener;
@@ -39,6 +40,7 @@ public final class PluginMain extends JavaPlugin {
     private PanelManager panel;
     private MobManager mobs;
     private BossManager bosses;
+    private FaunaManager fauna;
     private RpgManager rpg;
     private SkillManager skills;
     private UpgradeManager upgrades;
@@ -58,6 +60,7 @@ public final class PluginMain extends JavaPlugin {
         panel = new PanelManager(this);
         mobs = new MobManager(this);
         bosses = new BossManager(this);
+        fauna = new FaunaManager(this);
         rpg = new RpgManager(this);
         skills = new SkillManager(this);
         upgrades = new UpgradeManager(this);
@@ -71,6 +74,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(panel, this);
         plugins.registerEvents(mobs, this);
         plugins.registerEvents(bosses, this);
+        plugins.registerEvents(fauna, this);
         plugins.registerEvents(rpg, this);
         plugins.registerEvents(skills, this);
         plugins.registerEvents(upgrades, this);
@@ -87,6 +91,7 @@ public final class PluginMain extends JavaPlugin {
         resourcePack.startResolver();
         mobs.start();
         bosses.start();
+        fauna.start();
         rpg.start();
 
         loadAsync();
@@ -133,6 +138,7 @@ public final class PluginMain extends JavaPlugin {
         models.shutdown();
         mobs.shutdown();
         bosses.shutdown();
+        fauna.shutdown();
         rpg.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }
@@ -179,6 +185,10 @@ public final class PluginMain extends JavaPlugin {
 
     public MobManager mobs() {
         return mobs;
+    }
+
+    public FaunaManager fauna() {
+        return fauna;
     }
 
     public BossManager bosses() {

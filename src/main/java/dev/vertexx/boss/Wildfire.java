@@ -82,6 +82,16 @@ final class Wildfire extends BossFight {
     }
 
     @Override
+    protected double bodyRadius() {
+        return 1.1;
+    }
+
+    @Override
+    protected double bodyHeight() {
+        return 3.4;
+    }
+
+    @Override
     protected double hitboxScale() {
         return 1.2;
     }
@@ -599,13 +609,19 @@ final class Wildfire extends BossFight {
     }
 
     private void lungeDash() {
-        pos.add(dash.clone().multiply(1.5));
-        double wantedX = pos.getX();
-        double wantedZ = pos.getZ();
-        clamp();
+        double nextX = pos.getX() + dash.getX() * 1.5;
+        double nextY = pos.getY() + dash.getY() * 1.5;
+        double nextZ = pos.getZ() + dash.getZ() * 1.5;
+        boolean wall = blocked(nextX, nextY, nextZ);
+        if (!wall) {
+            pos.add(dash.clone().multiply(1.5));
+            double wantedX = pos.getX();
+            double wantedZ = pos.getZ();
+            clamp();
+            wall = Math.abs(wantedX - pos.getX()) > 0.01 || Math.abs(wantedZ - pos.getZ()) > 0.01;
+        }
         hover = pos.getY() - arena.fy;
         hoverGoal = hover;
-        boolean wall = Math.abs(wantedX - pos.getX()) > 0.01 || Math.abs(wantedZ - pos.getZ()) > 0.01;
         faceTowards(pos.clone().add(dash), 40);
         Location center = bodyCenter();
         world.spawnParticle(Particle.FLAME, center, 14, 0.5, 0.7, 0.5, 0.03);

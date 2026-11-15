@@ -35,6 +35,8 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.TextDisplay;
+import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -65,6 +67,7 @@ public final class MobManager implements Listener {
     private final NamespacedKey eliteKey;
     private final NamespacedKey traitsKey;
     private final NamespacedKey essenceKey;
+    private final NamespacedKey labelKey;
     private final Map<UUID, Tracker> bars = new HashMap<>();
     private BukkitTask task;
     private int tick;
@@ -96,10 +99,21 @@ public final class MobManager implements Listener {
         this.eliteKey = new NamespacedKey(plugin, "mob_elite");
         this.traitsKey = new NamespacedKey(plugin, "mob_traits");
         this.essenceKey = new NamespacedKey(plugin, "essence");
+        this.labelKey = new NamespacedKey(plugin, "mob_label");
     }
 
     public void start() {
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::tickAll, 20L, 20L);
+        // mobs já carregados antes do plugin (reinício, /reload) ganham o rótulo novo
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (World world : Bukkit.getWorlds()) {
+                for (LivingEntity living : world.getLivingEntities()) {
+                    if (level(living) > 0 && findLabel(living) == null) {
+                        refreshName(living);
+                    }
+                }
+            }
+        });
     }
 
     public void shutdown() {
@@ -178,8 +192,16 @@ public final class MobManager implements Listener {
             return;
         }
         for (Entity entity : event.getEntities()) {
-            if (entity instanceof LivingEntity living && level(living) == 0) {
-                assign(living, true, -1, false, false, null);
+            if (entity instanceof TextDisplay display
+                    && display.getPersistentDataContainer().has(labelKey, PersistentDataType.BYTE)
+                    && display.getVehicle() == null) {
+                display.remove(); // rótulo órfão (o mob sumiu enquanto o chunk estava descarregado)
+            } else if (entity instanceof LivingEntity living) {
+                if (level(living) == 0) {
+                    assign(living, true, -1, false, false, null);
+                } else if (findLabel(living) == null) {
+                    refreshName(living);
+                }
             }
         }
     }
@@ -433,7 +455,60 @@ public final class MobManager implements Listener {
                         elite ? NamedTextColor.GOLD : NamedTextColor.WHITE))
                 .append(Msg.mm(suffix.toString()));
         entity.customName(name);
-        entity.setCustomNameVisible(true);
+        entity.setCustomNameVisible(false); // o texto vem do rótulo (TextDisplay com profundidade), que não atravessa paredes
+        updateLabel(entity, name);
+    }
+
+    // ── Rótulo sobre a cabeça ──────────────────────────────────
+
+    private TextDisplay findLabel(Entity entity) {
+        for (Entity passenger : entity.getPassengers()) {
+            if (passenger instanceof TextDisplay display
+                    && display.getPersistentDataContainer().has(labelKey, PersistentDataType.BYTE)) {
+                return display;
+            }
+        }
+        return null;
+    }
+
+    /** Rótulo como display passageiro: ao contrário do nome vanilla, é ocultado por blocos. */
+    private void updateLabel(LivingEntity entity, Component name) {
+        TextDisplay label = findLabel(entity);
+        if (label == null) {
+            if (!entity.isValid()) {
+                return;
+            }
+            label = entity.getWorld().spawn(entity.getLocation(), TextDisplay.class, display -> {
+                display.setPersistent(true);
+                display.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
+                display.setSeeThrough(false);
+                display.setShadowed(true);
+                display.setDefaultBackground(false);
+                display.setBackgroundColor(org.bukkit.Color.fromARGB(90, 0, 0, 0));
+                display.setViewRange(0.35f);
+                display.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+                display.getPersistentDataContainer().set(labelKey, PersistentDataType.BYTE, (byte) 1);
+            });
+            entity.addPassenger(label);
+        }
+        label.text(name);
+        float lift = (float) Math.max(0.1, entity.getHeight() - 1.7 + 0.35);
+        label.setTransformation(new org.bukkit.util.Transformation(new org.joml.Vector3f(0, lift, 0),
+                new org.joml.Quaternionf(), new org.joml.Vector3f(1, 1, 1), new org.joml.Quaternionf()));
+    }
+
+    private void removeLabel(Entity entity) {
+        TextDisplay label = findLabel(entity);
+        if (label != null) {
+            label.remove();
+        }
+    }
+
+    @EventHandler
+    public void onRemoved(EntityRemoveEvent event) {
+        if (event.getCause() != EntityRemoveEvent.Cause.UNLOAD && level(event.getEntity()) > 0) {
+            removeLabel(event.getEntity());
+        }
     }
 
     private boolean isOurName(LivingEntity entity) {

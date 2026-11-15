@@ -77,6 +77,16 @@ final class Iceologer extends BossFight {
     }
 
     @Override
+    protected double bodyRadius() {
+        return 0.7;
+    }
+
+    @Override
+    protected double bodyHeight() {
+        return 2.7;
+    }
+
+    @Override
     protected double hitboxScale() {
         return 1.15;
     }
