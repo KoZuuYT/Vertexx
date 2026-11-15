@@ -24,7 +24,7 @@ public final class ModelInstance {
 
     private static final float HIDDEN = 0.0005f;
     private static final int BLEND_TICKS = 5;
-    private static final float REANCHOR = 6f;
+    private static final float REANCHOR = 4f;
 
     private final ModelDef def;
     private final float scale;
@@ -82,6 +82,13 @@ public final class ModelInstance {
         anchor = at.clone();
         anchor.setYaw(0);
         anchor.setPitch(0);
+        // caixa de culling: sem ela (0x0) mods de culling do cliente (Entity Culling etc.) testam só um ponto no chão
+        // e escondem o modelo por intermitência; com a caixa cobrindo o modelo inteiro ele só some de verdade fora da tela
+        float reach = 0f;
+        for (ModelDef.Bone b : def.bones) {
+            reach = Math.max(reach, b.origin().length() + 24f * b.k());
+        }
+        float box = 2f * (REANCHOR + reach * scale / 16f + 1f);
         for (int i = 0; i < n; i++) {
             wPos[i] = new Vector3f();
             wRot[i] = new Quaternionf();
@@ -98,6 +105,8 @@ public final class ModelInstance {
                 entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
                 entity.setPersistent(false);
                 entity.setViewRange(1.6f);
+                entity.setDisplayWidth(box);
+                entity.setDisplayHeight(box);
                 entity.setBrightness(bone.glow() ? new Display.Brightness(15, 15) : new Display.Brightness(13, 15));
                 entity.setShadowRadius(0f);
                 entity.setInterpolationDuration(0);

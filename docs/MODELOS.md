@@ -29,6 +29,12 @@ Convenção de eixos: o editor olha para `-Z` (norte); o conversor gira o modelo
 seja `+Z`, como nas entidades do jogo (faces norte↔sul e leste↔oeste trocadas, faces de cima/baixo com
 rotação de 180° para a textura continuar igual).
 
+**Atenção (0.16.4):** o cliente gira toda `ItemDisplay` 180° em Y antes de desenhar o item
+(`DisplayRenderer.ItemDisplayRenderer` aplica `Axis.YP.rotation(PI)`; confirmado no bytecode do 26.3). Por isso
+`pack._element` escreve cada elemento já girado de volta (x/z invertidos em torno do pivô, faces opostas, cima/baixo +180°);
+sem isso cada osso saía espelhado no próprio pivô (partes fora do lugar, frente invertida). O plugin define também uma
+caixa de culling nas displays (mods como Entity Culling escondem displays de caixa 0×0 de forma intermitente).
+
 ### O que o conversor gera
 
 * cada **osso com cubos** vira um modelo de item (`models/entity/<id>/<osso>.json`) e uma definição em

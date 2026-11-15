@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 
 from .anim import bake
-from .model import FACES, Bone, Cube, Model, to_game
+from .model import FACES, OPPOSITE, Bone, Cube, Model, to_game
 
 NS = "vertexx"
 LIMIT = 23.5     # distância máxima (px) do pivô a qualquer vértice do cubo dentro do modelo de item
@@ -46,19 +46,27 @@ def _split_rotated(model: Model):
 
 
 def _element(cube: Cube, origin, k: float, res, tint=False):
+    """Elemento do modelo de item. O cliente gira toda ItemDisplay 180° em Y antes de desenhar o item
+    (``DisplayRenderer.ItemDisplayRenderer``: ``Axis.YP.rotation(PI)``), então a geometria já no referencial do
+    jogo (frente em +Z) é escrita girada 180° em Y em torno do pivô: x e z invertidos, faces opostas,
+    textura de cima/baixo girada 180°."""
     pad = cube.inflate
-    lo = [(cube.frm[i] - pad - origin[i]) / k + 8 for i in range(3)]
-    hi = [(cube.to[i] + pad - origin[i]) / k + 8 for i in range(3)]
+    d_lo = [(cube.frm[i] - pad - origin[i]) / k for i in range(3)]
+    d_hi = [(cube.to[i] + pad - origin[i]) / k for i in range(3)]
+    lo = [8 - d_hi[0], d_lo[1] + 8, 8 - d_hi[2]]
+    hi = [8 - d_lo[0], d_hi[1] + 8, 8 - d_lo[2]]
     faces = {}
     for name in FACES:
         f = cube.faces.get(name)
         if f is None:
             continue
         u1, v1, u2, v2 = f.uv
+        rot = f.rot + (180 if name in ("up", "down") else 0)
         entry = {"uv": [round(u1 * 16 / res[0], 4), round(v1 * 16 / res[1], 4), round(u2 * 16 / res[0], 4),
                         round(v2 * 16 / res[1], 4)], "texture": f"#t{f.tex}"}
-        if f.rot % 360:
-            entry["rotation"] = f.rot % 360
+        name = OPPOSITE[name]
+        if rot % 360:
+            entry["rotation"] = rot % 360
         if tint:
             entry["tintindex"] = 0
         faces[name] = entry
