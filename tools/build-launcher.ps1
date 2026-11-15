@@ -8,6 +8,6 @@ if (-not (Test-Path $csc)) { throw "csc.exe não encontrado em $csc" }
 & $csc /nologo /target:winexe /optimize+ /codepage:65001 `
     "/out:$here\VertexxServer.exe" `
     /r:System.Windows.Forms.dll /r:System.Drawing.dll /r:System.Management.dll `
-    "$here\ServerLauncher\ServerLauncher.cs" "$here\ServerLauncher\SettingsForm.cs"
+    "$here\ServerLauncher\ServerLauncher.cs" "$here\ServerLauncher\SettingsForm.cs" "$here\ServerLauncher\FilesForm.cs"
 if ($LASTEXITCODE -ne 0) { throw "Compilação falhou (código $LASTEXITCODE)." }
 Write-Host "OK: tools\VertexxServer.exe" -ForegroundColor Green

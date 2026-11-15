@@ -39,12 +39,14 @@ internal sealed class MainForm : Form
     private readonly Label status = new Label();
     private readonly Label address = new Label();
     private readonly Button toggle = new Button();
-    private readonly TextBox log = new TextBox();
+    private readonly RichTextBox log = new RichTextBox();
     private readonly TextBox command = new TextBox();
     private readonly Button send = new Button();
     private readonly Button folder = new Button();
     private readonly Button force = new Button();
     private readonly Button settings = new Button();
+    private readonly Button restart = new Button();
+    private readonly Button files = new Button();
     private readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
 
     private Process launched;
@@ -53,7 +55,9 @@ internal sealed class MainForm : Form
     private DateTime stoppingAt;
     private DateTime lastScan = DateTime.MinValue;
     private bool externalAlive;
-    private long logLength = -1;
+    private long logPos = -1;
+    private long errPos = -1;
+    private bool restartPending;
 
     public MainForm()
     {
@@ -61,8 +65,8 @@ internal sealed class MainForm : Form
         root = runDir == null ? null : Path.GetDirectoryName(runDir);
 
         Text = "Vertexx Server";
-        ClientSize = new Size(600, 440);
-        MinimumSize = new Size(480, 360);
+        ClientSize = new Size(600, 476);
+        MinimumSize = new Size(560, 400);
         BackColor = Bg;
         ForeColor = Color.White;
         Font = new Font("Segoe UI", 9.5f);
@@ -84,27 +88,38 @@ internal sealed class MainForm : Form
         toggle.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         toggle.Click += (s, e) => Toggle();
 
+        Style(restart, Panel);
+        restart.Text = "Reiniciar";
+        restart.SetBounds(16, 68, 100, 30);
+        restart.Click += (s, e) => Restart();
+
+        Style(files, Panel);
+        files.Text = "Arquivos";
+        files.SetBounds(122, 68, 100, 30);
+        files.Click += (s, e) => OpenFiles();
+
         Style(settings, Panel);
         settings.Text = "Mundos e servidor";
-        settings.SetBounds(280, 18, 112, 36);
-        settings.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        settings.SetBounds(228, 68, 140, 30);
         settings.Click += (s, e) => OpenSettings();
 
         log.Multiline = true;
         log.ReadOnly = true;
-        log.ScrollBars = ScrollBars.Vertical;
+        log.ScrollBars = RichTextBoxScrollBars.Vertical;
+        log.DetectUrls = false;
+        log.WordWrap = true;
         log.BackColor = Color.FromArgb(14, 13, 20);
         log.ForeColor = Color.FromArgb(200, 200, 215);
         log.BorderStyle = BorderStyle.None;
         log.Font = new Font("Consolas", 9f);
-        log.SetBounds(16, 70, 568, 298);
+        log.SetBounds(16, 106, 568, 262);
         log.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
         command.BackColor = Panel;
         command.ForeColor = Color.White;
         command.BorderStyle = BorderStyle.FixedSingle;
         command.Font = new Font("Consolas", 10f);
-        command.SetBounds(16, 380, 380, 26);
+        command.SetBounds(16, 416, 380, 26);
         command.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
         command.KeyDown += (s, e) =>
         {
@@ -113,24 +128,24 @@ internal sealed class MainForm : Form
 
         Style(send, Panel);
         send.Text = "Enviar comando";
-        send.SetBounds(404, 379, 110, 28);
+        send.SetBounds(404, 415, 110, 28);
         send.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
         send.Click += (s, e) => SendCommand();
 
         Style(folder, Panel);
         folder.Text = "Pasta";
-        folder.SetBounds(520, 379, 64, 28);
+        folder.SetBounds(520, 415, 64, 28);
         folder.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
         folder.Click += (s, e) => { if (runDir != null) Process.Start("explorer.exe", "\"" + runDir + "\""); };
 
         Style(force, Color.FromArgb(160, 50, 60));
         force.Text = "Forçar encerramento";
-        force.SetBounds(16, 410, 160, 24);
+        force.SetBounds(16, 448, 160, 24);
         force.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
         force.Visible = false;
         force.Click += (s, e) => KillServer();
 
-        Controls.AddRange(new Control[] { dot, status, address, toggle, settings, log, command, send, folder, force });
+        Controls.AddRange(new Control[] { dot, status, address, toggle, restart, files, settings, log, command, send, folder, force });
         foreach (Control c in new Control[] { dot, status, address }) c.BackColor = Color.Transparent;
 
         FormClosing += OnClosing;
@@ -144,6 +159,25 @@ internal sealed class MainForm : Form
             toggle.Enabled = false;
         }
         Tick();
+    }
+
+    private void OpenFiles()
+    {
+        if (runDir == null) return;
+        using (var form = new FilesForm(runDir, state != State.Stopped))
+        {
+            form.ShowDialog(this);
+        }
+        Tick();
+    }
+
+    private void Restart()
+    {
+        if (state == State.Stopped) { StartServer(); return; }
+        if (state != State.Online) return;
+        restartPending = true;
+        Append("Reiniciando: o servidor será parado e ligado de novo (o jar mais novo de libs é sincronizado).");
+        StopServer();
     }
 
     private void OpenSettings()
@@ -314,7 +348,9 @@ internal sealed class MainForm : Form
             launched = Process.Start(info);
             state = State.Starting;
             startedAt = DateTime.Now;
-            logLength = -1;
+            logPos = -1;
+            errPos = -1;
+            log.Clear();
             Append("Iniciando o servidor…");
         }
         catch (Exception ex)
@@ -431,12 +467,20 @@ internal sealed class MainForm : Form
 
         if (state != State.Online && next == State.Online) Append("Servidor online em " + Address() + ".");
         state = next;
+        if (restartPending && state == State.Stopped)
+        {
+            restartPending = false;
+            StartServer();
+            return;
+        }
         Render(state);
         TailLog();
     }
 
     private void Render(State s)
     {
+        restart.Enabled = s == State.Online;
+        files.Enabled = runDir != null;
         switch (s)
         {
             case State.Stopped:
@@ -463,32 +507,98 @@ internal sealed class MainForm : Form
 
     // ── Log ────────────────────────────────────────────────────
 
+    private static readonly Color LogText = Color.FromArgb(200, 200, 215);
+    private static readonly Color LogWarn = Color.FromArgb(240, 180, 70);
+    private static readonly Color LogError = Color.FromArgb(240, 100, 110);
+    private static readonly Color LogInfo = Color.FromArgb(150, 130, 255);
+
     private void Append(string line)
     {
-        log.AppendText(line + Environment.NewLine);
+        AppendColored(line, line.StartsWith("> ") ? LogInfo : LogText);
+    }
+
+    private void AppendColored(string line, Color color)
+    {
+        log.SelectionStart = log.TextLength;
+        log.SelectionLength = 0;
+        log.SelectionColor = color;
+        log.AppendText(line + "\n");
+        log.SelectionColor = LogText;
+    }
+
+    /// <summary>Ruído inofensivo que o Java/Windows escreve e que não deve aparecer como erro.</summary>
+    private static bool IsNoise(string line)
+    {
+        return line.Contains("Picked up JAVA_TOOL_OPTIONS") || line.Contains("oshi.") || line.Contains("Perflib")
+            || line.Contains("PerfCounter") || line.Contains("Pdh call failed") || line.Contains("com.sun.jna");
+    }
+
+    private static Color LineColor(string line, bool fromErr)
+    {
+        if (line.Contains(" ERROR]") || line.Contains("/ERROR]") || line.StartsWith("Exception") || line.StartsWith("Caused by")
+            || line.StartsWith("\tat ") || line.Contains("Exception:")) return LogError;
+        if (line.Contains(" WARN]") || line.Contains("/WARN]")) return LogWarn;
+        return fromErr ? LogError : LogText;
     }
 
     private void TailLog()
     {
-        string path = Path.Combine(runDir, "console.log");
-        if (!File.Exists(path)) return;
+        string[] fresh1 = ReadNew("console.log", ref logPos);
+        string[] fresh2 = ReadNew("console.err", ref errPos);
+        if (fresh1.Length == 0 && fresh2.Length == 0) return;
+        // quem está lendo o histórico (com texto selecionado) não é puxado para o fim
+        bool follow = log.SelectionLength == 0;
+        log.SuspendLayout();
+        foreach (string line in fresh1) if (!IsNoise(line)) AppendColored(line, LineColor(line, false));
+        foreach (string line in fresh2) if (!IsNoise(line)) AppendColored(line, LineColor(line, true));
+        if (log.Lines.Length > 3000)
+        {
+            log.Select(0, log.GetFirstCharIndexFromLine(1000));
+            log.SelectedText = "";
+        }
+        log.ResumeLayout();
+        if (follow)
+        {
+            log.SelectionStart = log.TextLength;
+            log.ScrollToCaret();
+        }
+    }
+
+    /// <summary>Lê só o que foi escrito desde a última vez (linhas completas); recomeça se o arquivo foi recriado.</summary>
+    private string[] ReadNew(string name, ref long pos)
+    {
+        string path = Path.Combine(runDir, name);
+        if (!File.Exists(path)) return new string[0];
         try
         {
             using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
             {
-                if (stream.Length == logLength) return;
-                logLength = stream.Length;
-                long from = Math.Max(0, stream.Length - 24000);
-                stream.Seek(from, SeekOrigin.Begin);
-                string text = new StreamReader(stream, Encoding.UTF8).ReadToEnd();
-                int newline = text.IndexOf('\n');
-                if (from > 0 && newline >= 0) text = text.Substring(newline + 1);
-                log.Text = text.TrimEnd();
-                log.SelectionStart = log.TextLength;
-                log.ScrollToCaret();
+                long length = stream.Length;
+                bool first = pos < 0;
+                if (length < pos) { pos = 0; if (name == "console.log") log.Clear(); }
+                if (first) pos = Math.Max(0, length - 24000);
+                if (length == pos) return new string[0];
+                stream.Seek(pos, SeekOrigin.Begin);
+                var buffer = new byte[length - pos];
+                int read = 0;
+                while (read < buffer.Length)
+                {
+                    int n = stream.Read(buffer, read, buffer.Length - read);
+                    if (n <= 0) break;
+                    read += n;
+                }
+                int last = Array.LastIndexOf(buffer, (byte)10, Math.Max(0, read - 1));
+                if (last < 0) return new string[0];   // linha ainda incompleta
+                long start = pos;
+                pos += last + 1;
+                string text = Encoding.UTF8.GetString(buffer, 0, last + 1);
+                var lines = text.Replace("\r", "").Split('\n').ToList();
+                if (lines.Count > 0 && lines[lines.Count - 1].Length == 0) lines.RemoveAt(lines.Count - 1);
+                if (first && start > 0 && lines.Count > 0) lines.RemoveAt(0);   // começou no meio de uma linha
+                return lines.ToArray();
             }
         }
-        catch (IOException) { /* arquivo em uso: tenta no próximo ciclo */ }
+        catch (IOException) { return new string[0]; /* arquivo em uso: tenta no próximo ciclo */ }
     }
 
     // ── RCON ───────────────────────────────────────────────────
