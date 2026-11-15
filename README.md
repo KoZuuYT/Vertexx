@@ -183,3 +183,15 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 `tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta
 `run/`: botão Iniciar/Parar, status, log ao vivo e caixa de comandos (via RCON). Ao iniciar, ele copia o
 jar mais novo de `libs/` para `run/plugins/`. Para recompilar: `.	oolsuild-launcher.ps1`.
+
+### Aplicativo Vertexx Server (`tools\VertexxServer.exe`)
+
+Liga e desliga o servidor de teste, mostra o log e envia comandos. O botão **Mundos e servidor** (com o
+servidor parado) permite:
+- **Mundos:** criar um mundo novo escolhendo nome, tipo (Normal, Plano, Vazio, Biomas grandes, Ampliado),
+  seed, estruturas, modo de jogo e dificuldade; trocar de mundo; excluir mundos antigos.
+- **Servidor:** nome (MOTD), porta, máximo de jogadores, distância de visão, memória, modo online,
+  whitelist, PvP, modo de jogo e dificuldade.
+
+O aplicativo também silencia o ruído inofensivo do log (contadores de desempenho do Windows) por meio de
+`run/vertexx-log4j2.xml`. Recompile com `toolsuild-launcher.ps1`.

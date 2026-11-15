@@ -44,6 +44,7 @@ internal sealed class MainForm : Form
     private readonly Button send = new Button();
     private readonly Button folder = new Button();
     private readonly Button force = new Button();
+    private readonly Button settings = new Button();
     private readonly System.Windows.Forms.Timer timer = new System.Windows.Forms.Timer();
 
     private Process launched;
@@ -71,10 +72,10 @@ internal sealed class MainForm : Form
         dot.Font = new Font("Segoe UI", 22f);
         dot.SetBounds(16, 10, 36, 44);
         status.Font = new Font("Segoe UI Semibold", 13f);
-        status.SetBounds(54, 12, 330, 26);
+        status.SetBounds(54, 12, 220, 26);
         address.ForeColor = Color.Silver;
         address.Cursor = Cursors.Hand;
-        address.SetBounds(56, 38, 330, 20);
+        address.SetBounds(56, 38, 340, 20);
         address.Click += (s, e) => { try { Clipboard.SetText(Address()); address.Text = "Endereço copiado!"; } catch { } };
 
         Style(toggle, Accent);
@@ -82,6 +83,12 @@ internal sealed class MainForm : Form
         toggle.SetBounds(400, 14, 184, 44);
         toggle.Anchor = AnchorStyles.Top | AnchorStyles.Right;
         toggle.Click += (s, e) => Toggle();
+
+        Style(settings, Panel);
+        settings.Text = "Mundos e servidor";
+        settings.SetBounds(280, 18, 112, 36);
+        settings.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+        settings.Click += (s, e) => OpenSettings();
 
         log.Multiline = true;
         log.ReadOnly = true;
@@ -123,7 +130,7 @@ internal sealed class MainForm : Form
         force.Visible = false;
         force.Click += (s, e) => KillServer();
 
-        Controls.AddRange(new Control[] { dot, status, address, toggle, log, command, send, folder, force });
+        Controls.AddRange(new Control[] { dot, status, address, toggle, settings, log, command, send, folder, force });
         foreach (Control c in new Control[] { dot, status, address }) c.BackColor = Color.Transparent;
 
         FormClosing += OnClosing;
@@ -135,6 +142,16 @@ internal sealed class MainForm : Form
         {
             Append("Não encontrei a pasta 'run' com o paper.jar ao lado deste aplicativo.");
             toggle.Enabled = false;
+        }
+        Tick();
+    }
+
+    private void OpenSettings()
+    {
+        if (runDir == null) return;
+        using (var form = new SettingsForm(runDir, state == State.Stopped))
+        {
+            form.ShowDialog(this);
         }
         Tick();
     }
@@ -277,10 +294,13 @@ internal sealed class MainForm : Form
         try
         {
             EnsureRcon();
+            ServerConfig.EnsureLogConfig(runDir);
             SyncPlugin();
             string java = FindJava();
             var info = new ProcessStartInfo("cmd.exe",
-                "/c \"\"" + java + "\" -Xmx2G -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8 -jar paper.jar --nogui > console.log 2> console.err\"")
+                "/c \"\"" + java + "\" -Xmx" + ServerConfig.MemoryMb(runDir) + "M -Dfile.encoding=UTF-8 -Dstdout.encoding=UTF-8"
+                + " -Dlog4j.configurationFile=log4j2.xml,vertexx-log4j2.xml -Dterminal.jline=false -Dterminal.ansi=false"
+                + " -jar paper.jar --nogui > console.log 2> console.err\"")
             {
                 WorkingDirectory = runDir,
                 UseShellExecute = false,
@@ -437,7 +457,7 @@ internal sealed class MainForm : Form
                 break;
         }
         if (!address.Text.StartsWith("Endereço copiado") || s == State.Stopped)
-            address.Text = runDir == null ? "" : "Endereço: " + Address() + "  (clique para copiar)";
+            address.Text = runDir == null ? "" : "Mundo: " + ServerConfig.WorldName(runDir) + "  •  " + Address() + "  (copiar)";
         force.Visible = s == State.Stopping && (DateTime.Now - stoppingAt).TotalSeconds > 45;
     }
 
