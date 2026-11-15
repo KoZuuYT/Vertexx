@@ -41,17 +41,28 @@ import org.joml.Vector3f;
  * Modelo 3D dos Waystones feito de display entities, com animação de montagem e renderização
  * sob demanda: as entidades só existem enquanto há jogador por perto e só são enviadas a quem
  * está perto, olhando na direção do modelo e sem uma parede no meio.
+ *
+ * <p>O modelo é um pedestal: placa de chão, base de obsidiana, pilar com um olho em cada face,
+ * beiral rebaixado, dois arcos de obsidiana e o ícone flutuando no centro. Os blocos do corpo
+ * mudam conforme a {@link WaystoneSkin}.
  */
 public final class ModelManager implements Listener {
 
     // ── Geometria (coordenadas relativas ao centro-base do bloco) ──────────
 
-    private static final float ICON_Y = 1.52f;
-    private static final float NAME_Y = 2.2f;
-    private static final float ICON_SCALE = 0.7f;
-    private static final int ICON_DELAY = 62;
-    private static final int NAME_DELAY = 72;
-    private static final int ASSEMBLY_END = 84;
+    private static final float PILLAR_BOTTOM = 0.36f;
+    private static final float PILLAR_TOP = 1.46f;
+    private static final float PILLAR_MID = (PILLAR_BOTTOM + PILLAR_TOP) / 2;
+    private static final float ICON_Y = 2.08f;
+    private static final float NAME_Y = 2.78f;
+    private static final float ICON_SCALE = 0.72f;
+    private static final float EYE_SCALE = 0.5f;
+    private static final float EYE_PULSE = 0.6f;
+    private static final float EYE_DISTANCE = 0.538f;
+    private static final int ICON_DELAY = 70;
+    private static final int NAME_DELAY = 80;
+    private static final int ASSEMBLY_END = 92;
+    private static final double CROWN = 2.1;
 
     private enum Style {
         /** Cresce de baixo para cima. */
@@ -64,18 +75,34 @@ public final class ModelManager implements Listener {
         SPREAD
     }
 
-    private record Part(Material block, float cx, float y0, float cz, float sx, float sy, float sz,
-                        int delay, int duration, Style style, boolean glow) {
+    /** Qual bloco da skin a peça usa; FIXED mantém o bloco próprio. */
+    private enum Role {
+        FIXED, PLATE, PILLAR, LEDGE, FLOOR, RIM
+    }
+
+    private record Part(Role role, Material fixed, float cx, float y0, float cz, float sx, float sy, float sz,
+                        float tilt, int delay, int duration, Style style, boolean glow) {
+
+        Material block(WaystoneSkin skin) {
+            return switch (role) {
+                case FIXED -> fixed;
+                case PLATE -> skin.plate();
+                case PILLAR -> skin.pillar();
+                case LEDGE -> skin.ledge();
+                case FLOOR -> skin.floor();
+                case RIM -> skin.rim();
+            };
+        }
 
         Transformation to() {
-            return transform(new Vector3f(cx - sx / 2, y0, cz - sz / 2), new Vector3f(sx, sy, sz));
+            return box(cx, y0 + sy / 2, cz, sx, sy, sz, tilt);
         }
 
         Transformation from() {
             float fx = 1;
             float fy = 1;
             float fz = 1;
-            float oy = 0;
+            float lift = 0;
             switch (style) {
                 case RISE -> fy = 0.001f;
                 case POP -> {
@@ -83,17 +110,27 @@ public final class ModelManager implements Listener {
                     fy = 0.001f;
                     fz = 0.001f;
                 }
-                case DROP -> oy = 1.1f;
+                case DROP -> lift = 1.1f;
                 case SPREAD -> {
                     fx = 0.001f;
                     fz = 0.001f;
                 }
             }
-            float ssx = sx * fx;
             float ssy = sy * fy;
-            float ssz = sz * fz;
-            float ty = style == Style.POP ? y0 + sy / 2 - ssy / 2 : y0;
-            return transform(new Vector3f(cx - ssx / 2, ty + oy, cz - ssz / 2), new Vector3f(ssx, ssy, ssz));
+            float centerY = style == Style.RISE ? y0 + ssy / 2 : y0 + sy / 2;
+            return box(cx, centerY + lift, cz, sx * fx, ssy, sz * fz, tilt);
+        }
+    }
+
+    /** Um olho de ender incrustado em uma face do pilar (no lugar das runas). */
+    private record Eye(int dx, int dz, int delay) {
+
+        Vector3f position() {
+            return new Vector3f(dx * EYE_DISTANCE, PILLAR_MID, dz * EYE_DISTANCE);
+        }
+
+        Quaternionf rotation() {
+            return new Quaternionf().rotateY((float) Math.atan2(dx, dz));
         }
     }
 
@@ -101,55 +138,77 @@ public final class ModelManager implements Listener {
     }
 
     private static final List<Part> PARTS = new ArrayList<>();
+    private static final List<Eye> EYES = new ArrayList<>();
     private static final List<Stage> STAGES = List.of(
-            new Stage(0, Sound.BLOCK_STONE_PLACE, 0.7f, Particle.CLOUD, 12, 0.1),
             new Stage(6, Sound.BLOCK_DEEPSLATE_PLACE, 0.7f, Particle.SMOKE, 8, 0.2),
-            new Stage(16, Sound.BLOCK_STONE_PLACE, 1.0f, Particle.CLOUD, 14, 0.6),
-            new Stage(26, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 1.2f, Particle.HAPPY_VILLAGER, 12, 0.7),
-            new Stage(36, Sound.BLOCK_ANVIL_PLACE, 1.3f, Particle.CLOUD, 14, 1.0),
-            new Stage(46, Sound.BLOCK_DEEPSLATE_BRICKS_PLACE, 0.9f, Particle.SMOKE, 8, 1.2),
-            new Stage(56, Sound.BLOCK_CHAIN_PLACE, 0.8f, Particle.CLOUD, 8, 1.5),
-            new Stage(ICON_DELAY, Sound.BLOCK_BEACON_ACTIVATE, 1.5f, Particle.END_ROD, 30, 1.5),
-            new Stage(ICON_DELAY + 6, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1.0f, Particle.ENCHANT, 40, 1.5));
+            new Stage(16, Sound.BLOCK_STONE_PLACE, 0.9f, Particle.CLOUD, 14, 0.7),
+            new Stage(28, Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 1.2f, Particle.HAPPY_VILLAGER, 12, 0.9),
+            new Stage(38, Sound.BLOCK_ANVIL_PLACE, 1.3f, Particle.CLOUD, 14, 1.5),
+            new Stage(48, Sound.BLOCK_DEEPSLATE_BRICKS_PLACE, 0.9f, Particle.SMOKE, 8, 1.7),
+            new Stage(58, Sound.BLOCK_CHAIN_PLACE, 0.8f, Particle.CLOUD, 8, 2.0),
+            new Stage(62, Sound.BLOCK_AMETHYST_CLUSTER_BREAK, 1.0f, Particle.ENCHANT, 40, 2.0));
 
     static {
-        Material stone = Material.STONE_BRICKS;
         Material obsidian = Material.OBSIDIAN;
         Material crying = Material.CRYING_OBSIDIAN;
-        Material glow = Material.VERDANT_FROGLIGHT;
-        // fundação
-        PARTS.add(new Part(stone, 0, 0.002f, 0, 1.5f, 0.08f, 1.5f, 0, 8, Style.SPREAD, false));
-        PARTS.add(new Part(obsidian, 0, 0.08f, 0, 1.16f, 0.14f, 1.16f, 6, 8, Style.RISE, false));
-        PARTS.add(new Part(crying, 0, 0.22f, 0, 1.1f, 0.1f, 1.1f, 10, 8, Style.RISE, false));
-        // pilar (cobre as faces do Lodestone)
-        PARTS.add(new Part(stone, 0, 0.32f, 0, 1.006f, 0.58f, 1.006f, 16, 12, Style.RISE, false));
-        // runas verdes brilhantes nas quatro faces
+        // fundação: placa de chão, base de obsidiana e uma faixa de obsidiana chorosa
+        PARTS.add(new Part(Role.PLATE, null, 0, 0.002f, 0, 1.5f, 0.08f, 1.5f, 0, 0, 8, Style.SPREAD, false));
+        PARTS.add(new Part(Role.FIXED, obsidian, 0, 0.08f, 0, 1.18f, 0.28f, 1.18f, 0, 6, 8, Style.RISE, false));
+        PARTS.add(new Part(Role.FIXED, crying, 0, 0.14f, 0, 1.2f, 0.09f, 1.2f, 0, 10, 8, Style.RISE, false));
+        // pilar: cobre as faces do Lodestone (1.006) para que o bloco original não apareça
+        PARTS.add(new Part(Role.PILLAR, null, 0, PILLAR_BOTTOM, 0, 1.006f, PILLAR_TOP - PILLAR_BOTTOM, 1.006f,
+                0, 16, 14, Style.RISE, false));
+        // encaixes verdes brilhantes atrás dos olhos, nas quatro faces
         int[][] faces = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
-        int delay = 26;
+        int delay = 28;
         for (int[] face : faces) {
             boolean alongX = face[1] != 0;
-            PARTS.add(new Part(glow, face[0] * 0.506f, 0.46f, face[1] * 0.506f,
-                    alongX ? 0.3f : 0.02f, 0.34f, alongX ? 0.02f : 0.3f, delay, 6, Style.POP, true));
-            PARTS.add(new Part(Material.LIME_CONCRETE, face[0] * 0.512f, 0.53f, face[1] * 0.512f,
-                    alongX ? 0.08f : 0.02f, 0.2f, alongX ? 0.02f : 0.08f, delay + 1, 6, Style.POP, true));
-            delay += 2;
+            float size = 0.5f;
+            PARTS.add(new Part(Role.FIXED, Material.VERDANT_FROGLIGHT, face[0] * 0.514f, PILLAR_MID - size / 2,
+                    face[1] * 0.514f, alongX ? size : 0.02f, size, alongX ? 0.02f : size,
+                    0, delay, 6, Style.POP, true));
+            EYES.add(new Eye(face[0], face[1], delay + 2));
+            delay += 3;
         }
-        // beiral e tampo
-        PARTS.add(new Part(stone, 0, 0.9f, 0, 1.3f, 0.17f, 1.3f, 36, 8, Style.DROP, false));
-        PARTS.add(new Part(Material.SMOOTH_STONE, 0, 1.07f, 0, 1.0f, 0.06f, 1.0f, 42, 6, Style.POP, false));
-        // arcos de obsidiana
-        int postDelay = 46;
+        // beiral: laje, piso rebaixado e borda de quatro paredes
+        PARTS.add(new Part(Role.LEDGE, null, 0, PILLAR_TOP, 0, 1.3f, 0.14f, 1.3f, 0, 38, 8, Style.DROP, false));
+        PARTS.add(new Part(Role.FLOOR, null, 0, PILLAR_TOP + 0.14f, 0, 1.02f, 0.05f, 1.02f, 0, 44, 6, Style.POP, false));
+        float rimY = PILLAR_TOP + 0.14f;
+        int rimDelay = 42;
+        for (int sign : new int[]{-1, 1}) {
+            PARTS.add(new Part(Role.RIM, null, 0, rimY, sign * 0.575f, 1.3f, 0.12f, 0.15f, 0, rimDelay, 6, Style.DROP, false));
+            PARTS.add(new Part(Role.RIM, null, sign * 0.575f, rimY, 0, 0.15f, 0.12f, 1.0f, 0, rimDelay + 1, 6, Style.DROP, false));
+            rimDelay += 2;
+        }
+        // arcos de obsidiana: poste baixo na frente, poste alto atrás e viga inclinada entre eles
+        float postBase = rimY;
+        int postDelay = 50;
         for (int sx : new int[]{-1, 1}) {
-            for (int sz : new int[]{-1, 1}) {
-                PARTS.add(new Part(obsidian, sx * 0.4f, 1.13f, sz * 0.32f, 0.14f, 0.36f, 0.14f,
-                        postDelay, 8, Style.RISE, false));
-                postDelay += 2;
-            }
+            PARTS.add(new Part(Role.FIXED, obsidian, sx * 0.4f, postBase, 0.3f, 0.16f, 0.36f, 0.16f,
+                    0, postDelay, 8, Style.RISE, false));
+            PARTS.add(new Part(Role.FIXED, obsidian, sx * 0.4f, postBase, -0.3f, 0.16f, 0.62f, 0.16f,
+                    0, postDelay + 2, 8, Style.RISE, false));
+            postDelay += 4;
         }
-        PARTS.add(new Part(obsidian, -0.4f, 1.49f, 0, 0.14f, 0.12f, 0.78f, 56, 8, Style.DROP, false));
-        PARTS.add(new Part(obsidian, 0.4f, 1.49f, 0, 0.14f, 0.12f, 0.78f, 58, 8, Style.DROP, false));
-        PARTS.add(new Part(crying, -0.4f, 1.61f, 0, 0.16f, 0.05f, 0.4f, 60, 6, Style.POP, true));
-        PARTS.add(new Part(crying, 0.4f, 1.61f, 0, 0.16f, 0.05f, 0.4f, 60, 6, Style.POP, true));
+        float frontTop = postBase + 0.36f;
+        float rearTop = postBase + 0.62f;
+        float beamCenter = (frontTop + rearTop) / 2;
+        float tilt = (float) Math.atan2(rearTop - frontTop, 0.6);
+        for (int sx : new int[]{-1, 1}) {
+            PARTS.add(new Part(Role.FIXED, obsidian, sx * 0.4f, beamCenter - 0.07f, 0, 0.16f, 0.14f, 0.78f,
+                    tilt, 60 + (sx + 1), 8, Style.DROP, false));
+            PARTS.add(new Part(Role.FIXED, crying, sx * 0.4f, rearTop - 0.02f, -0.3f, 0.18f, 0.06f, 0.18f,
+                    0, 64, 6, Style.POP, true));
+        }
+    }
+
+    /** Caixa girada em torno do próprio centro (a transformação do display gira em torno da origem). */
+    private static Transformation box(float cx, float cy, float cz, float sx, float sy, float sz, float tilt) {
+        Quaternionf rotation = new Quaternionf().rotateX(tilt);
+        Vector3f half = new Vector3f(sx / 2, sy / 2, sz / 2);
+        rotation.transform(half);
+        return new Transformation(new Vector3f(cx - half.x, cy - half.y, cz - half.z), rotation,
+                new Vector3f(sx, sy, sz), new Quaternionf());
     }
 
     private static Transformation transform(Vector3f translation, Vector3f scale) {
@@ -161,13 +220,18 @@ public final class ModelManager implements Listener {
     private static final class Instance {
         final Waystone waystone;
         final List<Display> parts = new ArrayList<>();
+        /** Definições alinhadas com {@link #parts}. */
+        final List<Part> defs = new ArrayList<>();
+        final List<ItemDisplay> eyes = new ArrayList<>();
         final List<BukkitTask> pending = new ArrayList<>();
         final Set<UUID> viewers = new HashSet<>();
         final Map<UUID, Integer> misses = new HashMap<>();
         ItemDisplay icon;
         TextDisplay name;
+        WaystoneSkin skin;
         boolean spawned;
         boolean animate;
+        boolean pulse;
         float spin;
 
         Instance(Waystone waystone, boolean animate) {
@@ -228,27 +292,43 @@ public final class ModelManager implements Listener {
         }
         Location center = waystone.pos().center();
         if (instance.spawned && center != null) {
-            Fx.burst(center.clone().add(0, 0.6, 0), Particle.POOF, 25, 0.4, 0.05);
+            Fx.burst(center.clone().add(0, 0.8, 0), Particle.POOF, 30, 0.45, 0.06);
+            Fx.burst(center.clone().add(0, 1.6, 0), Particle.REVERSE_PORTAL, 40, 0.3, 0.2);
         }
         despawn(instance);
     }
 
-    /** Aplica ícone e visibilidade do nome após o dono mudar as opções. */
+    /** Aplica ícone, skin e visibilidade do nome após o dono mudar as opções. */
     public void refresh(Waystone waystone) {
         Instance instance = instances.get(waystone.id());
         if (instance == null || !instance.spawned || instance.animate) {
             return;
         }
         Location center = waystone.pos().center();
-        if (instance.icon != null && instance.icon.isValid()) {
+        Location base = baseLocation(waystone);
+        boolean changed = false;
+        if (instance.icon != null && instance.icon.isValid()
+                && instance.icon.getItemStack().getType() != waystone.icon()) {
             instance.icon.setItemStack(new ItemStack(waystone.icon()));
-            if (center != null) {
-                Fx.burst(center.clone().add(0, 1.0, 0), Particle.END_ROD, 12, 0.25, 0.02);
-                Fx.worldSound(center, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1.0f, 1.3f);
+            changed = true;
+        }
+        if (instance.skin != waystone.skin()) {
+            instance.skin = waystone.skin();
+            for (int i = 0; i < instance.parts.size(); i++) {
+                Part def = instance.defs.get(i);
+                if (def.role() != Role.FIXED && instance.parts.get(i) instanceof BlockDisplay display
+                        && display.isValid()) {
+                    display.setBlock(def.block(waystone.skin()).createBlockData());
+                }
             }
+            changed = true;
+        }
+        if (changed && center != null) {
+            SpawnEffects.pulse(plugin, base);
+            Fx.burst(center.clone().add(0, CROWN - 0.5, 0), Particle.END_ROD, 12, 0.25, 0.02);
         }
         if (waystone.showName() && instance.name == null) {
-            instance.name = spawnName(instance, baseLocation(waystone));
+            instance.name = spawnName(instance, base);
         } else if (!waystone.showName() && instance.name != null) {
             instance.name.remove();
             instance.name = null;
@@ -312,7 +392,7 @@ public final class ModelManager implements Listener {
                 despawn(instance); // o chunk foi descarregado por baixo de nós
             }
             double cx = waystone.pos().x() + 0.5;
-            double cy = waystone.pos().y() + 1.0;
+            double cy = waystone.pos().y() + 1.1;
             double cz = waystone.pos().z() + 0.5;
             boolean nearSpawn = false;
             boolean nearAny = false;
@@ -368,12 +448,12 @@ public final class ModelManager implements Listener {
             return true;
         }
         Location eye = player.getEyeLocation();
-        Vector toTop = new Vector(cx - eye.getX(), cy + 0.6 - eye.getY(), cz - eye.getZ());
+        Vector toTop = new Vector(cx - eye.getX(), cy + 0.7 - eye.getY(), cz - eye.getZ());
         if (fov && eye.getDirection().dot(toTop.clone().normalize()) < -0.15) {
             return false; // atrás de quem olha
         }
         if (occlusion && distance > 10) {
-            Vector toBase = new Vector(cx - eye.getX(), cy - 0.5 - eye.getY(), cz - eye.getZ());
+            Vector toBase = new Vector(cx - eye.getX(), cy - 0.6 - eye.getY(), cz - eye.getZ());
             return clearLine(world, eye, toTop) || clearLine(world, eye, toBase);
         }
         return true;
@@ -416,6 +496,9 @@ public final class ModelManager implements Listener {
         for (Display part : instance.parts) {
             action.accept(part);
         }
+        for (ItemDisplay eye : instance.eyes) {
+            action.accept(eye);
+        }
         if (instance.icon != null) {
             action.accept(instance.icon);
         }
@@ -433,18 +516,34 @@ public final class ModelManager implements Listener {
         }
     }
 
-    // ── Giro do ícone ──────────────────────────────────────────────────────
+    // ── Giro do ícone e pulso dos olhos ────────────────────────────────────
 
     private void spin(Instance instance, int interval) {
-        ItemDisplay icon = instance.icon;
-        if (icon == null || !icon.isValid() || instance.animate) {
+        if (instance.animate) {
             return;
         }
-        instance.spin = (instance.spin + (float) (Math.PI / 2)) % (float) (Math.PI * 2);
-        icon.setInterpolationDelay(0);
-        icon.setInterpolationDuration(interval);
-        icon.setTransformation(new Transformation(new Vector3f(0, ICON_Y, 0),
-                new Quaternionf().rotateY(instance.spin), new Vector3f(ICON_SCALE), new Quaternionf()));
+        ItemDisplay icon = instance.icon;
+        if (icon != null && icon.isValid()) {
+            instance.spin = (instance.spin + (float) (Math.PI / 2)) % (float) (Math.PI * 2);
+            icon.setInterpolationDelay(0);
+            icon.setInterpolationDuration(interval);
+            icon.setTransformation(new Transformation(new Vector3f(0, ICON_Y, 0),
+                    new Quaternionf().rotateY(instance.spin), new Vector3f(ICON_SCALE), new Quaternionf()));
+        }
+        instance.pulse = !instance.pulse;
+        float scale = instance.pulse ? EYE_PULSE : EYE_SCALE;
+        for (int i = 0; i < instance.eyes.size() && i < EYES.size(); i++) {
+            ItemDisplay eye = instance.eyes.get(i);
+            if (eye.isValid()) {
+                eye.setInterpolationDelay(0);
+                eye.setInterpolationDuration(interval);
+                eye.setTransformation(eyeTransform(EYES.get(i), scale));
+            }
+        }
+    }
+
+    private static Transformation eyeTransform(Eye eye, float scale) {
+        return new Transformation(eye.position(), eye.rotation(), new Vector3f(scale), new Quaternionf());
     }
 
     // ── Criação e remoção das entidades ────────────────────────────────────
@@ -458,12 +557,17 @@ public final class ModelManager implements Listener {
         Waystone waystone = instance.waystone;
         Location base = baseLocation(waystone);
         instance.spawned = true;
+        instance.skin = waystone.skin();
         boolean animated = instance.animate
                 && plugin.getConfig().getBoolean("waystones.model.assembly-animation", true);
         if (!animated) {
             instance.animate = false;
             for (Part part : PARTS) {
                 instance.parts.add(spawnPart(instance, base, part, false));
+                instance.defs.add(part);
+            }
+            for (Eye eye : EYES) {
+                instance.eyes.add(spawnEye(instance, base, eye, false));
             }
             instance.icon = spawnIcon(instance, base, false);
             if (waystone.showName()) {
@@ -471,12 +575,27 @@ public final class ModelManager implements Listener {
             }
             return;
         }
+        SpawnEffects.impact(plugin, base, waystone.skin().pillar());
         for (Part part : PARTS) {
             schedule(instance, part.delay(), () -> {
                 Display display = spawnPart(instance, base, part, true);
                 instance.parts.add(display);
+                instance.defs.add(part);
                 showTo(instance, display);
                 Bukkit.getScheduler().runTaskLater(plugin, () -> animateTo(display, part.duration(), part.to()), 2L);
+            });
+        }
+        for (Eye eye : EYES) {
+            schedule(instance, eye.delay(), () -> {
+                ItemDisplay display = spawnEye(instance, base, eye, true);
+                instance.eyes.add(display);
+                showTo(instance, display);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> animateTo(display, 8,
+                        eyeTransform(eye, EYE_SCALE)), 2L);
+                Fx.worldSound(base.clone().add(0, PILLAR_MID, 0), Sound.BLOCK_END_PORTAL_FRAME_FILL, 0.5f,
+                        1.3f + 0.1f * instance.eyes.size());
+                Fx.burst(base.clone().add(eye.dx() * 0.6, PILLAR_MID, eye.dz() * 0.6), Particle.HAPPY_VILLAGER,
+                        5, 0.15, 0.02);
             });
         }
         schedule(instance, ICON_DELAY, () -> {
@@ -485,6 +604,7 @@ public final class ModelManager implements Listener {
             showTo(instance, icon);
             Bukkit.getScheduler().runTaskLater(plugin, () -> animateTo(icon, 12,
                     transform(new Vector3f(0, ICON_Y, 0), new Vector3f(ICON_SCALE))), 2L);
+            SpawnEffects.flash(plugin, base, CROWN);
         });
         if (waystone.showName()) {
             schedule(instance, NAME_DELAY, () -> {
@@ -524,7 +644,7 @@ public final class ModelManager implements Listener {
 
     private BlockDisplay spawnPart(Instance instance, Location base, Part part, boolean animated) {
         BlockDisplay display = base.getWorld().spawn(base, BlockDisplay.class, entity -> {
-            entity.setBlock(part.block().createBlockData());
+            entity.setBlock(part.block(instance.skin).createBlockData());
             entity.setPersistent(false);
             entity.setVisibleByDefault(false);
             entity.setTransformation(animated ? part.from() : part.to());
@@ -532,6 +652,22 @@ public final class ModelManager implements Listener {
             if (part.glow()) {
                 entity.setBrightness(new Display.Brightness(15, 15));
             }
+        });
+        if (!animated) {
+            showTo(instance, display);
+        }
+        return display;
+    }
+
+    private ItemDisplay spawnEye(Instance instance, Location base, Eye eye, boolean animated) {
+        ItemDisplay display = base.getWorld().spawn(base, ItemDisplay.class, entity -> {
+            entity.setItemStack(new ItemStack(Material.ENDER_EYE));
+            entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+            entity.setPersistent(false);
+            entity.setVisibleByDefault(false);
+            entity.setViewRange(0.8f);
+            entity.setBrightness(new Display.Brightness(15, 15));
+            entity.setTransformation(eyeTransform(eye, animated ? 0.001f : EYE_SCALE));
         });
         if (!animated) {
             showTo(instance, display);
@@ -582,6 +718,11 @@ public final class ModelManager implements Listener {
             part.remove();
         }
         instance.parts.clear();
+        instance.defs.clear();
+        for (ItemDisplay eye : instance.eyes) {
+            eye.remove();
+        }
+        instance.eyes.clear();
         if (instance.icon != null) {
             instance.icon.remove();
             instance.icon = null;

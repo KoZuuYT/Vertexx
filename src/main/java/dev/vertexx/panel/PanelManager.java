@@ -5,6 +5,8 @@ import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
 import dev.vertexx.core.YamlStore;
+import dev.vertexx.kingdom.Kingdom;
+import dev.vertexx.kingdom.KingdomPanelGUI;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -100,6 +102,7 @@ public final class PanelManager implements Listener {
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> showNotice(player), 60L);
         if (received.contains(player.getUniqueId())) {
             return;
         }
@@ -112,6 +115,18 @@ public final class PanelManager implements Listener {
             Msg.send(player, "<gray>Você recebeu o <white>Guia do Vertexx</white>. "
                     + "Clique com o botão direito nele para abrir o painel.");
         }, 30L);
+    }
+
+    /** Mostra o mural do reino ao entrar, se o líder tiver fixado um aviso. */
+    private void showNotice(Player player) {
+        if (!player.isOnline()) {
+            return;
+        }
+        Kingdom kingdom = plugin.kingdoms().kingdomOf(player.getUniqueId());
+        String notice = kingdom == null ? null : plugin.kingdoms().notice(kingdom);
+        if (notice != null) {
+            Msg.send(player, kingdom.styled() + " <gray>— mural: <white>" + Msg.esc(notice));
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH)
@@ -141,18 +156,25 @@ public final class PanelManager implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder(false) instanceof PanelGUI gui)) {
+        Object holder = event.getInventory().getHolder(false);
+        if (!(holder instanceof PanelGUI) && !(holder instanceof KingdomPanelGUI)) {
             return;
         }
         event.setCancelled(true);
-        if (event.getClickedInventory() == event.getView().getTopInventory()) {
+        if (event.getClickedInventory() != event.getView().getTopInventory()) {
+            return;
+        }
+        if (holder instanceof PanelGUI gui) {
+            gui.handleClick(event.getSlot(), event.getClick());
+        } else if (holder instanceof KingdomPanelGUI gui) {
             gui.handleClick(event.getSlot(), event.getClick());
         }
     }
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder(false) instanceof PanelGUI) {
+        Object holder = event.getInventory().getHolder(false);
+        if (holder instanceof PanelGUI || holder instanceof KingdomPanelGUI) {
             event.setCancelled(true);
         }
     }

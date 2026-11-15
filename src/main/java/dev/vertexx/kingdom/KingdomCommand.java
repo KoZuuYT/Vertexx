@@ -34,15 +34,21 @@ public final class KingdomCommand implements TabExecutor {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        String sub = args.length == 0 ? "info" : args[0].toLowerCase(Locale.ROOT);
+        String sub = args.length == 0 ? "painel" : args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
+            case "painel" -> panel(sender);
             case "info" -> info(sender);
+            case "anuncio" -> notice(sender, args);
+            case "promover" -> setRank(sender, args, Rank.OFICIAL);
+            case "rebaixar" -> setRank(sender, args, Rank.MEMBRO);
             case "membros" -> members(sender);
             case "aliar" -> ally(sender, args);
             case "romper" -> breakAlliance(sender, args);
             case "admin" -> admin(sender, args);
-            default -> Msg.send(sender, "<gray>Uso: <white>/reino</white>, <white>/reino membros</white>, "
-                    + "<white>/reino aliar <reino></white>, <white>/reino romper <reino></white>");
+            default -> Msg.send(sender, "<gray>Uso: <white>/reino</white> (painel), <white>/reino info</white>, "
+                    + "<white>/reino membros</white>, <white>/reino aliar <reino></white>, "
+                    + "<white>/reino romper <reino></white>, <white>/reino anuncio <texto></white>, "
+                    + "<white>/reino promover|rebaixar <jogador></white>");
         }
         return true;
     }
@@ -57,6 +63,73 @@ public final class KingdomCommand implements TabExecutor {
             Msg.send(sender, "<red>Você ainda não pertence a um reino.");
         }
         return member;
+    }
+
+    private void panel(CommandSender sender) {
+        Member member = requireMember(sender);
+        if (member == null) {
+            return;
+        }
+        new KingdomPanelGUI(plugin, (Player) sender, member.kingdom()).open();
+    }
+
+    /** O líder fixa (ou limpa, com "limpar") o mural do reino. */
+    private void notice(CommandSender sender, String[] args) {
+        Member member = requireLeader(sender);
+        if (member == null) {
+            return;
+        }
+        String text = String.join(" ", java.util.Arrays.copyOfRange(args, 1, args.length)).strip();
+        if (text.isEmpty()) {
+            Msg.send(sender, "<gray>Uso: <white>/reino anuncio <texto></white> ou <white>/reino anuncio limpar</white>");
+            return;
+        }
+        if (text.equalsIgnoreCase("limpar")) {
+            kingdoms().notice(member.kingdom(), null);
+            Msg.send(sender, "<yellow>Mural do reino limpo.");
+            return;
+        }
+        if (text.length() > 160) {
+            text = text.substring(0, 160);
+        }
+        kingdoms().notice(member.kingdom(), text);
+        String message = Msg.PREFIX + member.kingdom().styled() + " <gray>— mural atualizado: <white>" + Msg.esc(text);
+        for (Player online : Bukkit.getOnlinePlayers()) {
+            if (kingdoms().kingdomOf(online.getUniqueId()) == member.kingdom()) {
+                online.sendMessage(Msg.mm(message));
+                Fx.success(online);
+            }
+        }
+    }
+
+    /** O líder promove um Membro a Oficial ou rebaixa um Oficial a Membro. */
+    private void setRank(CommandSender sender, String[] args, Rank target) {
+        Member leader = requireLeader(sender);
+        if (leader == null) {
+            return;
+        }
+        if (args.length < 2) {
+            Msg.send(sender, "<gray>Uso: <white>/reino " + args[0].toLowerCase(Locale.ROOT) + " <jogador></white>");
+            return;
+        }
+        UUID id = kingdoms().findByName(args[1]);
+        Member member = id == null ? null : kingdoms().member(id);
+        if (member == null || member.kingdom() != leader.kingdom()) {
+            Msg.send(sender, "<red>Esse jogador não pertence ao seu reino.");
+            return;
+        }
+        if (member.rank() == Rank.LIDER || member.rank() == target) {
+            Msg.send(sender, "<yellow>" + Msg.esc(member.name()) + " já é " + member.rank().displayName() + ".");
+            return;
+        }
+        kingdoms().set(id, member.name(), member.kingdom(), target);
+        Msg.send(sender, "<green><name> agora é <white>" + target.displayName() + "</white>.",
+                Placeholder.unparsed("name", member.name()));
+        Player online = Bukkit.getPlayer(id);
+        if (online != null) {
+            Msg.send(online, "<gray>Seu cargo no reino agora é <white>" + target.displayName() + "</white>.");
+            Fx.success(online);
+        }
     }
 
     private void info(CommandSender sender) {
@@ -247,12 +320,14 @@ public final class KingdomCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> options = new ArrayList<>();
         if (args.length == 1) {
-            options.addAll(List.of("membros", "aliar", "romper"));
+            options.addAll(List.of("info", "membros", "aliar", "romper", "anuncio", "promover", "rebaixar"));
             if (sender.hasPermission("vertexx.admin")) {
                 options.add("admin");
             }
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("aliar") || args[0].equalsIgnoreCase("romper"))) {
             options.addAll(kingdoms().ids());
+        } else if (args.length == 2 && (args[0].equalsIgnoreCase("promover") || args[0].equalsIgnoreCase("rebaixar"))) {
+            Bukkit.getOnlinePlayers().forEach(p -> options.add(p.getName()));
         } else if (args[0].equalsIgnoreCase("admin") && sender.hasPermission("vertexx.admin")) {
             if (args.length == 2) {
                 options.addAll(List.of("definir", "cargo"));

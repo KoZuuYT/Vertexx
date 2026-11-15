@@ -9,7 +9,7 @@ website: https://github.com/KoZuuYT/Vertexx
 commands:
   reino:
     description: Informações e gestão do seu reino.
-    usage: /reino [membros|aliar|romper|admin]
+    usage: /reino [info|membros|aliar|romper|anuncio|promover|rebaixar|admin]
     aliases: [reinos, kingdom]
   tumulo:
     description: Lista os seus túmulos pendentes.

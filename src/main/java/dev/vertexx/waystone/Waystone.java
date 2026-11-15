@@ -15,6 +15,8 @@ public final class Waystone {
     private final long created;
     private volatile Material icon = WaystoneIcons.DEFAULT;
     private volatile boolean showName = true;
+    private volatile WaystoneSkin skin = WaystoneSkin.DEFAULT;
+    private volatile int uses;
     /** Rota fixa: ao clicar, viaja direto para este Waystone em vez de abrir o menu. */
     private volatile UUID route;
 
@@ -65,6 +67,23 @@ public final class Waystone {
 
     public void showName(boolean showName) {
         this.showName = showName;
+    }
+
+    public WaystoneSkin skin() {
+        return skin;
+    }
+
+    public void skin(WaystoneSkin skin) {
+        this.skin = skin;
+    }
+
+    /** Quantas viagens já terminaram neste Waystone. */
+    public int uses() {
+        return uses;
+    }
+
+    public void uses(int uses) {
+        this.uses = uses;
     }
 
     public UUID route() {

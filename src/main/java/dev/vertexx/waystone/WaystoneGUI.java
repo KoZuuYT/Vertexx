@@ -6,28 +6,79 @@ import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
 import dev.vertexx.kingdom.Kingdom;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
 
-/** Menu de viagem rápida: lista os Waystones descobertos, com revelação gradual dos destinos. */
+/**
+ * Menu de viagem rápida: destinos descobertos com revelação gradual, favoritos, ordenação, filtro
+ * por dimensão e um cabeçalho com os dados do Waystone atual, decorado com as cores do reino do dono.
+ */
 public final class WaystoneGUI implements InventoryHolder {
+
+    private enum Sort {
+        NAME("Nome", Material.NAME_TAG),
+        DISTANCE("Distância", Material.COMPASS),
+        STARS("Favoritos primeiro", Material.NETHER_STAR),
+        USES("Mais visitados", Material.CLOCK);
+
+        private final String label;
+        private final Material icon;
+
+        Sort(String label, Material icon) {
+            this.label = label;
+            this.icon = icon;
+        }
+
+        Sort next() {
+            return values()[(ordinal() + 1) % values().length];
+        }
+    }
+
+    private enum Filter {
+        ALL("Todas as dimensões", Material.ENDER_EYE, null),
+        OVERWORLD("Superfície", Material.GRASS_BLOCK, World.Environment.NORMAL),
+        NETHER("Nether", Material.NETHERRACK, World.Environment.NETHER),
+        END("The End", Material.END_STONE, World.Environment.THE_END);
+
+        private final String label;
+        private final Material icon;
+        private final World.Environment environment;
+
+        Filter(String label, Material icon, World.Environment environment) {
+            this.label = label;
+            this.icon = icon;
+            this.environment = environment;
+        }
+
+        Filter next() {
+            return values()[(ordinal() + 1) % values().length];
+        }
+    }
 
     private static final int SIZE = 54;
     private static final int PAYMENT_SLOT = 2;
+    private static final int SORT_SLOT = 3;
     private static final int ORIGIN_SLOT = 4;
+    private static final int FILTER_SLOT = 5;
     private static final int CONFIG_SLOT = 6;
     private static final int PREVIOUS_SLOT = 45;
+    private static final int HELP_SLOT = 47;
     private static final int CLOSE_SLOT = 49;
+    private static final int STATS_SLOT = 51;
     private static final int NEXT_SLOT = 53;
     private static final int[] CONTENT_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
@@ -39,9 +90,12 @@ public final class WaystoneGUI implements InventoryHolder {
     private final Player player;
     private final Waystone origin;
     private final Inventory inventory;
-    private final List<Waystone> destinations;
+    private final List<Waystone> all;
     private final Map<Integer, Waystone> bySlot = new HashMap<>();
+    private List<Waystone> destinations;
     private TravelCost cost;
+    private Sort sort = Sort.NAME;
+    private Filter filter = Filter.ALL;
     private int page;
     private BukkitTask reveal;
 
@@ -49,11 +103,12 @@ public final class WaystoneGUI implements InventoryHolder {
         this.plugin = plugin;
         this.player = player;
         this.origin = origin;
-        this.destinations = plugin.waystones().destinations(player, origin);
+        this.all = plugin.waystones().destinations(player, origin);
         this.cost = plugin.waystones().costFor(player);
         this.inventory = Bukkit.createInventory(this, SIZE,
                 Msg.mm("<gradient:#c4a7ff:#2cb67d><bold>Waystone</bold></gradient> <dark_gray>» <dark_gray><name>",
-                        net.kyori.adventure.text.minimessage.tag.resolver.Placeholder.unparsed("name", origin.name())));
+                        Placeholder.unparsed("name", origin.name())));
+        applyView();
     }
 
     @Override
@@ -74,35 +129,67 @@ public final class WaystoneGUI implements InventoryHolder {
         }
     }
 
-    public void handleClick(int slot) {
+    // ── Cliques ────────────────────────────────────────────────
+
+    public void handleClick(int slot, ClickType click) {
         Waystone destination = bySlot.get(slot);
         if (destination != null) {
+            if (click.isRightClick()) {
+                boolean now = plugin.waystones().toggleFavorite(player, destination);
+                Fx.select(player);
+                Msg.actionBar(player, now ? "<yellow>★ <white><name></white> adicionado aos favoritos"
+                                : "<gray>☆ <white><name></white> removido dos favoritos",
+                        Placeholder.unparsed("name", destination.name()));
+                refreshView();
+                return;
+            }
             Fx.click(player);
             plugin.waystones().travel(player, destination);
             return;
         }
-        if (slot == PAYMENT_SLOT) {
-            plugin.waystones().cyclePayment(player);
-            Fx.select(player);
-            cost = plugin.waystones().costFor(player);
-            render();
-            return;
-        }
-        if (slot == CONFIG_SLOT && plugin.waystones().canConfigure(player, origin)) {
-            Fx.click(player);
-            new WaystoneConfigGUI(plugin, player, origin).open();
-            return;
-        }
-        int pages = pageCount();
-        if (slot == PREVIOUS_SLOT && page > 0) {
-            page--;
-            turnPage();
-        } else if (slot == NEXT_SLOT && page < pages - 1) {
-            page++;
-            turnPage();
-        } else if (slot == CLOSE_SLOT) {
-            Fx.click(player);
-            player.closeInventory();
+        switch (slot) {
+            case PAYMENT_SLOT -> {
+                plugin.waystones().cyclePayment(player);
+                Fx.select(player);
+                cost = plugin.waystones().costFor(player);
+                refreshView();
+            }
+            case SORT_SLOT -> {
+                sort = sort.next();
+                Fx.select(player);
+                page = 0;
+                refreshView();
+            }
+            case FILTER_SLOT -> {
+                filter = filter.next();
+                Fx.select(player);
+                page = 0;
+                refreshView();
+            }
+            case CONFIG_SLOT -> {
+                if (plugin.waystones().canConfigure(player, origin)) {
+                    Fx.click(player);
+                    new WaystoneConfigGUI(plugin, player, origin).open();
+                }
+            }
+            case PREVIOUS_SLOT -> {
+                if (page > 0) {
+                    page--;
+                    turnPage();
+                }
+            }
+            case NEXT_SLOT -> {
+                if (page < pageCount() - 1) {
+                    page++;
+                    turnPage();
+                }
+            }
+            case CLOSE_SLOT -> {
+                Fx.click(player);
+                player.closeInventory();
+            }
+            default -> {
+            }
         }
     }
 
@@ -111,44 +198,126 @@ public final class WaystoneGUI implements InventoryHolder {
         render();
     }
 
+    private void refreshView() {
+        applyView();
+        render();
+    }
+
     private int pageCount() {
         return Math.max(1, (destinations.size() + CONTENT_SLOTS.length - 1) / CONTENT_SLOTS.length);
+    }
+
+    /** Filtra e ordena a lista conforme as escolhas atuais. */
+    private void applyView() {
+        List<Waystone> list = new ArrayList<>();
+        for (Waystone waystone : all) {
+            World world = waystone.pos().bukkitWorld();
+            if (filter.environment == null || (world != null && world.getEnvironment() == filter.environment)) {
+                list.add(waystone);
+            }
+        }
+        Comparator<Waystone> byName = Comparator.comparing(w -> w.name().toLowerCase(Locale.ROOT));
+        switch (sort) {
+            case NAME -> list.sort(byName);
+            case DISTANCE -> list.sort(Comparator.comparingDouble(this::distanceTo).thenComparing(byName));
+            case STARS -> list.sort(Comparator
+                    .comparing((Waystone w) -> !plugin.waystones().isFavorite(player, w)).thenComparing(byName));
+            case USES -> list.sort(Comparator.comparingInt((Waystone w) -> w.uses()).reversed().thenComparing(byName));
+        }
+        destinations = list;
+        page = Math.min(page, pageCount() - 1);
+    }
+
+    private double distanceTo(Waystone waystone) {
+        World world = waystone.pos().bukkitWorld();
+        if (world == null || !world.equals(player.getWorld())) {
+            return Double.MAX_VALUE;
+        }
+        return player.getLocation().distanceSquared(waystone.pos().center());
+    }
+
+    // ── Renderização ───────────────────────────────────────────
+
+    private Material themePane() {
+        Kingdom owner = plugin.kingdoms().kingdomOf(origin.owner());
+        return owner == null ? Material.PURPLE_STAINED_GLASS_PANE : owner.pane();
+    }
+
+    private void frame() {
+        ItemStack theme = Items.filler(themePane());
+        ItemStack dark = Items.filler(Material.BLACK_STAINED_GLASS_PANE);
+        ItemStack soft = Items.filler(Material.GRAY_STAINED_GLASS_PANE);
+        for (int slot = 0; slot < SIZE; slot++) {
+            int row = slot / 9;
+            int column = slot % 9;
+            ItemStack item = null;
+            if (row == 0 || row == 5) {
+                item = column == 0 || column == 8 ? theme : column % 2 == 1 ? soft : dark;
+            } else if (column == 0 || column == 8) {
+                item = row == 2 || row == 3 ? theme : dark;
+            }
+            inventory.setItem(slot, item);
+        }
     }
 
     private void render() {
         close();
         bySlot.clear();
-        ItemStack border = Items.filler(Material.PURPLE_STAINED_GLASS_PANE);
-        ItemStack dark = Items.filler(Material.BLACK_STAINED_GLASS_PANE);
-        for (int slot = 0; slot < SIZE; slot++) {
-            int row = slot / 9;
-            int column = slot % 9;
-            boolean edge = row == 0 || row == 5;
-            boolean side = column == 0 || column == 8;
-            inventory.setItem(slot, edge ? border : side ? dark : null);
-        }
+        frame();
 
-        inventory.setItem(ORIGIN_SLOT, Items.of(Material.LODESTONE,
-                "<gradient:#c4a7ff:#2cb67d><bold>" + Msg.esc(origin.name()),
-                List.of(
-                        "<gray>Você está aqui.",
-                        "<gray>Dono: <white>" + origin.ownerName(),
-                        "",
-                        "<gray>Custo por viagem: " + cost.describe(),
-                        origin.route() == null ? "<dark_gray>Sem rota fixa." : "<gray>Rota fixa ativa <dark_gray>(Shift + clique direito abre este menu)",
-                        "<dark_gray>Waystones descobertos: " + (destinations.size() + 1)), true));
+        long days = Math.max(0, (System.currentTimeMillis() - origin.created()) / 86_400_000L);
+        Kingdom ownerKingdom = plugin.kingdoms().kingdomOf(origin.owner());
+        List<String> originLore = new ArrayList<>();
+        originLore.add("<dark_gray>▸ Você está aqui");
+        originLore.add("");
+        originLore.add("<gray>Dono: <white>" + origin.ownerName()
+                + (ownerKingdom == null ? "" : " <dark_gray>(" + ownerKingdom.styled() + "<dark_gray>)"));
+        originLore.add("<gray>Skin: <white>" + origin.skin().label());
+        originLore.add("<gray>Erguido há: <white>" + (days == 0 ? "menos de um dia" : days + (days == 1 ? " dia" : " dias")));
+        originLore.add("<gray>Viagens até aqui: <white>" + origin.uses());
+        originLore.add("");
+        originLore.add("<gray>Custo por viagem: " + cost.describe());
+        originLore.add(origin.route() == null ? "<dark_gray>Sem rota fixa."
+                : "<gray>Rota fixa ativa <dark_gray>(Shift + clique direito abre este menu)");
+        inventory.setItem(ORIGIN_SLOT, Items.of(origin.skin().pillar(),
+                "<gradient:#c4a7ff:#2cb67d><bold>" + Msg.esc(origin.name()), originLore, true));
+
         Material paying = plugin.waystones().chosenPayment(player);
         inventory.setItem(PAYMENT_SLOT, Items.of(paying, "<gradient:#c4a7ff:#2cb67d>Pagamento da viagem",
                 List.of("<gray>Você paga com: " + cost.describe(),
                         "",
                         "<yellow>▶ Clique para trocar <dark_gray>(ametista, pérola ou resina)")));
+        inventory.setItem(SORT_SLOT, Items.of(sort.icon, "<gradient:#c4a7ff:#2cb67d>Ordenar",
+                List.of("<gray>Atual: <white>" + sort.label, "",
+                        "<yellow>▶ Clique para alternar", "<dark_gray>Nome, distância, favoritos, visitas")));
+        inventory.setItem(FILTER_SLOT, Items.of(filter.icon, "<gradient:#c4a7ff:#2cb67d>Filtrar",
+                List.of("<gray>Mostrando: <white>" + filter.label, "",
+                        "<yellow>▶ Clique para alternar")));
         if (plugin.waystones().canConfigure(player, origin)) {
             inventory.setItem(CONFIG_SLOT, Items.of(Material.COMPARATOR, "<gradient:#c4a7ff:#2cb67d>Configurar Waystone",
-                    List.of("<gray>Ícone, nome flutuante e rota fixa.", "", "<yellow>▶ Clique para abrir")));
+                    List.of("<gray>Skin, ícone, nome flutuante", "<gray>e rota fixa.", "", "<yellow>▶ Clique para abrir")));
         }
-        inventory.setItem(CLOSE_SLOT, Items.of(Material.BARRIER, "<red>Fechar", List.of()));
 
         int pages = pageCount();
+        inventory.setItem(CLOSE_SLOT, Items.of(Material.BARRIER, "<red>Fechar", List.of()));
+        inventory.setItem(HELP_SLOT, Items.of(Material.WRITABLE_BOOK, "<gradient:#c4a7ff:#2cb67d>Como usar",
+                List.of("<yellow>Clique esquerdo<gray>: viajar",
+                        "<yellow>Clique direito<gray>: favoritar ★",
+                        "",
+                        "<dark_gray>Waystones novos entram na lista",
+                        "<dark_gray>assim que você os descobre.")));
+        int favorites = 0;
+        for (Waystone waystone : all) {
+            if (plugin.waystones().isFavorite(player, waystone)) {
+                favorites++;
+            }
+        }
+        inventory.setItem(STATS_SLOT, Items.of(Material.MAP, "<gradient:#c4a7ff:#2cb67d>Seu mapa",
+                List.of("<gray>Descobertos: <white>" + plugin.waystones().discoveredCount(player)
+                                + "<dark_gray>/<white>" + plugin.waystones().all().size(),
+                        "<gray>Favoritos: <yellow>" + favorites,
+                        "<gray>Na lista: <white>" + destinations.size(),
+                        "<gray>Página: <white>" + (page + 1) + "<dark_gray>/<white>" + pages)));
         if (page > 0) {
             inventory.setItem(PREVIOUS_SLOT, Items.of(Material.ARROW, "<yellow>◀ Página anterior",
                     List.of("<dark_gray>Página " + page + " de " + pages)));
@@ -159,10 +328,12 @@ public final class WaystoneGUI implements InventoryHolder {
         }
 
         if (destinations.isEmpty()) {
-            inventory.setItem(22, Items.of(Material.COMPASS, "<gray>Nenhum outro Waystone descoberto",
-                    List.of(
-                            "<dark_gray>Explore o mundo e clique em outros",
-                            "<dark_gray>Waystones para registrá-los aqui.")));
+            boolean filtered = !all.isEmpty();
+            inventory.setItem(22, Items.of(Material.COMPASS,
+                    filtered ? "<gray>Nada nesta dimensão" : "<gray>Nenhum outro Waystone descoberto",
+                    List.of(filtered ? "<dark_gray>Troque o filtro para ver os outros."
+                                    : "<dark_gray>Explore o mundo e clique em outros",
+                            filtered ? "" : "<dark_gray>Waystones para registrá-los aqui.")));
             return;
         }
 
@@ -192,21 +363,15 @@ public final class WaystoneGUI implements InventoryHolder {
 
     private ItemStack destinationItem(Waystone waystone) {
         World world = waystone.pos().bukkitWorld();
-        Material icon = Material.GRASS_BLOCK;
         String dimension = "Mundo desconhecido";
         if (world != null) {
-            switch (world.getEnvironment()) {
-                case NETHER -> {
-                    icon = Material.NETHERRACK;
-                    dimension = "Nether";
-                }
-                case THE_END -> {
-                    icon = Material.END_STONE;
-                    dimension = "The End";
-                }
-                default -> dimension = "Superfície";
-            }
+            dimension = switch (world.getEnvironment()) {
+                case NETHER -> "Nether";
+                case THE_END -> "The End";
+                default -> "Superfície";
+            };
         }
+        boolean favorite = plugin.waystones().isFavorite(player, waystone);
         Kingdom ownerKingdom = plugin.kingdoms().kingdomOf(waystone.owner());
         List<String> lore = new ArrayList<>();
         lore.add("<gray>Dono: <white>" + waystone.ownerName()
@@ -216,9 +381,12 @@ public final class WaystoneGUI implements InventoryHolder {
             int distance = (int) Math.round(player.getLocation().distance(waystone.pos().center()));
             lore.add("<gray>Distância: <white>" + distance + " blocos");
         }
+        lore.add("<gray>Skin: <white>" + waystone.skin().label() + " <dark_gray>• <gray>Visitas: <white>" + waystone.uses());
         lore.add("");
         lore.add("<gray>Custo: " + cost.describe());
-        lore.add(cost.canPay(player) ? "<yellow>▶ Clique para viajar" : "<red>✖ Você não pode pagar o custo");
-        return Items.of(icon, "<gradient:#c4a7ff:#2cb67d>" + Msg.esc(waystone.name()), lore);
+        lore.add(cost.canPay(player) ? "<yellow>▶ Esquerdo: viajar" : "<red>✖ Você não pode pagar o custo");
+        lore.add(favorite ? "<yellow>▶ Direito: remover dos favoritos" : "<dark_gray>▶ Direito: favoritar ★");
+        return Items.of(waystone.skin().pillar(),
+                (favorite ? "<yellow>★ " : "") + "<gradient:#c4a7ff:#2cb67d>" + Msg.esc(waystone.name()), lore, favorite);
     }
 }

@@ -30,6 +30,8 @@ public final class KingdomManager {
     private final Map<UUID, Member> members = new ConcurrentHashMap<>();
     private final Set<String> alliances = new HashSet<>();
     private final Set<String> proposals = new HashSet<>();
+    /** Mural de cada reino (id → texto), definido pelo líder. */
+    private final Map<String, String> notices = new HashMap<>();
 
     public KingdomManager(Plugin plugin) {
         this.store = new YamlStore(plugin, "kingdoms.yml");
@@ -47,6 +49,16 @@ public final class KingdomManager {
         members.clear();
         alliances.clear();
         proposals.clear();
+        notices.clear();
+        ConfigurationSection board = data.getConfigurationSection("notice");
+        if (board != null) {
+            for (String key : board.getKeys(false)) {
+                String text = board.getString(key, "");
+                if (!text.isBlank()) {
+                    notices.put(key, text);
+                }
+            }
+        }
         ConfigurationSection section = data.getConfigurationSection("members");
         if (section != null) {
             for (String key : section.getKeys(false)) {
@@ -85,6 +97,9 @@ public final class KingdomManager {
         }
         data.set("alliances", new ArrayList<>(alliances));
         data.set("proposals", new ArrayList<>(proposals));
+        for (Map.Entry<String, String> entry : notices.entrySet()) {
+            data.set("notice." + entry.getKey(), entry.getValue());
+        }
         return data;
     }
 
@@ -203,6 +218,27 @@ public final class KingdomManager {
             save();
         }
         return removed;
+    }
+
+    /** {@code from} já propôs aliança a {@code to} e aguarda resposta. */
+    public boolean proposed(Kingdom from, Kingdom to) {
+        return proposals.contains(from.id() + ">" + to.id());
+    }
+
+    // ── Mural ───────────────────────────────────────────────────
+
+    /** Aviso fixado pelo líder, ou {@code null}. */
+    public String notice(Kingdom kingdom) {
+        return notices.get(kingdom.id());
+    }
+
+    public void notice(Kingdom kingdom, String text) {
+        if (text == null || text.isBlank()) {
+            notices.remove(kingdom.id());
+        } else {
+            notices.put(kingdom.id(), text.strip());
+        }
+        save();
     }
 
     public List<String> ids() {

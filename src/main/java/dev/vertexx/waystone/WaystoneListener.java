@@ -127,7 +127,7 @@ public final class WaystoneListener implements Listener {
             return;
         }
         if (holder instanceof WaystoneGUI gui) {
-            gui.handleClick(event.getSlot());
+            gui.handleClick(event.getSlot(), event.getClick());
         } else if (holder instanceof WaystoneConfigGUI gui) {
             gui.handleClick(event.getSlot());
         }

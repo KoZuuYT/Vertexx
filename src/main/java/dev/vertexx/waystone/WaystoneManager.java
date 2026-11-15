@@ -61,6 +61,8 @@ public final class WaystoneManager {
     private final Set<UUID> traveling = new HashSet<>();
     /** Item escolhido por cada jogador para pagar as viagens. */
     private final Map<UUID, Material> payment = new HashMap<>();
+    /** Waystones marcados como favoritos por cada jogador. */
+    private final Map<UUID, Set<UUID>> favorites = new HashMap<>();
 
     public WaystoneManager(PluginMain plugin) {
         this.plugin = plugin;
@@ -80,6 +82,7 @@ public final class WaystoneManager {
         byPos.clear();
         discovered.clear();
         payment.clear();
+        favorites.clear();
         ConfigurationSection section = data.getConfigurationSection("waystones");
         if (section != null) {
             for (String key : section.getKeys(false)) {
@@ -94,6 +97,8 @@ public final class WaystoneManager {
                             entry.getLong("created"));
                     waystone.icon(WaystoneIcons.parse(entry.getString("icon")));
                     waystone.showName(entry.getBoolean("show-name", true));
+                    waystone.skin(WaystoneSkin.parse(entry.getString("skin")));
+                    waystone.uses(entry.getInt("uses", 0));
                     String route = entry.getString("route");
                     waystone.route(route == null || route.isBlank() ? null : UUID.fromString(route));
                     byId.put(waystone.id(), waystone);
@@ -111,6 +116,20 @@ public final class WaystoneManager {
                     if (item != null) {
                         payment.put(UUID.fromString(key), item);
                     }
+                } catch (IllegalArgumentException ignored) {
+                    // entrada inválida: ignora
+                }
+            }
+        }
+        ConfigurationSection stars = data.getConfigurationSection("favorites");
+        if (stars != null) {
+            for (String key : stars.getKeys(false)) {
+                try {
+                    Set<UUID> ids = new HashSet<>();
+                    for (String id : stars.getStringList(key)) {
+                        ids.add(UUID.fromString(id));
+                    }
+                    favorites.put(UUID.fromString(key), ids);
                 } catch (IllegalArgumentException ignored) {
                     // entrada inválida: ignora
                 }
@@ -151,10 +170,23 @@ public final class WaystoneManager {
             entry.set("created", waystone.created());
             entry.set("icon", waystone.icon().name());
             entry.set("show-name", waystone.showName());
+            entry.set("skin", waystone.skin().name());
+            entry.set("uses", waystone.uses());
             entry.set("route", waystone.route() == null ? null : waystone.route().toString());
         }
         for (Map.Entry<UUID, Material> entry : payment.entrySet()) {
             data.set("payment." + entry.getKey(), entry.getValue().name());
+        }
+        for (Map.Entry<UUID, Set<UUID>> entry : favorites.entrySet()) {
+            List<String> ids = new ArrayList<>();
+            for (UUID id : entry.getValue()) {
+                if (byId.containsKey(id)) {
+                    ids.add(id.toString());
+                }
+            }
+            if (!ids.isEmpty()) {
+                data.set("favorites." + entry.getKey(), ids);
+            }
         }
         for (Map.Entry<UUID, Set<UUID>> entry : discovered.entrySet()) {
             List<String> ids = new ArrayList<>();
@@ -273,6 +305,31 @@ public final class WaystoneManager {
             save();
         }
         return added;
+    }
+
+    public boolean isFavorite(Player player, Waystone waystone) {
+        return favorites.getOrDefault(player.getUniqueId(), Set.of()).contains(waystone.id());
+    }
+
+    /** @return {@code true} se o Waystone passou a ser favorito. */
+    public boolean toggleFavorite(Player player, Waystone waystone) {
+        Set<UUID> set = favorites.computeIfAbsent(player.getUniqueId(), k -> new HashSet<>());
+        boolean added = set.add(waystone.id());
+        if (!added) {
+            set.remove(waystone.id());
+        }
+        save();
+        return added;
+    }
+
+    public int discoveredCount(Player player) {
+        int total = 0;
+        for (UUID id : discovered.getOrDefault(player.getUniqueId(), Set.of())) {
+            if (byId.containsKey(id)) {
+                total++;
+            }
+        }
+        return total;
     }
 
     /** Waystones descobertos pelo jogador, exceto {@code except}, em ordem alfabética. */
@@ -449,6 +506,8 @@ public final class WaystoneManager {
             }
             cost.charge(player);
             discover(player, destination);
+            destination.uses(destination.uses() + 1);
+            save();
             Fx.burst(origin, Particle.PORTAL, 60, 0.4, 0.8);
             Fx.worldSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 0.8f);
 

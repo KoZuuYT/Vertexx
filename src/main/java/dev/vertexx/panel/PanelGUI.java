@@ -196,6 +196,12 @@ public final class PanelGUI implements InventoryHolder {
             }
             set(slots[index++], Items.of(kingdom.icon(), "<bold>" + kingdom.styled(), lore, kingdom == own), null);
         }
+        if (own != null) {
+            set(40, Items.of(own.icon(), "<gradient:#c4a7ff:#2cb67d><bold>Painel do meu reino",
+                    List.of("<gray>Status detalhado, membros, mural", "<gray>e diplomacia de " + own.styled() + "<gray>.", "",
+                            "<yellow>▶ Clique para abrir")),
+                    c -> new dev.vertexx.kingdom.KingdomPanelGUI(plugin, player, own).open());
+        }
         boolean friendly = plugin.getConfig().getBoolean("combat.friendly-fire", false);
         set(31, Items.of(Material.IRON_SWORD, "<gradient:#c4a7ff:#2cb67d>Regras de combate",
                 List.of("<gray>Fogo amigo entre aliados: " + (friendly ? "<red>ligado" : "<green>desligado"),
@@ -296,6 +302,8 @@ public final class PanelGUI implements InventoryHolder {
         set(22, Items.of(Material.GOLDEN_HELMET, "<white>/honra [jogador]", List.of("<gray>Mostra a honra de alguém.")), null);
         set(23, Items.of(Material.PAINTING, "<white>/pacote", List.of("<gray>Aceita ou recusa o pacote visual opcional.")), null);
         set(24, Items.of(Material.BOOK, "<white>/vertexx livro", List.of("<gray>Recebe outro Guia do Vertexx.")), null);
+        set(29, Items.of(Material.WRITABLE_BOOK, "<white>/reino anuncio <texto>",
+                List.of("<gray>Líder: fixa o mural do reino.", "<dark_gray>/reino promover|rebaixar <jogador>")), null);
         set(31, Items.of(Material.LODESTONE, "<white>Waystones",
                 List.of("<gray>Clique direito para viajar.", "<gray>Clique em um novo Waystone para descobri-lo.",
                         "<gray>Em combate você não pode viajar.")), null);

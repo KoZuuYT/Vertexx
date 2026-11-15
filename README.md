@@ -104,7 +104,10 @@ Membros do mesmo reino e de reinos aliados não se ferem (fogo amigo desativado)
 
 | Comando | Quem | Descrição |
 | --- | --- | --- |
-| `/reino` | todos | Seu reino, cargo, aliados e honra |
+| `/reino` | todos | Painel do seu reino: status, membros, mural e diplomacia |
+| `/reino info` | todos | Resumo do reino no chat |
+| `/reino anuncio <texto\|limpar>` | Líder | Fixa o mural do reino (aparece ao entrar) |
+| `/reino promover\|rebaixar <jogador>` | Líder | Alterna Membro e Oficial |
 | `/reino membros` | todos | Lista os membros do seu reino |
 | `/reino aliar <reino>` | Líder | Propõe ou aceita uma aliança |
 | `/reino romper <reino>` | Líder | Rompe uma aliança |
@@ -170,6 +173,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.3.0 | Túmulos, honra, fogo amigo e resource pack opcional |
 | 0.4.0 | Auto-update pelo GitHub |
 | 0.5.0 | Painel e Guia, modelo 3D animado das Waystones, personalização, rotas fixas, escolha de pagamento |
+| 0.6.0 | Modelo fiel à referência (olhos no lugar das runas), 8 skins, ondas de impacto e brilho na montagem, painel do reino (status, membros, diplomacia, mural), menu de Waystones com favoritos, ordenação e filtro |
 
 ## Servidor de teste (Windows)
 
