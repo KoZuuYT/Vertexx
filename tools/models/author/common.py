@@ -10,6 +10,7 @@ from PIL import Image
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
 
+from vx import pose as vpose                             # noqa: E402
 from vx import refscan                                   # noqa: E402
 from vx.anim import bake as bake_anim                    # noqa: E402
 from vx.model import save_bbmodel                        # noqa: E402
@@ -90,7 +91,7 @@ def fill_unseen(b, seen, pairs=()):
 
 def run(name, build, ref=None, shade=None, post=None, project=True, fit=None, frames=None, views=None, quiet=False,
         fit_kw=None, params=None, fit_params=None, steps=None, bounds=None,
-        pairs=(), clip=(), final=None):
+        pairs=(), clip=(), final=None, pose=None, exclude=()):
     """build() -> Builder. ``post(b)`` roda depois da projeção (simetria, detalhes)."""
     call = (lambda p: build(p)) if params is not None else (lambda p: build())
     PREVIEW.mkdir(parents=True, exist_ok=True)
@@ -105,16 +106,25 @@ def run(name, build, ref=None, shade=None, post=None, project=True, fit=None, fr
     if ref is not None:
         rgb, mask, _ = refscan.load_ref(REFS / ref, clip=clip)
         cam, iou = fit if fit else refscan.fit_camera(model, mask, **(fit_kw or {}))
+        values = None
+        if pose:        # a referência está numa pose: ajusta os ossos e a câmera, e projeta com o modelo posado
+            for _ in range(2):
+                pv, pinfo = vpose.fit_pose(model, rgb, mask, cam, **pose)
+                values = vpose.to_game_values(pv)
+                cam, iou = refscan.fit_camera(model, mask, values=values, yaw_range=(int(cam.yaw) - 15, int(cam.yaw) + 15),
+                                              pitch_range=(max(0, int(cam.pitch) - 12), int(cam.pitch) + 12))
+            info["pose_iou"] = pinfo["iou"]
+            vpose.save_pose(ROOT / "models" / "poses" / f"{name}.json", pv, ref=ref, yaw=cam.yaw, pitch=cam.pitch, iou=iou)
         info.update(yaw=round(cam.yaw, 1), pitch=round(cam.pitch, 1), iou=round(iou, 3))
         if project:
             seen = np.zeros(b.atlas.px.shape[:2], dtype=bool)
-            n = refscan.bake(model, rgb, mask, cam, b.atlas.px, shade_k=shade, seen=seen)
+            n = refscan.bake(model, rgb, mask, cam, b.atlas.px, shade_k=shade, seen=seen, values=values, exclude=exclude)
             info["texels"] = n
             fill_unseen(b, seen, pairs)
         if post:
             post(b)
         model = b.finish()
-        metrics = refscan.compare(model, rgb, mask, cam, PREVIEW / f"{name}_compare.png", shade_k=shade, label=name)
+        metrics = refscan.compare(model, rgb, mask, cam, PREVIEW / f"{name}_compare.png", values=values, shade_k=shade, label=name)
         info.update(metrics)
     elif post:
         post(b)

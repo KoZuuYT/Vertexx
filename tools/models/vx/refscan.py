@@ -264,7 +264,7 @@ def fit_camera(model: Model, mask: np.ndarray, values=None, work=110, yaw_range=
 # ───────────────────────────── projeção da referência nas texturas ─────────────────────────────
 
 def bake(model: Model, ref_rgb, mask, cam: Camera, tex: np.ndarray, tex_index=0, values=None, shade_k=None,
-         erode=2, min_alpha=250, seen: np.ndarray | None = None):
+         erode=2, min_alpha=250, seen: np.ndarray | None = None, exclude=()):
     """Escreve em ``tex`` (HxWx4 uint8, in-place) a cor observada em cada texel visível. Devolve nº de texels pintados."""
     gm = to_game(model)
     k = {**SHADE_DEFAULT, **(shade_k or {})}
@@ -294,6 +294,8 @@ def bake(model: Model, ref_rgb, mask, cam: Camera, tex: np.ndarray, tex_index=0,
     rw, rh = model.res
     for y, x in zip(ys, xs):
         c, _w = hits.items[cube[y, x]]
+        if c.name in exclude:
+            continue
         f = c.faces[FACES[face[y, x]]]
         if f.tex != tex_index:
             continue

@@ -18,7 +18,7 @@ import org.bukkit.entity.Player;
 /** {@code /vertexx}: painel (administradores), Guia para todos e utilitários de administração. */
 public final class PanelCommand implements TabExecutor {
 
-    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|versao|atualizar]";
+    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|cabeca|versao|atualizar]";
 
     private final PluginMain plugin;
 
@@ -75,6 +75,18 @@ public final class PanelCommand implements TabExecutor {
                     Msg.send(sender, "<red>Você não tem permissão.");
                 } else {
                     plugin.fauna().command(sender, args);
+                }
+            }
+            case "cabeca", "cabeça" -> {
+                if (!admin || !(sender instanceof org.bukkit.entity.Player self)) {
+                    Msg.send(sender, "<red>Somente administradores, dentro do jogo.");
+                } else if (args.length < 2) {
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx cabeca [nome]</white> <gray>(" + String.join(", ", dev.vertexx.model.CustomHeads.names()) + ")");
+                } else if (!dev.vertexx.model.CustomHeads.names().contains(args[1])) {
+                    Msg.send(sender, "<red>Cabeça desconhecida.");
+                } else {
+                    self.getInventory().addItem(dev.vertexx.model.CustomHeads.of(args[1]));
+                    Msg.send(sender, "<green>Cabeça <white>" + Msg.esc(args[1]) + "</white> entregue (precisa do resource pack).");
                 }
             }
             case "boss" -> {
@@ -190,7 +202,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "cabeca", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {
@@ -211,6 +223,8 @@ public final class PanelCommand implements TabExecutor {
                     return Tab.of(args[3], "10", "100", "500", "1000", "5000");
                 }
                 return List.of();
+            case "cabeca", "cabeça":
+                return args.length == 2 ? Tab.of(args[1], dev.vertexx.model.CustomHeads.names()) : List.of();
             case "boss":
                 return plugin.bosses().tab(args);
             case "rejeitado", "rejeitados", "fauna":

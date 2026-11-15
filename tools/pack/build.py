@@ -657,6 +657,8 @@ def build_models():
     import convert
     for name, rt in convert.build(NS):
         print(f"modelo {name}: {len(rt['bones'])} ossos, {len(rt['anim'])} animações")
+    import heads
+    print("cabeças de jogador:", ", ".join(heads.pack(NS)))
 
 
 def main():

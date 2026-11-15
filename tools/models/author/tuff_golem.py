@@ -109,4 +109,9 @@ def build(p=P):
 
 
 if __name__ == "__main__":
-    run("tuff_golem", build, ref=None, params=dict(P), frames=[0, 3, 6, 9])
+    run("tuff_golem", build, ref="tuff_golem.png", params=dict(P), fit_kw=dict(yaw_range=(-50, 50), pitch_range=(0, 35)), frames=[0, 3, 6, 9],
+        pose=dict(bones=["body", "head", "arm_l", "arm_r", "leg_l", "leg_r"], work=90, color_w=0.4, passes=4, sweep=True,
+                  limits={"head": {"x": (-50, 50), "y": (-70, 70), "z": (-45, 45)},
+                          "body": {"x": (-30, 30), "y": (-40, 40), "z": (-30, 30)}}),
+        exclude=("cape_body", "cape_skirt", "cape_collar"),
+        pairs=[("arm_l", "arm_r"), ("leg_l", "leg_r")])

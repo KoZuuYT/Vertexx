@@ -84,3 +84,52 @@ comum: pode ser aberto, editado no Blockbench e convertido de novo sem passar pe
 * A conferência visual foi feita com o renderizador de referência, não no cliente do jogo.
 * Referências em perspectiva (Glare, Golem de Tufo) casam pior com a câmera ortográfica; o Golem de Tufo
   (pose esticada) é pintado por código com a paleta medida, não projetado.
+
+## Análise com OpenCV, captura e poses (0.16.0)
+
+Dependências extras do lado Python: `opencv-python-headless`, `scipy`, `scikit-image`, `mss`.
+
+### `vx/cvscan.py` (OpenCV / SciPy / scikit-image)
+
+* `texel_size`: tamanho do "pixel de arte" da referência por periodicidade das bordas (com confiança);
+* `edge_directions` + `estimate_view`: Canny + Hough nas arestas → câmera (yaw/pitch) **só pela geometria**, sem
+  usar a silhueta. Nas referências de wiki (Moobloom, Iceologer, Rascal) dá 46°/30°, igual ao ajuste por silhueta;
+* `metrics`: IoU, distância de chanfro, F1 de arestas, SSIM e ΔE em CIELAB; `palette_kmeans`, `polygons`, `inner_edges`.
+  `python tools/models/analyze.py` imprime tudo para cada referência.
+
+### `vx/capture.py` / `tools/models/capture.py`
+
+Captura de tela ou janela (`--window Minecraft`), GIF/vídeo/folha de sprites em quadros, download de URL,
+recorte do fundo com GrabCut e **leitura de assets do jar do cliente** (`vanilla ...` lista/extrai texturas
+vanilla, verdade-terreno do layout de UV das entidades).
+
+### Poses (`vx/pose.py`, `tools/models/pose_fit.py`)
+
+Uma pose é `{osso: {rot, pos}}` no espaço do editor. `fit_pose` renderiza o modelo e minimiza
+`(1-IoU) + chanfro + arestas internas (+ cor)` por descida de coordenadas, osso a osso (pai → filho), com
+`limits` por eixo (a silhueta não distingue frente de trás), `sweep=True` para escapar de mínimos locais e
+`free_pos` para deslocar ossos. `author/common.run(pose=…, exclude=…)` ajusta a pose e a câmera juntas e **projeta a
+textura com o modelo posado** (o arquivo salvo volta ao repouso); `exclude` deixa ossos de fora da projeção
+(a capa tingida do Golem de Tufo). Poses ficam em `models/poses/*.json`.
+
+```powershell
+python tools\models\pose_fit.py fit moobloom models\refs\x.png --bones head,leg_fl --yaw 20,80
+python tools\models\pose_fit.py copy models\poses\a.json glare --mirror --save-as pose_a   # copia para outro modelo
+python tools\models\pose_fit.py seq moobloom models\refs\frames --fps 10 --name walk_ref   # sequência → animação
+```
+
+Teste sintético (pose conhecida renderizada e recuperada): cabeça 21°/14° para 20°/15°, três das quatro pernas
+exatas; a perna de trás escondida pelo corpo fica ambígua. Em referência em repouso o ajuste "inventa" ângulos
+para compensar proporções erradas: use `bones`/`limits` e só quando a imagem realmente está posada. O Golem de
+Tufo (pose esticada) passou de IoU 0,86 sem pose para 0,88 com pose e agora tem a textura projetada da imagem.
+
+## Cabeças de jogador customizadas
+
+O método clássico (valor base64 com URL de `textures.minecraft.net`) só funciona com skins **hospedadas pela
+Mojang**, e subir uma skin para lá exige autenticar numa conta de jogador; o cliente recusa qualquer outro domínio.
+Por isso eu não tinha como criá-las. Desde o 1.21.9 o componente `profile` aceita um *skin patch*
+(`ResolvableProfile.skinPatch().body(Key)`) que aponta para uma textura **do resource pack**:
+`assets/vertexx/textures/entity/player/wide/<nome>.png` (skin 64x64 comum). `tools/models/heads.py` monta a skin
+da cabeça de cada modelo (osso `head`, 6 faces 8x8) em `models/heads/`; o build do pack as copia e escreve
+`heads.txt`; `/vertexx cabeca <nome>` entrega o item (`dev.vertexx.model.CustomHeads`). Continua exigindo o
+resource pack e **não foi visto no cliente do jogo**.
