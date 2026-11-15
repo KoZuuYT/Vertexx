@@ -92,6 +92,29 @@ rpg:
   # F usa a habilidade ativa e Shift+F troca (impede trocar item de mao com F).
   cast-with-swap-key: true
 
+upgrades:
+  # Agache e clique com a mao vazia em uma fornalha ou bau para melhora-lo.
+  # Cada nivel custa itens (e Essencia Elite nos mais altos).
+  enabled: true
+  furnace:
+    # speed = divisor do tempo de cozimento (2.0 = o dobro da velocidade).
+    tiers:
+      - {item: COPPER_INGOT, amount: 24, essence: 0, speed: 1.3}
+      - {item: GOLD_INGOT, amount: 24, essence: 0, speed: 1.6}
+      - {item: AMETHYST_SHARD, amount: 32, essence: 0, speed: 2.0}
+      - {item: DIAMOND, amount: 16, essence: 0, speed: 2.7}
+      - {item: OBSIDIAN, amount: 32, essence: 3, speed: 3.5}
+      - {item: NETHERITE_INGOT, amount: 4, essence: 6, speed: 5.0}
+  chest:
+    # slots = capacidade total do bau (multiplos de 45; o vanilla tem 27). Vira paginas de 45.
+    tiers:
+      - {item: COPPER_INGOT, amount: 32, essence: 0, slots: 45}
+      - {item: GOLD_INGOT, amount: 32, essence: 0, slots: 90}
+      - {item: AMETHYST_SHARD, amount: 48, essence: 0, slots: 135}
+      - {item: DIAMOND, amount: 24, essence: 0, slots: 180}
+      - {item: OBSIDIAN, amount: 48, essence: 3, slots: 270}
+      - {item: NETHERITE_INGOT, amount: 6, essence: 6, slots: 360}
+
 # Pacote de recursos. Por padrão o servidor descobre sozinho o Vertexx-Pack.zip da release mais
 # recente do GitHub (baixa, confere e calcula o SHA-1) e o envia aos jogadores. Quem recusar joga
 # com o visual vanilla.

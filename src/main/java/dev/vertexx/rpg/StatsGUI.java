@@ -294,6 +294,10 @@ public final class StatsGUI extends Menu {
     }
 
     private void infoUpgrades() {
-        set(22, Items.of(Material.ANVIL, "<gold>Upgrades", List.of("<gray>Em breve.")), null);
+        plugin.upgrades().describe(this::setInfo);
+    }
+
+    private void setInfo(int slot, ItemStack item) {
+        set(slot, item, null);
     }
 }

@@ -89,6 +89,17 @@ Controles: **F** usa a habilidade ativa selecionada, **Shift + F** troca, e agac
 Machadeiro. Nenhuma habilidade afeta jogadores. Subir de nível toca uma cinemática (banner do resource
 pack, clarão e sons; sem o pacote, título, partículas e sons vanilla).
 
+### Upgrades de fornalhas e baús
+
+**Agache e clique com a mão vazia** em uma fornalha (comum, alto-forno ou defumador) ou baú (baú, baú
+armadilhado ou barril) para abrir o menu de upgrade. São 6 níveis, pagos com recursos por progressão
+(cobre, ouro, ametista, diamante, obsidiana, netherite) e, nos mais altos, **Essência Elite**.
+- **Fornalhas** cozinham de 1,3x até 5x mais rápido.
+- **Baús** passam a ter páginas de 45 espaços (de 45 até 360 espaços); os 27 primeiros são os do próprio
+  baú, então funis continuam funcionando quando ninguém o está usando. Não formam baú duplo.
+O nível acompanha o item quando o bloco é quebrado e colocado de novo. Custos e capacidades ficam em
+`upgrades:` no `config.yml`.
+
 ## Menus
 
 Todos os menus têm duas versões com a mesma função. Com o **resource pack** carregado, ganham fundo
@@ -166,6 +177,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 
 | 0.10.0 | Mobs nivelados por distância, dimensão e estruturas; traits; mobs Elite com barra de chefe e Essência Elite |
 | 0.11.0 | Status de atividade, nível geral, árvore de habilidades (16), `/vstats` com 3 páginas, cinemáticas com banners do resource pack |
+| 0.12.0 | Upgrades de fornalhas (velocidade) e baús (capacidade em páginas) por níveis com recursos e Essência Elite; menu de upgrade com tema próprio |
 ## Servidor de teste (Windows)
 
 `tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta

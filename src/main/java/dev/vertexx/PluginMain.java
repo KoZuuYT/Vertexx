@@ -13,6 +13,7 @@ import dev.vertexx.rpg.RpgManager;
 import dev.vertexx.rpg.SkillManager;
 import dev.vertexx.rpg.StatsCommand;
 import dev.vertexx.update.AutoUpdater;
+import dev.vertexx.upgrade.UpgradeManager;
 import dev.vertexx.waystone.ModelManager;
 import dev.vertexx.waystone.WaystoneListener;
 import dev.vertexx.waystone.WaystoneManager;
@@ -38,6 +39,7 @@ public final class PluginMain extends JavaPlugin {
     private MobManager mobs;
     private RpgManager rpg;
     private SkillManager skills;
+    private UpgradeManager upgrades;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -55,6 +57,7 @@ public final class PluginMain extends JavaPlugin {
         mobs = new MobManager(this);
         rpg = new RpgManager(this);
         skills = new SkillManager(this);
+        upgrades = new UpgradeManager(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -66,6 +69,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(mobs, this);
         plugins.registerEvents(rpg, this);
         plugins.registerEvents(skills, this);
+        plugins.registerEvents(upgrades, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
@@ -154,6 +158,10 @@ public final class PluginMain extends JavaPlugin {
 
     public RpgManager rpg() {
         return rpg;
+    }
+
+    public UpgradeManager upgrades() {
+        return upgrades;
     }
 
     public SkillManager skills() {
