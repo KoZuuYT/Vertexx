@@ -62,7 +62,9 @@ public final class ModelManager implements Listener {
     private static final int ICON_DELAY = 70;
     private static final int NAME_DELAY = 80;
     private static final int ASSEMBLY_END = 92;
-    private static final double CROWN = 2.1;
+    /** Escala global do modelo: deixa a Waystone um pouco menor que o jogador (1,8 bloco). */
+    private static final float S = 0.85f;
+    private static final double CROWN = 2.1 * S;
 
     private enum Style {
         /** Cresce de baixo para cima. */
@@ -207,12 +209,13 @@ public final class ModelManager implements Listener {
         Quaternionf rotation = new Quaternionf().rotateX(tilt);
         Vector3f half = new Vector3f(sx / 2, sy / 2, sz / 2);
         rotation.transform(half);
-        return new Transformation(new Vector3f(cx - half.x, cy - half.y, cz - half.z), rotation,
-                new Vector3f(sx, sy, sz), new Quaternionf());
+        return new Transformation(new Vector3f(cx - half.x, cy - half.y, cz - half.z).mul(S), rotation,
+                new Vector3f(sx, sy, sz).mul(S), new Quaternionf());
     }
 
     private static Transformation transform(Vector3f translation, Vector3f scale) {
-        return new Transformation(translation, new Quaternionf(), scale, new Quaternionf());
+        return new Transformation(translation.mul(S, new Vector3f()), new Quaternionf(),
+                scale.mul(S, new Vector3f()), new Quaternionf());
     }
 
     // ── Estado ─────────────────────────────────────────────────────────────
@@ -527,8 +530,8 @@ public final class ModelManager implements Listener {
             instance.spin = (instance.spin + (float) (Math.PI / 2)) % (float) (Math.PI * 2);
             icon.setInterpolationDelay(0);
             icon.setInterpolationDuration(interval);
-            icon.setTransformation(new Transformation(new Vector3f(0, ICON_Y, 0),
-                    new Quaternionf().rotateY(instance.spin), new Vector3f(ICON_SCALE), new Quaternionf()));
+            icon.setTransformation(new Transformation(new Vector3f(0, ICON_Y * S, 0),
+                    new Quaternionf().rotateY(instance.spin), new Vector3f(ICON_SCALE * S), new Quaternionf()));
         }
         instance.pulse = !instance.pulse;
         float scale = instance.pulse ? EYE_PULSE : EYE_SCALE;
@@ -543,7 +546,7 @@ public final class ModelManager implements Listener {
     }
 
     private static Transformation eyeTransform(Eye eye, float scale) {
-        return new Transformation(eye.position(), eye.rotation(), new Vector3f(scale), new Quaternionf());
+        return new Transformation(eye.position().mul(S), eye.rotation(), new Vector3f(scale * S), new Quaternionf());
     }
 
     // ── Criação e remoção das entidades ────────────────────────────────────
@@ -649,9 +652,8 @@ public final class ModelManager implements Listener {
             entity.setVisibleByDefault(false);
             entity.setTransformation(animated ? part.from() : part.to());
             entity.setViewRange(1.0f);
-            if (part.glow()) {
-                entity.setBrightness(new Display.Brightness(15, 15));
-            }
+            // sem isto o bloco usa a luz do ponto de spawn (dentro do Lodestone = escuro)
+            entity.setBrightness(new Display.Brightness(15, 15));
         });
         if (!animated) {
             showTo(instance, display);
