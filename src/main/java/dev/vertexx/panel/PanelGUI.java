@@ -4,6 +4,7 @@ import dev.vertexx.PluginMain;
 import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
+import dev.vertexx.core.Ui;
 import dev.vertexx.grave.Grave;
 import dev.vertexx.grave.GraveManager;
 import dev.vertexx.honor.HonorCommand;
@@ -55,14 +56,16 @@ public final class PanelGUI implements InventoryHolder {
     private final Player player;
     private final Inventory inventory;
     private final Map<Integer, Consumer<ClickType>> actions = new HashMap<>();
+    private final boolean pack;
     private Page page = Page.HOME;
     private int listPage;
 
     public PanelGUI(PluginMain plugin, Player player) {
         this.plugin = plugin;
         this.player = player;
-        this.inventory = Bukkit.createInventory(this, SIZE,
-                Msg.mm("<gradient:#7f5af0:#2cb67d><bold>Vertexx</bold></gradient> <dark_gray>» <dark_gray>Painel"));
+        this.pack = plugin.resourcePack().isLoaded(player);
+        this.inventory = Bukkit.createInventory(this, SIZE, Ui.title(pack, Ui.Theme.VERTEXX,
+                "<gradient:#7f5af0:#2cb67d><bold>Vertexx</bold></gradient> <dark_gray>» <gray>Painel"));
     }
 
     @Override
@@ -137,19 +140,38 @@ public final class PanelGUI implements InventoryHolder {
             case ADMIN -> admin_();
             case ADMIN_WAYSTONES -> adminWaystones();
         }
+        Ui.skin(pack, inventory);
     }
 
     private void home() {
         KingdomManager.Member member = plugin.kingdoms().member(player.getUniqueId());
         int honor = plugin.honor().get(player.getUniqueId());
+        boolean outlaw = plugin.mercenaries().isOutlaw(player.getUniqueId());
         List<String> profile = new ArrayList<>();
-        profile.add("<gray>Reino: " + (member == null ? "<red>nenhum" : member.kingdom().styled()));
+        profile.add("<gray>Reino: " + (member != null ? member.kingdom().styled()
+                : outlaw ? "<red>fora da lei" : "<red>nenhum"));
         if (member != null) {
             profile.add("<gray>Cargo: <white>" + member.rank().displayName());
         }
         profile.add("<gray>Honra: " + HonorCommand.bar(honor) + " <white>" + honor
                 + " <dark_gray>(" + HonorManager.Tier.of(honor).styled() + "<dark_gray>)");
+        int rep = plugin.mercenaries().rep(player.getUniqueId());
+        if (outlaw || rep > 0) {
+            profile.add("<gray>Reputação: <white>" + rep + " <dark_gray>("
+                    + plugin.mercenaries().tier(player.getUniqueId()).styled() + "<dark_gray>)");
+        }
         set(13, Items.of(Material.PLAYER_HEAD, "<white>" + Msg.esc(player.getName()), profile), null);
+
+        set(29, Ui.model(pack, Items.of(Material.SKELETON_SKULL, "<red><bold>Mercenários e recompensas",
+                List.of("<gray>Quadro de procurados, preço nas cabeças",
+                        "<gray>e a reputação dos foras da lei.", "", "<yellow>▶ Clique para abrir")), "ui_skull"),
+                c -> new dev.vertexx.mercenary.BountyGUI(plugin, player).open());
+        if (member != null || outlaw) {
+            set(30, Ui.model(pack, Items.of(Material.IRON_DOOR, "<gradient:#c4a7ff:#2cb67d>" + (outlaw ? "Voltar a um reino" : "Deixar o reino"),
+                    List.of("<gray>" + (outlaw ? "Entre em um dos três reinos." : "Aliança, traição ou vida de fora da lei."), "",
+                            "<yellow>▶ Clique para abrir")), "ui_daggers"),
+                    c -> new dev.vertexx.kingdom.KingdomSwitchGUI(plugin, player).open());
+        }
 
         set(20, Items.of(member == null ? Material.WHITE_BANNER : member.kingdom().icon(),
                 "<gradient:#c4a7ff:#2cb67d>Reinos",
@@ -194,7 +216,8 @@ public final class PanelGUI implements InventoryHolder {
                 lore.add("");
                 lore.add("<green>✔ Seu reino");
             }
-            set(slots[index++], Items.of(kingdom.icon(), "<bold>" + kingdom.styled(), lore, kingdom == own), null);
+            lore.add(1, "<gray>Honra do reino: " + dev.vertexx.kingdom.KingdomManager.honorLabel(kingdoms.honor(kingdom)));
+            set(slots[index++], Ui.emblem(pack, Items.of(kingdom.icon(), "<bold>" + kingdom.styled(), lore, kingdom == own), kingdom), null);
         }
         if (own != null) {
             set(40, Items.of(own.icon(), "<gradient:#c4a7ff:#2cb67d><bold>Painel do meu reino",
@@ -304,6 +327,10 @@ public final class PanelGUI implements InventoryHolder {
         set(24, Items.of(Material.BOOK, "<white>/vertexx livro", List.of("<gray>Recebe outro Guia do Vertexx.")), null);
         set(29, Items.of(Material.WRITABLE_BOOK, "<white>/reino anuncio <texto>",
                 List.of("<gray>Líder: fixa o mural do reino.", "<dark_gray>/reino promover|rebaixar <jogador>")), null);
+        set(32, Items.of(Material.IRON_DOOR, "<white>/reino sair | entrar",
+                List.of("<gray>Troca de reino ou vida de fora da lei.", "<dark_gray>Aliança, traição ou mercenário.")), null);
+        set(33, Items.of(Material.SKELETON_SKULL, "<white>/recompensa | /mercenario",
+                List.of("<gray>Quadro de procurados e reputação.", "<dark_gray>/recompensa colocar <jogador> <quantia>")), null);
         set(31, Items.of(Material.LODESTONE, "<white>Waystones",
                 List.of("<gray>Clique direito para viajar.", "<gray>Clique em um novo Waystone para descobri-lo.",
                         "<gray>Em combate você não pode viajar.")), null);

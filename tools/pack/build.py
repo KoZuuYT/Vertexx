@@ -307,9 +307,13 @@ def build_assets():
     write_json(NS / "items" / "selector.json",
                {"model": {"type": "minecraft:model", "model": "vertexx:item/selector"}})
 
+    # menus: fundos (glifos), ícones de interface, item invisível e emblemas
+    import menus
+    menus.build(NS, KINGDOMS, render_emblem, save, write_json)
+
     # pack.mcmeta (formato com versão maior/menor do 26.x)
     write_json(PACK / "pack.mcmeta", {"pack": {
-        "description": "§dVertexx §7— cerimônia dos reinos",
+        "description": "§dVertexx §7— cerimônia dos reinos e menus",
         "min_format": [97, 0], "max_format": [99, 0]}})
     pack_png = render_emblem("enternais", 128)
     bg = Image.new("RGBA", (128, 128), (20, 12, 48, 255))

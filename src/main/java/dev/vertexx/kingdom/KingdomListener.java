@@ -175,7 +175,8 @@ public final class KingdomListener implements Listener {
     public void handleJoin(Player player) {
         plugin.kingdoms().refreshName(player);
         updateTab(player);
-        if (plugin.kingdoms().kingdomOf(player.getUniqueId()) == null) {
+        boolean outlaw = plugin.mercenaries().isOutlaw(player.getUniqueId());
+        if (plugin.kingdoms().kingdomOf(player.getUniqueId()) == null && !outlaw) {
             begin(player);
         } else {
             plugin.afterOnboarding(player);
@@ -275,13 +276,27 @@ public final class KingdomListener implements Listener {
 
     // ── Identificação no chat e no TAB ──────────────────────────
 
-    public void updateTab(Player player) {
+    /** Símbolo do reino, ou a caveira dos foras da lei (com o nível de reputação ao passar o mouse). */
+    private Component tagOf(Player player) {
         Kingdom kingdom = plugin.kingdoms().kingdomOf(player.getUniqueId());
-        if (kingdom == null || !plugin.getConfig().getBoolean("chat.kingdom-tag", true)) {
+        if (kingdom != null) {
+            return kingdom.tag();
+        }
+        if (plugin.mercenaries().isOutlaw(player.getUniqueId())) {
+            var tier = plugin.mercenaries().tier(player.getUniqueId());
+            return Msg.mm("<dark_red>☠</dark_red>").hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                    Msg.mm("<red>Fora da lei <dark_gray>— " + tier.styled())));
+        }
+        return null;
+    }
+
+    public void updateTab(Player player) {
+        Component tag = plugin.getConfig().getBoolean("chat.kingdom-tag", true) ? tagOf(player) : null;
+        if (tag == null) {
             player.playerListName(null);
             return;
         }
-        player.playerListName(Component.text().append(kingdom.tag()).append(Component.space())
+        player.playerListName(Component.text().append(tag).append(Component.space())
                 .append(Component.text(player.getName())).build());
     }
 
@@ -290,12 +305,11 @@ public final class KingdomListener implements Listener {
         if (!plugin.getConfig().getBoolean("chat.kingdom-tag", true)) {
             return;
         }
-        // evento assíncrono: o mapa de membros é concorrente, a leitura é segura
-        Kingdom kingdom = plugin.kingdoms().kingdomOf(event.getPlayer().getUniqueId());
-        if (kingdom == null) {
+        // evento assíncrono: os mapas de membros e foras da lei são lidos sem alteração aqui
+        Component tag = tagOf(event.getPlayer());
+        if (tag == null) {
             return;
         }
-        Component tag = kingdom.tag();
         event.renderer((source, displayName, message, viewer) -> Component.text()
                 .append(tag).append(Component.space())
                 .append(displayName).append(Msg.mm("<dark_gray>: </dark_gray>"))

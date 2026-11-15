@@ -97,8 +97,9 @@ public final class CombatListener implements Listener {
         Engagement engagement = engagements.get(key);
         if (engagement == null || now - engagement.lastHit > ENGAGEMENT_TIMEOUT) {
             engagements.put(key, new Engagement(attacker.getUniqueId(), now));
-            // primeiro golpe de um novo confronto: atacar um desonrado não é punido
-            if (plugin.honor().tier(victim.getUniqueId()) != Tier.DESONRADO) {
+            // primeiro golpe de um novo confronto: atacar um desonrado, fora da lei ou traidor não é punido
+            if (plugin.honor().tier(victim.getUniqueId()) != Tier.DESONRADO
+                    && !plugin.mercenaries().hunted(victim.getUniqueId())) {
                 plugin.honor().add(attacker, plugin.getConfig().getInt("honor.unjustified-attack", -1), "ataque injustificado");
             }
         } else {
@@ -120,7 +121,8 @@ public final class CombatListener implements Listener {
         HonorManager honor = plugin.honor();
         if (plugin.kingdoms().friendly(killer.getUniqueId(), victim.getUniqueId())) {
             honor.add(killer, plugin.getConfig().getInt("honor.betrayal-kill", -25), "traição");
-        } else if (honor.tier(victim.getUniqueId()) == Tier.DESONRADO) {
+        } else if (honor.tier(victim.getUniqueId()) == Tier.DESONRADO
+                || plugin.mercenaries().hunted(victim.getUniqueId())) {
             honor.add(killer, plugin.getConfig().getInt("honor.dishonored-kill", 5), "justiça");
         } else if (engagement == null || engagement.aggressor.equals(killer.getUniqueId())) {
             honor.add(killer, plugin.getConfig().getInt("honor.unjustified-kill", -10), "morte injustificada");

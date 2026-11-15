@@ -76,6 +76,50 @@ honor:
   betrayal-kill: -25
   alliance-break: -20
 
+# Saída e troca de reino (/reino sair, /reino entrar).
+kingdoms:
+  # Horas até poder trocar de reino de novo.
+  switch-cooldown-hours: 24
+  # Quantos dias um traidor fica marcado (matá-lo não é punido).
+  traitor-days: 3
+  leave:
+    # Honra perdida ao trair (mudar de lado para um reino não aliado) e ao virar fora da lei.
+    betrayal-honor: -30
+    outlaw-honor: -10
+
+# Honra dos reinos (0 a 200, começa em 100 e se recompõe sozinha até o valor inicial).
+kingdom-honor:
+  regen-per-10-min: 1
+  # Perdas causadas por mercenários e por quem abandona o reino.
+  mercenary-kill: -3
+  theft: -2
+  betrayal: -12
+  desertion: -4
+
+# Mercenários = jogadores sem reino (foras da lei). A reputação vai de 0 a 100 e os benefícios
+# (desconto nos Waystones, bônus nas recompensas) só valem enquanto estão sem reino.
+mercenary:
+  reputation:
+    kill: 3
+    bounty-kill: 8
+    betrayal: 10
+    theft: 4
+    # Perda ao morrer; ter a cabeça cobrada por um caçador zera a reputação.
+    death-loss-percent: 25
+    # Matar a mesma vítima de novo dentro deste prazo não rende reputação.
+    victim-cooldown-minutes: 10
+
+# Recompensas pelas cabeças dos mercenários (pagas em itens).
+bounty:
+  currency: EMERALD
+  min: 8
+  max: 2304
+  # Cada tantas unidades colocadas rendem 1 de reputação ao alvo (até o teto por oferta).
+  rep-per-units: 8
+  rep-cap-per-placement: 15
+  # Honra de quem, sem ser mercenário, cobra uma recompensa.
+  hunter-honor: 3
+
 # Pacote de recursos. Por padrão o servidor descobre sozinho o Vertexx-Pack.zip da release mais
 # recente do GitHub (baixa, confere e calcula o SHA-1) e o envia aos jogadores. Quem recusar joga
 # com o visual vanilla; a cerimônia de entrada tem versão sem o pacote.

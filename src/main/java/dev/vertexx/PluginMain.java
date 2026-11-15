@@ -1,6 +1,12 @@
 package dev.vertexx;
 
 import dev.vertexx.core.Msg;
+import dev.vertexx.core.MenuListener;
+import dev.vertexx.kingdom.Kingdom;
+import dev.vertexx.kingdom.Membership;
+import dev.vertexx.mercenary.MercenaryCommand;
+import dev.vertexx.mercenary.MercenaryListener;
+import dev.vertexx.mercenary.MercenaryManager;
 import dev.vertexx.grave.GraveCommand;
 import dev.vertexx.grave.GraveListener;
 import dev.vertexx.grave.GraveManager;
@@ -43,6 +49,8 @@ public final class PluginMain extends JavaPlugin {
     private IntroManager intro;
     private ModelManager models;
     private PanelManager panel;
+    private MercenaryManager mercenaries;
+    private Membership membership;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -62,8 +70,12 @@ public final class PluginMain extends JavaPlugin {
         intro = new IntroManager(this);
         models = new ModelManager(this);
         panel = new PanelManager(this);
+        mercenaries = new MercenaryManager(this);
+        membership = new Membership(this);
 
         var plugins = Bukkit.getPluginManager();
+        plugins.registerEvents(new MenuListener(), this);
+        plugins.registerEvents(new MercenaryListener(this), this);
         plugins.registerEvents(onboarding, this);
         plugins.registerEvents(new WaystoneListener(this), this);
         plugins.registerEvents(new GraveListener(this), this);
@@ -77,6 +89,9 @@ public final class PluginMain extends JavaPlugin {
         register("tumulo", new GraveCommand(this));
         register("honra", new HonorCommand(this));
         register("pacote", resourcePack);
+        var mercenaryCommand = new MercenaryCommand(this);
+        register("recompensa", mercenaryCommand);
+        register("mercenario", mercenaryCommand);
 
         updater = new AutoUpdater(this);
         plugins.registerEvents(updater, this);
@@ -96,7 +111,11 @@ public final class PluginMain extends JavaPlugin {
             YamlConfiguration honorData = honor.read();
             YamlConfiguration packData = resourcePack.read();
             YamlConfiguration panelData = panel.read();
+            YamlConfiguration mercenaryData = mercenaries.read();
             Bukkit.getScheduler().runTask(this, () -> {
+                mercenaries.apply(mercenaryData);
+                mercenaries.startTasks();
+                startKingdomHonorRegen();
                 kingdoms.apply(kingdomData);
                 waystones.apply(waystoneData);
                 graves.apply(graveData);
@@ -125,6 +144,7 @@ public final class PluginMain extends JavaPlugin {
             honor.saveNow();
             resourcePack.saveNow();
             panel.saveNow();
+            mercenaries.saveNow();
         }
         models.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
@@ -174,6 +194,14 @@ public final class PluginMain extends JavaPlugin {
         return updater;
     }
 
+    public MercenaryManager mercenaries() {
+        return mercenaries;
+    }
+
+    public Membership membership() {
+        return membership;
+    }
+
     public GraveManager graves() {
         return graves;
     }
@@ -201,9 +229,42 @@ public final class PluginMain extends JavaPlugin {
                 + " <dark_gray>(" + HonorManager.Tier.of(value).styled() + "<dark_gray>)"));
     }
 
-    /** Multiplicador do custo de viagem por Waystone (0 = gratuito), definido pela honra. */
+    /**
+     * Multiplicador do custo de viagem por Waystone (0 = gratuito): a honra define a base e a reputação
+     * de mercenário (só para quem está sem reino) dá desconto por cima.
+     */
     public double travelCostMultiplier(Player player) {
-        return honor.tier(player.getUniqueId()).travelMultiplier();
+        double base = honor.tier(player.getUniqueId()).travelMultiplier();
+        return base * mercenaries.activeTier(player.getUniqueId()).travelMultiplier();
+    }
+
+    /** Alguém abriu o túmulo de outra pessoa (protegido por chave ou já expirado). */
+    public void onGraveLooted(Player looter, java.util.UUID owner) {
+        if (!mercenaries.isOutlaw(looter.getUniqueId())) {
+            return;
+        }
+        mercenaries.addRep(looter, getConfig().getInt("mercenary.reputation.theft", 4), "saque");
+        Kingdom hit = kingdoms.kingdomOf(owner);
+        if (hit != null) {
+            membership.shake(hit, getConfig().getInt("kingdom-honor.theft", -2), "túmulo saqueado por mercenário");
+        }
+    }
+
+    /** A honra dos reinos se recompõe aos poucos, até o valor inicial. */
+    private void startKingdomHonorRegen() {
+        long period = 20L * 60 * 10;
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            int step = getConfig().getInt("kingdom-honor.regen-per-10-min", 1);
+            if (step <= 0) {
+                return;
+            }
+            for (Kingdom kingdom : Kingdom.values()) {
+                int now = kingdoms.honor(kingdom);
+                if (now < KingdomManager.HONOR_START) {
+                    kingdoms.addHonor(kingdom, Math.min(step, KingdomManager.HONOR_START - now));
+                }
+            }
+        }, period, period);
     }
 
     /** Jogadores em combate não podem viajar. */

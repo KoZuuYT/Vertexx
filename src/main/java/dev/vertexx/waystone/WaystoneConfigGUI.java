@@ -4,6 +4,7 @@ import dev.vertexx.PluginMain;
 import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
+import dev.vertexx.core.Ui;
 import dev.vertexx.kingdom.Kingdom;
 import java.util.HashMap;
 import java.util.List;
@@ -47,6 +48,7 @@ public final class WaystoneConfigGUI implements InventoryHolder {
     private final Player player;
     private final Waystone waystone;
     private final Inventory inventory;
+    private final boolean pack;
     private final Map<Integer, Material> iconBySlot = new HashMap<>();
     private final Map<Integer, WaystoneSkin> skinBySlot = new HashMap<>();
     private final Map<Integer, Waystone> routeBySlot = new HashMap<>();
@@ -57,9 +59,10 @@ public final class WaystoneConfigGUI implements InventoryHolder {
         this.plugin = plugin;
         this.player = player;
         this.waystone = waystone;
-        this.inventory = Bukkit.createInventory(this, SIZE,
-                Msg.mm("<gradient:#c4a7ff:#2cb67d><bold>Configurar</bold></gradient> <dark_gray>» <dark_gray><name>",
-                        Placeholder.unparsed("name", waystone.name())));
+        this.pack = plugin.resourcePack().isLoaded(player);
+        this.inventory = Bukkit.createInventory(this, SIZE, Ui.title(pack,
+                Ui.Theme.of(plugin.kingdoms().kingdomOf(waystone.owner())),
+                "<gradient:#c4a7ff:#2cb67d><bold>Configurar</bold></gradient> <dark_gray>» <gray>" + Msg.esc(waystone.name())));
     }
 
     @Override
@@ -216,6 +219,7 @@ public final class WaystoneConfigGUI implements InventoryHolder {
             case ICON -> renderIcon();
             case ROUTE -> renderRoute();
         }
+        Ui.skin(pack, inventory);
     }
 
     private void title(Material icon, String name, List<String> lore) {

@@ -9,7 +9,7 @@ website: https://github.com/KoZuuYT/Vertexx
 commands:
   reino:
     description: Informações e gestão do seu reino.
-    usage: /reino [info|membros|aliar|romper|anuncio|promover|rebaixar|admin]
+    usage: /reino [info|membros|sair|entrar|aliar|romper|anuncio|promover|rebaixar|admin]
     aliases: [reinos, kingdom]
   tumulo:
     description: Lista os seus túmulos pendentes.
@@ -19,6 +19,14 @@ commands:
     description: Mostra a honra de um jogador.
     usage: /honra [jogador]
     aliases: [honor]
+  recompensa:
+    description: Quadro de procurados e recompensas pela cabeça dos mercenários.
+    usage: /recompensa [quadro|lista|colocar <jogador> <quantia>]
+    aliases: [recompensas, procurados, bounty]
+  mercenario:
+    description: Mostra a reputação de um mercenário.
+    usage: /mercenario [jogador]
+    aliases: [mercenarios, reputacao]
   pacote:
     description: Aceita ou recusa o pacote visual opcional.
     usage: /pacote [aceitar|recusar]

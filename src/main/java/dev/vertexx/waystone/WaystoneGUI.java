@@ -4,6 +4,7 @@ import dev.vertexx.PluginMain;
 import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
+import dev.vertexx.core.Ui;
 import dev.vertexx.kingdom.Kingdom;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -90,6 +91,7 @@ public final class WaystoneGUI implements InventoryHolder {
     private final Player player;
     private final Waystone origin;
     private final Inventory inventory;
+    private final boolean pack;
     private final List<Waystone> all;
     private final Map<Integer, Waystone> bySlot = new HashMap<>();
     private List<Waystone> destinations;
@@ -105,9 +107,10 @@ public final class WaystoneGUI implements InventoryHolder {
         this.origin = origin;
         this.all = plugin.waystones().destinations(player, origin);
         this.cost = plugin.waystones().costFor(player);
-        this.inventory = Bukkit.createInventory(this, SIZE,
-                Msg.mm("<gradient:#c4a7ff:#2cb67d><bold>Waystone</bold></gradient> <dark_gray>» <dark_gray><name>",
-                        Placeholder.unparsed("name", origin.name())));
+        this.pack = plugin.resourcePack().isLoaded(player);
+        this.inventory = Bukkit.createInventory(this, SIZE, Ui.title(pack,
+                Ui.Theme.of(plugin.kingdoms().kingdomOf(origin.owner())),
+                "<gradient:#c4a7ff:#2cb67d><bold>Waystone</bold></gradient> <dark_gray>» <gray>" + Msg.esc(origin.name())));
         applyView();
     }
 
@@ -326,6 +329,7 @@ public final class WaystoneGUI implements InventoryHolder {
             inventory.setItem(NEXT_SLOT, Items.of(Material.ARROW, "<yellow>Próxima página ▶",
                     List.of("<dark_gray>Página " + (page + 2) + " de " + pages)));
         }
+        Ui.skin(pack, inventory);
 
         if (destinations.isEmpty()) {
             boolean filtered = !all.isEmpty();

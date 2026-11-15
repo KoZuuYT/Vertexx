@@ -32,6 +32,11 @@ public final class KingdomManager {
     private final Set<String> proposals = new HashSet<>();
     /** Mural de cada reino (id → texto), definido pelo líder. */
     private final Map<String, String> notices = new HashMap<>();
+    /** Honra coletiva de cada reino (id → valor); ausente = {@link #HONOR_START}. */
+    private final Map<String, Integer> kingdomHonor = new HashMap<>();
+
+    public static final int HONOR_START = 100;
+    public static final int HONOR_MAX = 200;
 
     public KingdomManager(Plugin plugin) {
         this.store = new YamlStore(plugin, "kingdoms.yml");
@@ -50,6 +55,13 @@ public final class KingdomManager {
         alliances.clear();
         proposals.clear();
         notices.clear();
+        kingdomHonor.clear();
+        ConfigurationSection honorSection = data.getConfigurationSection("kingdom-honor");
+        if (honorSection != null) {
+            for (String key : honorSection.getKeys(false)) {
+                kingdomHonor.put(key, Math.max(0, Math.min(HONOR_MAX, honorSection.getInt(key))));
+            }
+        }
         ConfigurationSection board = data.getConfigurationSection("notice");
         if (board != null) {
             for (String key : board.getKeys(false)) {
@@ -100,7 +112,41 @@ public final class KingdomManager {
         for (Map.Entry<String, String> entry : notices.entrySet()) {
             data.set("notice." + entry.getKey(), entry.getValue());
         }
+        for (Map.Entry<String, Integer> entry : kingdomHonor.entrySet()) {
+            data.set("kingdom-honor." + entry.getKey(), entry.getValue());
+        }
         return data;
+    }
+
+    // ── Honra do reino ──────────────────────────────────────────
+
+    public int honor(Kingdom kingdom) {
+        return kingdomHonor.getOrDefault(kingdom.id(), HONOR_START);
+    }
+
+    /** Soma (ou subtrai) honra do reino, entre 0 e {@link #HONOR_MAX}; devolve o novo valor. */
+    public int addHonor(Kingdom kingdom, int delta) {
+        int value = Math.max(0, Math.min(HONOR_MAX, honor(kingdom) + delta));
+        kingdomHonor.put(kingdom.id(), value);
+        save();
+        return value;
+    }
+
+    public static String honorLabel(int honor) {
+        if (honor >= 130) {
+            return "<gold>Glorioso";
+        }
+        if (honor >= 70) {
+            return "<green>Estável";
+        }
+        return honor >= 40 ? "<yellow>Abalado" : "<red>Em desonra";
+    }
+
+    public static String honorBar(int honor) {
+        int length = 20;
+        int filled = Math.round(honor / (float) HONOR_MAX * length);
+        String color = honor >= 130 ? "<gold>" : honor >= 70 ? "<green>" : honor >= 40 ? "<yellow>" : "<red>";
+        return color + "▮".repeat(filled) + "<dark_gray>" + "▮".repeat(length - filled);
     }
 
     // ── Membros ─────────────────────────────────────────────────
@@ -127,6 +173,35 @@ public final class KingdomManager {
     public void set(UUID id, String name, Kingdom kingdom, Rank rank) {
         members.put(id, new Member(kingdom, rank, name));
         save();
+    }
+
+    /**
+     * Tira o jogador do reino. Se era o líder e restam membros, o comando passa ao oficial (ou membro)
+     * mais bem ordenado; devolve o nome do novo líder, ou {@code null} se nada mudou.
+     */
+    public String remove(UUID id) {
+        Member old = members.remove(id);
+        String successor = null;
+        if (old != null && old.rank() == Rank.LIDER) {
+            Map.Entry<UUID, Member> best = null;
+            for (Map.Entry<UUID, Member> entry : members.entrySet()) {
+                Member candidate = entry.getValue();
+                if (candidate.kingdom() != old.kingdom()) {
+                    continue;
+                }
+                if (best == null || candidate.rank().compareTo(best.getValue().rank()) > 0
+                        || (candidate.rank() == best.getValue().rank()
+                        && candidate.name().compareToIgnoreCase(best.getValue().name()) < 0)) {
+                    best = entry;
+                }
+            }
+            if (best != null) {
+                members.put(best.getKey(), new Member(old.kingdom(), Rank.LIDER, best.getValue().name()));
+                successor = best.getValue().name();
+            }
+        }
+        save();
+        return successor;
     }
 
     /** Mantém o nome salvo em dia quando o jogador troca de nick. */

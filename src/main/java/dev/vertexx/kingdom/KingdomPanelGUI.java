@@ -4,6 +4,7 @@ import dev.vertexx.PluginMain;
 import dev.vertexx.core.Fx;
 import dev.vertexx.core.Items;
 import dev.vertexx.core.Msg;
+import dev.vertexx.core.Ui;
 import dev.vertexx.honor.HonorCommand;
 import dev.vertexx.honor.HonorManager;
 import dev.vertexx.kingdom.KingdomManager.Member;
@@ -55,6 +56,7 @@ public final class KingdomPanelGUI implements InventoryHolder {
     private final Player player;
     private final Inventory inventory;
     private final Map<Integer, Consumer<ClickType>> actions = new HashMap<>();
+    private final boolean pack;
     private Kingdom kingdom;
     private Page page = Page.OVERVIEW;
     private int listPage;
@@ -63,8 +65,9 @@ public final class KingdomPanelGUI implements InventoryHolder {
         this.plugin = plugin;
         this.player = player;
         this.kingdom = kingdom;
+        this.pack = plugin.resourcePack().isLoaded(player);
         this.inventory = Bukkit.createInventory(this, SIZE,
-                Msg.mm("<bold>" + kingdom.styled() + "</bold> <dark_gray>» <dark_gray>Painel do reino"));
+                Ui.title(pack, Ui.Theme.of(kingdom), "<bold>" + kingdom.styled() + "</bold> <dark_gray>» <gray>Painel do reino"));
     }
 
     @Override
@@ -151,7 +154,8 @@ public final class KingdomPanelGUI implements InventoryHolder {
             }
         }
         int allies = manager().alliesOf(target).size();
-        int prestige = members.size() * 10 + waystones * 5 + Math.max(0, totalHonor) / 5 + allies * 25;
+        int prestige = members.size() * 10 + waystones * 5 + Math.max(0, totalHonor) / 5 + allies * 25
+                + manager().honor(target) / 4;
         return new Stats(members.size(), online, leaders, officers, totalHonor, waystones, visits, allies, prestige,
                 topName, topHonor == Integer.MIN_VALUE ? 0 : topHonor);
     }
@@ -201,13 +205,14 @@ public final class KingdomPanelGUI implements InventoryHolder {
             case MEMBERS -> members();
             case DIPLOMACY -> diplomacy();
         }
+        Ui.skin(pack, inventory);
     }
 
     private void header(String subtitle) {
         List<String> lore = new ArrayList<>(kingdom.description());
         lore.add("");
         lore.add("<dark_gray>" + subtitle);
-        set(4, Items.of(kingdom.icon(), "<bold>" + kingdom.styled(), lore, true), null);
+        set(4, Ui.emblem(pack, Items.of(kingdom.icon(), "<bold>" + kingdom.styled(), lore, true), kingdom), null);
     }
 
     private void overview() {
@@ -224,8 +229,14 @@ public final class KingdomPanelGUI implements InventoryHolder {
                         "",
                         "<yellow>▶ Clique para ver a lista")), c -> go(Page.MEMBERS));
         int average = s.members() == 0 ? 0 : Math.round((float) s.totalHonor() / s.members());
+        int kingdomHonor = manager().honor(kingdom);
         set(21, Items.of(Material.GOLDEN_HELMET, "<gradient:#c4a7ff:#2cb67d>Honra do reino",
-                List.of("<gray>Média: " + HonorCommand.bar(average) + " <white>" + average,
+                List.of("<gray>Do reino: " + KingdomManager.honorBar(kingdomHonor) + " <white>" + kingdomHonor
+                                + " <dark_gray>(" + KingdomManager.honorLabel(kingdomHonor) + "<dark_gray>)",
+                        "<dark_gray>Cai com mercenários, traições e saques;",
+                        "<dark_gray>se recompõe aos poucos.",
+                        "",
+                        "<gray>Média dos membros: " + HonorCommand.bar(average) + " <white>" + average,
                         "<gray>Nível médio: " + HonorManager.Tier.of(average).styled(),
                         "<gray>Mais honrado: <white>" + Msg.esc(s.topName()) + " <dark_gray>(" + s.topHonor() + ")")), null);
         set(22, Items.of(Material.LODESTONE, "<gradient:#c4a7ff:#2cb67d>Waystones do reino",
@@ -246,8 +257,9 @@ public final class KingdomPanelGUI implements InventoryHolder {
                 List.of("<gray>Pontos: <white>" + s.prestige(),
                         "<gray>Ranking: " + medal + " <dark_gray>de " + Kingdom.values().length,
                         "",
-                        "<dark_gray>10 por membro, 5 por Waystone,",
-                        "<dark_gray>25 por aliança e 1 a cada 5 de honra."), true), null);
+                        "<dark_gray>10 por membro, 5 por Waystone, 25 por aliança,",
+                        "<dark_gray>1 a cada 5 de honra dos membros e 1 a cada 4",
+                        "<dark_gray>de honra do reino."), true), null);
 
         String notice = manager().notice(kingdom);
         List<String> board = new ArrayList<>();
@@ -283,6 +295,11 @@ public final class KingdomPanelGUI implements InventoryHolder {
             set(40, Items.of(Material.PLAYER_HEAD, "<white>" + Msg.esc(player.getName()),
                     List.of("<gray>Seu cargo: <white>" + self.rank().displayName(),
                             "<gray>Honra: " + HonorCommand.bar(plugin.honor().get(player.getUniqueId())))), null);
+            set(42, Items.of(Material.IRON_DOOR, "<red><bold>Deixar o reino",
+                    List.of("<gray>Transferência por aliança, traição",
+                            "<gray>ou vida de fora da lei (mercenário).", "",
+                            "<yellow>▶ Clique para ver as opções")),
+                    c -> new KingdomSwitchGUI(plugin, player).open());
         } else {
             set(40, Items.of(Material.SPYGLASS, "<gray>Você está só observando",
                     List.of("<dark_gray>Este não é o seu reino.")), null);
@@ -397,10 +414,10 @@ public final class KingdomPanelGUI implements InventoryHolder {
             }
             lore.add("<dark_gray>▶ Shift + clique: ver o status deste reino");
             Kingdom target = other;
-            set(slots[index++], Items.of(other.icon(), "<bold>" + other.styled(), lore, other == own), click -> {
+            set(slots[index++], Ui.emblem(pack, Items.of(other.icon(), "<bold>" + other.styled(), lore, other == own), other),
+                    click -> {
                 if (click.isShiftClick()) {
-                    kingdom = target;
-                    go(Page.OVERVIEW);
+                    new KingdomPanelGUI(plugin, player, target).open();
                     return;
                 }
                 if (own == null || target == own || !leader) {

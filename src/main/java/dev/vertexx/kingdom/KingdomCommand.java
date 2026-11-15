@@ -42,11 +42,13 @@ public final class KingdomCommand implements TabExecutor {
             case "promover" -> setRank(sender, args, Rank.OFICIAL);
             case "rebaixar" -> setRank(sender, args, Rank.MEMBRO);
             case "membros" -> members(sender);
+            case "sair", "entrar", "trocar" -> leave(sender);
             case "aliar" -> ally(sender, args);
             case "romper" -> breakAlliance(sender, args);
             case "admin" -> admin(sender, args);
             default -> Msg.send(sender, "<gray>Uso: <white>/reino</white> (painel), <white>/reino info</white>, "
-                    + "<white>/reino membros</white>, <white>/reino aliar <reino></white>, "
+                    + "<white>/reino membros</white>, <white>/reino sair</white> (trocar de reino ou virar fora da lei), "
+                    + "<white>/reino aliar <reino></white>, "
                     + "<white>/reino romper <reino></white>, <white>/reino anuncio <texto></white>, "
                     + "<white>/reino promover|rebaixar <jogador></white>");
         }
@@ -60,7 +62,9 @@ public final class KingdomCommand implements TabExecutor {
         }
         Member member = kingdoms().member(player.getUniqueId());
         if (member == null) {
-            Msg.send(sender, "<red>Você ainda não pertence a um reino.");
+            Msg.send(sender, plugin.mercenaries().isOutlaw(player.getUniqueId())
+                    ? "<red>Você é um fora da lei. Use <white>/reino entrar</white> para voltar a um reino."
+                    : "<red>Você ainda não pertence a um reino.");
         }
         return member;
     }
@@ -71,6 +75,20 @@ public final class KingdomCommand implements TabExecutor {
             return;
         }
         new KingdomPanelGUI(plugin, (Player) sender, member.kingdom()).open();
+    }
+
+    /** Abre o menu de saída/troca de reino (ou de entrada, para quem está fora da lei). */
+    private void leave(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            Msg.send(sender, "<red>Apenas jogadores podem usar este comando.");
+            return;
+        }
+        boolean member = kingdoms().member(player.getUniqueId()) != null;
+        if (!member && !plugin.mercenaries().isOutlaw(player.getUniqueId())) {
+            Msg.send(sender, "<red>Você ainda não escolheu um reino.");
+            return;
+        }
+        new KingdomSwitchGUI(plugin, player).open();
     }
 
     /** O líder fixa (ou limpa, com "limpar") o mural do reino. */
@@ -287,6 +305,7 @@ public final class KingdomCommand implements TabExecutor {
                 Member current = kingdoms().member(id);
                 String storedName = online != null ? online.getName() : current.name();
                 kingdoms().set(id, storedName, kingdom, Rank.MEMBRO);
+                plugin.mercenaries().clearOutlaw(id);
                 if (online != null) {
                     plugin.onboarding().adminAssigned(online);
                 }
@@ -320,7 +339,7 @@ public final class KingdomCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         List<String> options = new ArrayList<>();
         if (args.length == 1) {
-            options.addAll(List.of("info", "membros", "aliar", "romper", "anuncio", "promover", "rebaixar"));
+            options.addAll(List.of("info", "membros", "sair", "entrar", "aliar", "romper", "anuncio", "promover", "rebaixar"));
             if (sender.hasPermission("vertexx.admin")) {
                 options.add("admin");
             }

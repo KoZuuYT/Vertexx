@@ -108,6 +108,47 @@ recuperar. Por 30 minutos só você abre; depois disso, qualquer um. Uma **Chave
 
 Membros do mesmo reino e de reinos aliados não se ferem (fogo amigo desativado).
 
+### Sair ou trocar de reino
+
+`/reino sair` (ou o botão **Deixar o reino** no painel do reino) abre um menu em três passos:
+caminho, destino e confirmação com todas as consequências à vista.
+
+| Caminho | Destino | Efeito |
+| --- | --- | --- |
+| **Aliança** | reino aliado do seu | Sem perdas |
+| **Traição** | reino que não é aliado | -30 de honra; o reino que você deixou perde 12 de honra; +10 de reputação; marca de **traidor** por 3 dias (matá-lo não é punido) |
+| **Fora da lei** | nenhum | -10 de honra; o reino perde 4; você vira **mercenário** |
+
+Depois de qualquer troca há uma carência de 24 h. Se o líder sair, o comando passa a um oficial (ou membro).
+Quem está sem reino usa `/reino entrar` para voltar a um dos três reinos.
+
+### Mercenários, reputação e recompensas
+
+Quem está **sem reino** é um fora da lei. Ele ganha **reputação** (0 a 100) com mortes (+3), cobrando
+recompensas (+8), traindo (+10) e saqueando túmulos alheios (+4). Morrer tira 25% da reputação; ter a
+cabeça cobrada por um caçador a **zera**. Os benefícios só valem enquanto está sem reino:
+
+| Nível | Reputação | Benefícios |
+| --- | --- | --- |
+| Desconhecido | 0 a 19 | — |
+| Notório | 20+ | Waystones -25%, recompensas +10% |
+| Temido | 50+ | Waystones -50%, recompensas +25% |
+| Lendário | 80+ | Waystones de graça, recompensas +50% |
+
+Qualquer jogador pode pôr preço na cabeça de um mercenário (`/recompensa`, pago em esmeraldas por padrão).
+Quem o matar leva tudo, e a oferta aumenta a **fama** do alvo. Foras da lei e traidores podem ser atacados
+sem perder honra.
+
+Cada ato de um mercenário também derruba a **honra do reino** atingido (0 a 200, começa em 100 e se
+recompõe aos poucos): mortes de membros (-3), túmulos saqueados (-2), traições (-12) e deserções (-4).
+A honra do reino aparece no painel e entra no cálculo do prestígio.
+
+## Menus
+
+Todos os menus têm duas versões com a mesma função. Com o **resource pack** carregado, ganham fundo
+ilustrado com o tema do reino (roxo, âmbar, carmim ou o preto e vermelho dos foras da lei), ícones e
+emblemas próprios. Sem o pacote, aparecem com os painéis de vidro vanilla.
+
 ## Comandos
 
 | Comando | Quem | Descrição |
@@ -117,6 +158,10 @@ Membros do mesmo reino e de reinos aliados não se ferem (fogo amigo desativado)
 | `/reino anuncio <texto\|limpar>` | Líder | Fixa o mural do reino (aparece ao entrar) |
 | `/reino promover\|rebaixar <jogador>` | Líder | Alterna Membro e Oficial |
 | `/reino membros` | todos | Lista os membros do seu reino |
+| `/reino sair` | membros | Menu para trocar de reino ou virar fora da lei |
+| `/reino entrar` | foras da lei | Menu para entrar em um reino |
+| `/recompensa [lista\|colocar <jogador> <quantia>]` | todos | Quadro de procurados e recompensas |
+| `/mercenario [jogador]` | todos | Reputação de um mercenário |
 | `/reino aliar <reino>` | Líder | Propõe ou aceita uma aliança |
 | `/reino romper <reino>` | Líder | Rompe uma aliança |
 | `/reino admin definir <jogador> <reino>` | admin | Move um jogador de reino |
@@ -145,6 +190,7 @@ Tudo fica em `plugins/Vertexx/`, salvo de forma assíncrona:
 | `waystones.yml` | Waystones e quem descobriu cada um |
 | `graves.yml` | Túmulos pendentes |
 | `honor.yml` | Honra de cada jogador |
+| `mercenaries.yml` | Foras da lei, reputação, recompensas, marcas de traidor e carência de troca |
 | `resourcepack.yml` | Quem aceitou ou recusou o pacote |
 | `panel.yml` | Quem já recebeu o Guia |
 
@@ -168,6 +214,7 @@ Vertexx/
       ├─ panel/           painel, Guia (livro) e /vertexx
       ├─ grave/           túmulos e Chave de Túmulo
       ├─ honor/           honra e regras de combate
+      ├─ mercenary/       foras da lei, reputação, recompensas e quadro de procurados
       ├─ intro/           cerimônia cinematográfica de escolha de reino
       ├─ pack/            resource pack: descoberta automática na release e envio
       └─ update/          auto-update pelo GitHub
@@ -187,6 +234,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.6.0 | Modelo fiel à referência (olhos no lugar das runas), 8 skins, ondas de impacto e brilho na montagem, painel do reino (status, membros, diplomacia, mural), menu de Waystones com favoritos, ordenação e filtro |
 | 0.6.1 | Waystone menor que o jogador (escala 0,85) e display entities com brilho máximo (acabou o visual preto) |
 | 0.7.0 | Escolha de reino em cutscene (3 bandeirões, câmera, mouse + agachar), resource pack gerado e publicado na release, configurado automaticamente pelo plugin |
+| 0.8.0 | Sair e trocar de reino (aliança, traição, fora da lei), mercenários com reputação e recompensas, honra dos reinos, menus refeitos com fundos e ícones do resource pack (com versão vanilla equivalente) |
 
 ## Servidor de teste (Windows)
 
