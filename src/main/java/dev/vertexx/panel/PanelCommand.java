@@ -47,9 +47,46 @@ public final class PanelCommand implements TabExecutor {
                     return plugin.updater().onCommand(sender, command, label, args);
                 }
             }
-            default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? " [painel|livro|versao|atualizar]" : " livro"));
+            case "mob" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else if (sender instanceof Player player) {
+                    spawnTest(player, args);
+                } else {
+                    Msg.send(sender, "<red>Apenas jogadores podem usar este comando.");
+                }
+            }
+            default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? " [painel|livro|mob|versao|atualizar]" : " livro"));
         }
         return true;
+    }
+
+    /** {@code /vertexx mob <tipo> [nivel] [elite]}: cria um mob nivelado à sua frente (teste). */
+    private void spawnTest(Player player, String[] args) {
+        if (args.length < 2) {
+            Msg.send(player, "<gray>Uso: <white>/vertexx mob <tipo> [nivel] [elite]");
+            return;
+        }
+        org.bukkit.entity.EntityType type;
+        try {
+            type = org.bukkit.entity.EntityType.valueOf(args[1].toUpperCase(java.util.Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            Msg.send(player, "<red>Tipo de entidade inválido.");
+            return;
+        }
+        int level = 1;
+        if (args.length > 2) {
+            try {
+                level = Math.max(1, Integer.parseInt(args[2]));
+            } catch (NumberFormatException e) {
+                Msg.send(player, "<red>Nível inválido.");
+                return;
+            }
+        }
+        boolean elite = args.length > 3 && args[3].equalsIgnoreCase("elite");
+        var at = player.getLocation().add(player.getLocation().getDirection().setY(0).normalize().multiply(3));
+        var mob = plugin.mobs().spawnTest(at, type, level, elite);
+        Msg.send(player, mob == null ? "<red>Não foi possível criar o mob." : "<green>Mob criado.");
     }
 
     @Override
@@ -57,6 +94,6 @@ public final class PanelCommand implements TabExecutor {
         if (args.length != 1) {
             return List.of();
         }
-        return sender.hasPermission("vertexx.admin") ? List.of("painel", "livro", "versao", "atualizar") : List.of("livro");
+        return sender.hasPermission("vertexx.admin") ? List.of("painel", "livro", "mob", "versao", "atualizar") : List.of("livro");
     }
 }

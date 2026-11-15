@@ -66,6 +66,15 @@ Ao morrer, seus itens e todo o seu XP ficam em uma cabeça sua no local da morte
 recuperar. Por 30 minutos só você abre; depois disso, qualquer um. Uma **Chave de Túmulo**
 (entregue por administradores) abre um túmulo ainda protegido.
 
+### Mobs nivelados, traits e elites
+
+Mobs hostis nascem com nível conforme a distância do spawn do mundo (do centro, no Nether e no End),
+a dimensão, a profundidade e as estruturas em que estão (estruturas raras como Cidade Ancestral,
+Mansão, Fortaleza do Fim e Câmaras de Provação rendem mais). Mais nível = mais vida, dano e XP.
+Mobs podem ter **traits** (Veloz, Bruto, Vampírico, Explosivo...) e uns poucos nascem **Elite**:
+maiores, com traits melhores, barra de chefe, drops especiais e **Essência Elite** (usada nos upgrades).
+Tudo é ajustável em `mobs:` no `config.yml`. Teste com `/vertexx mob <tipo> [nivel] [elite]`.
+
 ## Menus
 
 Todos os menus têm duas versões com a mesma função. Com o **resource pack** carregado, ganham fundo
@@ -137,6 +146,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.8.1 | Waystone gira para quem a colocou (yaw salvo); o pacote novo é reenviado a quem entrou antes da descoberta da release |
 | 0.9.0 | SMP pacífico: removidos reinos, mercenários, recompensas, honra e a cerimônia de escolha. Ficam Waystones, túmulos, painel, resource pack e auto-update; a viagem não depende mais de reino nem de combate |
 
+| 0.10.0 | Mobs nivelados por distância, dimensão e estruturas; traits; mobs Elite com barra de chefe e Essência Elite |
 ## Servidor de teste (Windows)
 
 `tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta

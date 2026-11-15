@@ -4,6 +4,7 @@ import dev.vertexx.core.MenuListener;
 import dev.vertexx.grave.GraveCommand;
 import dev.vertexx.grave.GraveListener;
 import dev.vertexx.grave.GraveManager;
+import dev.vertexx.mob.MobManager;
 import dev.vertexx.pack.ResourcePackManager;
 import dev.vertexx.panel.PanelCommand;
 import dev.vertexx.panel.PanelManager;
@@ -30,6 +31,7 @@ public final class PluginMain extends JavaPlugin {
     private ResourcePackManager resourcePack;
     private ModelManager models;
     private PanelManager panel;
+    private MobManager mobs;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -44,6 +46,7 @@ public final class PluginMain extends JavaPlugin {
         resourcePack = new ResourcePackManager(this);
         models = new ModelManager(this);
         panel = new PanelManager(this);
+        mobs = new MobManager(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -52,6 +55,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(resourcePack, this);
         plugins.registerEvents(models, this);
         plugins.registerEvents(panel, this);
+        plugins.registerEvents(mobs, this);
 
         register("tumulo", new GraveCommand(this));
         register("pacote", resourcePack);
@@ -61,6 +65,7 @@ public final class PluginMain extends JavaPlugin {
         register("vertexx", new PanelCommand(this));
         updater.start();
         resourcePack.startResolver();
+        mobs.start();
 
         loadAsync();
     }
@@ -97,6 +102,7 @@ public final class PluginMain extends JavaPlugin {
             panel.saveNow();
         }
         models.shutdown();
+        mobs.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }
 
@@ -126,6 +132,10 @@ public final class PluginMain extends JavaPlugin {
 
     public PanelManager panel() {
         return panel;
+    }
+
+    public MobManager mobs() {
+        return mobs;
     }
 
     public AutoUpdater updater() {
