@@ -22,8 +22,30 @@ waystones:
   cost:
     # ITEM | XP_LEVELS | NONE
     type: ITEM
-    item: AMETHYST_SHARD
-    amount: 1
+    # Itens aceitos e a quantidade de cada um. Cada jogador escolhe qual usar no menu do Waystone.
+    options:
+      AMETHYST_SHARD: 1
+      ENDER_PEARL: 1
+      RESIN_CLUMP: 2
+    # Item usado por quem ainda não escolheu.
+    default: AMETHYST_SHARD
+    # Usado quando type = XP_LEVELS.
+    xp-levels: 1
+  # Modelo 3D (display entities) sobre o Lodestone.
+  model:
+    enabled: true
+    # Distância em blocos para criar o modelo e enviá-lo ao jogador.
+    render-distance: 48
+    # Sem jogador a esta distância, as entidades são removidas do mundo.
+    despawn-distance: 96
+    # Não envia o modelo a quem está de costas para ele.
+    fov-culling: true
+    # Não envia o modelo a quem tem uma parede no meio do caminho.
+    occlusion-culling: true
+    # Frequência da checagem de visibilidade (ticks).
+    check-interval-ticks: 10
+    # Animação de montagem ao colocar um novo Waystone.
+    assembly-animation: true
 
 graves:
   enabled: true

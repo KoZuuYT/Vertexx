@@ -53,9 +53,25 @@ Alianças são tratadas pelos **Líderes** (definidos por um administrador): um 
 - **Criar:** renomeie um Lodestone na bigorna e coloque-o no chão. O nome do item vira o nome do Waystone.
   Lodestones sem nome continuam vanilla.
 - **Descobrir:** clique com o botão direito em um Waystone para registrá-lo.
-- **Viajar:** o menu lista os Waystones que você já descobriu. A viagem custa 1 Fragmento de Ametista
-  (configurável), tem 1,5 s de concentração — cancela se você se mover — e não funciona em combate.
+- **Modelo 3D:** o Waystone ganha um modelo de display entities (base de obsidiana, pilar com runas
+  verdes e um ícone flutuante entre dois arcos). Ao ser colocado, ele se **monta com animação**.
+  As entidades só existem com jogador por perto e só são enviadas a quem está perto, olhando na direção
+  do modelo e sem uma parede no caminho (`waystones.model` no config).
+- **Viajar:** o menu lista os Waystones que você já descobriu, tem 1,5 s de concentração — cancela se você
+  se mover — e não funciona em combate.
+- **Pagamento:** cada jogador escolhe no menu se paga com **ametista, pérola ou resina** (clique no item
+  do topo). As quantidades ficam em `waystones.cost.options`.
+- **Configurar (dono):** botão *Configurar* no menu — ícone flutuante (18 opções), nome visível ou oculto
+  e **rota fixa**: com uma rota definida, o clique direito viaja direto, sem menu (Shift + clique abre o menu).
 - **Remover:** só o dono (ou um administrador) consegue quebrar. Explosões e pistões não afetam.
+
+### Painel e Guia
+
+- **Guia do Vertexx:** um livro entregue no primeiro login (e com `/vertexx livro`). Clique direito abre o
+  painel com reinos, Waystones, túmulos, honra e comandos.
+- **Administradores** (`/vertexx` ou o próprio livro) veem também a aba *Administração*: status, modelos
+  renderizados, atualização pelo GitHub, alternadores de configuração e a lista de todos os Waystones.
+  Quem não tem OP não vê nada disso, nem pelo livro.
 
 ### Túmulos
 
@@ -99,7 +115,9 @@ Membros do mesmo reino e de reinos aliados não se ferem (fogo amigo desativado)
 | `/honra [jogador]` | todos | Mostra a honra |
 | `/honra definir <jogador> <valor>` | admin | Ajusta a honra |
 | `/pacote [aceitar\|recusar]` | todos | Resource pack opcional |
-| `/vertexx [atualizar]` | admin | Versão e atualização |
+| `/vertexx` | admin | Abre o painel completo |
+| `/vertexx livro` | todos | Recebe o Guia do Vertexx |
+| `/vertexx versao\|atualizar` | admin | Versão e atualização |
 
 Os ids dos reinos nos comandos são `enternais`, `aurudos` e `cafetoes`.
 Administrador = permissão `vertexx.admin` (padrão: OP).
@@ -116,6 +134,7 @@ Tudo fica em `plugins/Vertexx/`, salvo de forma assíncrona:
 | `graves.yml` | Túmulos pendentes |
 | `honor.yml` | Honra de cada jogador |
 | `resourcepack.yml` | Quem aceitou ou recusou o pacote |
+| `panel.yml` | Quem já recebeu o Guia |
 
 ## Estrutura do projeto
 
@@ -123,6 +142,7 @@ Tudo fica em `plugins/Vertexx/`, salvo de forma assíncrona:
 Vertexx/
 ├─ libs/                  jars exportados, um por etapa/versão
 ├─ scripts/               build, release e sincronização
+├─ tools/                 aplicativo VertexxServer.exe (liga/desliga o servidor de teste)
 ├─ docs/                  guia de desenvolvimento
 ├─ resourcepack/          fontes do pacote visual (ainda vazio)
 └─ src/main/
@@ -131,7 +151,8 @@ Vertexx/
       ├─ PluginMain.java  registro de eventos/comandos e carregamento assíncrono
       ├─ core/            MiniMessage, efeitos, itens de menu, YAML assíncrono
       ├─ kingdom/         KingdomGUI, reinos, cargos, alianças, /reino
-      ├─ waystone/        WaystoneManager, menu de viagem, eventos
+      ├─ waystone/        WaystoneManager, ModelManager (display entities), menus, eventos
+      ├─ panel/           painel, Guia (livro) e /vertexx
       ├─ grave/           túmulos e Chave de Túmulo
       ├─ honor/           honra e regras de combate
       ├─ pack/            resource pack opcional
@@ -148,3 +169,10 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.2.0 | Waystones |
 | 0.3.0 | Túmulos, honra, fogo amigo e resource pack opcional |
 | 0.4.0 | Auto-update pelo GitHub |
+| 0.5.0 | Painel e Guia, modelo 3D animado das Waystones, personalização, rotas fixas, escolha de pagamento |
+
+## Servidor de teste (Windows)
+
+`tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta
+`run/`: botão Iniciar/Parar, status, log ao vivo e caixa de comandos (via RCON). Ao iniciar, ele copia o
+jar mais novo de `libs/` para `run/plugins/`. Para recompilar: `.	oolsuild-launcher.ps1`.

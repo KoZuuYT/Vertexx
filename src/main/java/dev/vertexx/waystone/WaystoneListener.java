@@ -107,23 +107,36 @@ public final class WaystoneListener implements Listener {
             Msg.send(player, "<light_purple>Waystone descoberto: <white><name></white>.",
                     Placeholder.unparsed("name", waystone.name()));
         }
+        Waystone route = waystones().byId(waystone.route());
+        if (route != null && !player.isSneaking()) {
+            Fx.click(player);
+            waystones().travel(player, route); // rota fixa: viaja direto, sem menu
+            return;
+        }
         new WaystoneGUI(plugin, player, waystone).open();
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (!(event.getInventory().getHolder(false) instanceof WaystoneGUI gui)) {
+        Object holder = event.getInventory().getHolder(false);
+        if (!(holder instanceof WaystoneGUI) && !(holder instanceof WaystoneConfigGUI)) {
             return;
         }
         event.setCancelled(true);
-        if (event.getClickedInventory() == event.getView().getTopInventory()) {
+        if (event.getClickedInventory() != event.getView().getTopInventory()) {
+            return;
+        }
+        if (holder instanceof WaystoneGUI gui) {
+            gui.handleClick(event.getSlot());
+        } else if (holder instanceof WaystoneConfigGUI gui) {
             gui.handleClick(event.getSlot());
         }
     }
 
     @EventHandler
     public void onDrag(InventoryDragEvent event) {
-        if (event.getInventory().getHolder(false) instanceof WaystoneGUI) {
+        Object holder = event.getInventory().getHolder(false);
+        if (holder instanceof WaystoneGUI || holder instanceof WaystoneConfigGUI) {
             event.setCancelled(true);
         }
     }

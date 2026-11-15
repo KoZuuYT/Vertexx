@@ -23,7 +23,9 @@ import org.bukkit.scheduler.BukkitTask;
 public final class WaystoneGUI implements InventoryHolder {
 
     private static final int SIZE = 54;
+    private static final int PAYMENT_SLOT = 2;
     private static final int ORIGIN_SLOT = 4;
+    private static final int CONFIG_SLOT = 6;
     private static final int PREVIOUS_SLOT = 45;
     private static final int CLOSE_SLOT = 49;
     private static final int NEXT_SLOT = 53;
@@ -39,7 +41,7 @@ public final class WaystoneGUI implements InventoryHolder {
     private final Inventory inventory;
     private final List<Waystone> destinations;
     private final Map<Integer, Waystone> bySlot = new HashMap<>();
-    private final TravelCost cost;
+    private TravelCost cost;
     private int page;
     private BukkitTask reveal;
 
@@ -77,6 +79,18 @@ public final class WaystoneGUI implements InventoryHolder {
         if (destination != null) {
             Fx.click(player);
             plugin.waystones().travel(player, destination);
+            return;
+        }
+        if (slot == PAYMENT_SLOT) {
+            plugin.waystones().cyclePayment(player);
+            Fx.select(player);
+            cost = plugin.waystones().costFor(player);
+            render();
+            return;
+        }
+        if (slot == CONFIG_SLOT && plugin.waystones().canConfigure(player, origin)) {
+            Fx.click(player);
+            new WaystoneConfigGUI(plugin, player, origin).open();
             return;
         }
         int pages = pageCount();
@@ -121,7 +135,17 @@ public final class WaystoneGUI implements InventoryHolder {
                         "<gray>Dono: <white>" + origin.ownerName(),
                         "",
                         "<gray>Custo por viagem: " + cost.describe(),
+                        origin.route() == null ? "<dark_gray>Sem rota fixa." : "<gray>Rota fixa ativa <dark_gray>(Shift + clique direito abre este menu)",
                         "<dark_gray>Waystones descobertos: " + (destinations.size() + 1)), true));
+        Material paying = plugin.waystones().chosenPayment(player);
+        inventory.setItem(PAYMENT_SLOT, Items.of(paying, "<gradient:#c4a7ff:#2cb67d>Pagamento da viagem",
+                List.of("<gray>Você paga com: " + cost.describe(),
+                        "",
+                        "<yellow>▶ Clique para trocar <dark_gray>(ametista, pérola ou resina)")));
+        if (plugin.waystones().canConfigure(player, origin)) {
+            inventory.setItem(CONFIG_SLOT, Items.of(Material.COMPARATOR, "<gradient:#c4a7ff:#2cb67d>Configurar Waystone",
+                    List.of("<gray>Ícone, nome flutuante e rota fixa.", "", "<yellow>▶ Clique para abrir")));
+        }
         inventory.setItem(CLOSE_SLOT, Items.of(Material.BARRIER, "<red>Fechar", List.of()));
 
         int pages = pageCount();

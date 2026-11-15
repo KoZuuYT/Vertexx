@@ -59,6 +59,8 @@ public final class WaystoneManager {
     private final Map<BlockPos, Waystone> byPos = new HashMap<>();
     private final Map<UUID, Set<UUID>> discovered = new HashMap<>();
     private final Set<UUID> traveling = new HashSet<>();
+    /** Item escolhido por cada jogador para pagar as viagens. */
+    private final Map<UUID, Material> payment = new HashMap<>();
 
     public WaystoneManager(PluginMain plugin) {
         this.plugin = plugin;
@@ -77,6 +79,7 @@ public final class WaystoneManager {
         byId.clear();
         byPos.clear();
         discovered.clear();
+        payment.clear();
         ConfigurationSection section = data.getConfigurationSection("waystones");
         if (section != null) {
             for (String key : section.getKeys(false)) {
@@ -89,10 +92,27 @@ public final class WaystoneManager {
                     Waystone waystone = new Waystone(UUID.fromString(key), entry.getString("name", "Waystone"), pos,
                             UUID.fromString(entry.getString("owner", "")), entry.getString("owner-name", "?"),
                             entry.getLong("created"));
+                    waystone.icon(WaystoneIcons.parse(entry.getString("icon")));
+                    waystone.showName(entry.getBoolean("show-name", true));
+                    String route = entry.getString("route");
+                    waystone.route(route == null || route.isBlank() ? null : UUID.fromString(route));
                     byId.put(waystone.id(), waystone);
                     byPos.put(pos, waystone);
                 } catch (IllegalArgumentException | NullPointerException ignored) {
                     plugin.getLogger().warning("Waystone inválido ignorado em waystones.yml: " + key);
+                }
+            }
+        }
+        ConfigurationSection pay = data.getConfigurationSection("payment");
+        if (pay != null) {
+            for (String key : pay.getKeys(false)) {
+                Material item = Material.matchMaterial(pay.getString(key, ""));
+                try {
+                    if (item != null) {
+                        payment.put(UUID.fromString(key), item);
+                    }
+                } catch (IllegalArgumentException ignored) {
+                    // entrada inválida: ignora
                 }
             }
         }
@@ -129,6 +149,12 @@ public final class WaystoneManager {
             entry.set("owner", waystone.owner().toString());
             entry.set("owner-name", waystone.ownerName());
             entry.set("created", waystone.created());
+            entry.set("icon", waystone.icon().name());
+            entry.set("show-name", waystone.showName());
+            entry.set("route", waystone.route() == null ? null : waystone.route().toString());
+        }
+        for (Map.Entry<UUID, Material> entry : payment.entrySet()) {
+            data.set("payment." + entry.getKey(), entry.getValue().name());
         }
         for (Map.Entry<UUID, Set<UUID>> entry : discovered.entrySet()) {
             List<String> ids = new ArrayList<>();
@@ -151,6 +177,28 @@ public final class WaystoneManager {
             return null;
         }
         return byPos.get(BlockPos.of(block));
+    }
+
+    public Waystone byId(UUID id) {
+        return id == null ? null : byId.get(id);
+    }
+
+    public Waystone atPos(BlockPos pos) {
+        return byPos.get(pos);
+    }
+
+    public java.util.Collection<Waystone> all() {
+        return java.util.Collections.unmodifiableCollection(byId.values());
+    }
+
+    public List<Waystone> ownedList(UUID owner) {
+        List<Waystone> result = new ArrayList<>();
+        for (Waystone waystone : byId.values()) {
+            if (waystone.owner().equals(owner)) {
+                result.add(waystone);
+            }
+        }
+        return result;
     }
 
     public boolean exists(Waystone waystone) {
@@ -190,6 +238,7 @@ public final class WaystoneManager {
         byId.put(waystone.id(), waystone);
         byPos.put(waystone.pos(), waystone);
         discovered.computeIfAbsent(owner.getUniqueId(), k -> new HashSet<>()).add(waystone.id());
+        plugin.models().add(waystone, true);
         save();
         return CreateResult.CREATED;
     }
@@ -197,6 +246,23 @@ public final class WaystoneManager {
     public void remove(Waystone waystone) {
         byId.remove(waystone.id());
         byPos.remove(waystone.pos());
+        for (Waystone other : byId.values()) {
+            if (waystone.id().equals(other.route())) {
+                other.route(null); // rotas que apontavam para ele deixam de existir
+            }
+        }
+        plugin.models().remove(waystone);
+        save();
+    }
+
+    /** Pode alterar a decoração e as rotas do Waystone. */
+    public boolean canConfigure(Player player, Waystone waystone) {
+        return waystone.owner().equals(player.getUniqueId()) || player.hasPermission("vertexx.admin");
+    }
+
+    /** Decoração alterada: persiste e atualiza o modelo. */
+    public void changed(Waystone waystone) {
+        plugin.models().refresh(waystone);
         save();
     }
 
@@ -224,6 +290,44 @@ public final class WaystoneManager {
 
     // ── Custo ───────────────────────────────────────────────────
 
+    /** Itens aceitos como pagamento e a quantidade base de cada um, na ordem do config. */
+    public Map<Material, Integer> paymentOptions() {
+        Map<Material, Integer> options = new LinkedHashMap<>();
+        ConfigurationSection section = plugin.getConfig().getConfigurationSection("waystones.cost.options");
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                Material item = Material.matchMaterial(key);
+                if (item != null && item.isItem()) {
+                    options.put(item, Math.max(0, section.getInt(key, 1)));
+                }
+            }
+        }
+        if (options.isEmpty()) {
+            options.put(Material.AMETHYST_SHARD, 1);
+        }
+        return options;
+    }
+
+    /** Item que o jogador escolheu para pagar (ou o padrão, se a escolha não for mais aceita). */
+    public Material chosenPayment(Player player) {
+        Map<Material, Integer> options = paymentOptions();
+        Material chosen = payment.get(player.getUniqueId());
+        if (chosen != null && options.containsKey(chosen)) {
+            return chosen;
+        }
+        Material fallback = Material.matchMaterial(plugin.getConfig().getString("waystones.cost.default", ""));
+        return fallback != null && options.containsKey(fallback) ? fallback : options.keySet().iterator().next();
+    }
+
+    /** Passa para o próximo item de pagamento da lista. */
+    public Material cyclePayment(Player player) {
+        List<Material> items = new ArrayList<>(paymentOptions().keySet());
+        Material next = items.get((items.indexOf(chosenPayment(player)) + 1) % items.size());
+        payment.put(player.getUniqueId(), next);
+        save();
+        return next;
+    }
+
     public TravelCost costFor(Player player) {
         TravelCost.Type type;
         try {
@@ -232,11 +336,11 @@ public final class WaystoneManager {
         } catch (IllegalArgumentException e) {
             type = TravelCost.Type.ITEM;
         }
-        Material item = Material.matchMaterial(plugin.getConfig().getString("waystones.cost.item", "AMETHYST_SHARD"));
-        if (item == null || !item.isItem()) {
-            item = Material.AMETHYST_SHARD;
+        Material item = chosenPayment(player);
+        int base = paymentOptions().getOrDefault(item, 1);
+        if (type == TravelCost.Type.XP_LEVELS) {
+            base = plugin.getConfig().getInt("waystones.cost.xp-levels", 1);
         }
-        int base = plugin.getConfig().getInt("waystones.cost.amount", 1);
         int amount = (int) Math.ceil(base * plugin.travelCostMultiplier(player));
         if (type == TravelCost.Type.NONE || amount <= 0) {
             return TravelCost.FREE;
@@ -344,6 +448,7 @@ public final class WaystoneManager {
                 return;
             }
             cost.charge(player);
+            discover(player, destination);
             Fx.burst(origin, Particle.PORTAL, 60, 0.4, 0.8);
             Fx.worldSound(origin, Sound.ENTITY_ENDERMAN_TELEPORT, 0.6f, 0.8f);
 

@@ -62,7 +62,17 @@ public final class AutoUpdater implements Listener, TabExecutor {
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> check(null), 20L * 15, interval);
     }
 
-    private String currentVersion() {
+    /** Versão baixada que aguarda reinício, ou {@code null}. */
+    public String pendingVersion() {
+        return pendingVersion;
+    }
+
+    /** Checa o GitHub agora (assíncrono), respondendo a {@code feedback}. */
+    public void checkNow(CommandSender feedback) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> check(feedback));
+    }
+
+    public String currentVersion() {
         return plugin.getPluginMeta().getVersion();
     }
 

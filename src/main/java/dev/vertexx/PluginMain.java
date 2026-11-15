@@ -11,7 +11,10 @@ import dev.vertexx.kingdom.KingdomCommand;
 import dev.vertexx.kingdom.KingdomListener;
 import dev.vertexx.kingdom.KingdomManager;
 import dev.vertexx.pack.ResourcePackManager;
+import dev.vertexx.panel.PanelCommand;
+import dev.vertexx.panel.PanelManager;
 import dev.vertexx.update.AutoUpdater;
+import dev.vertexx.waystone.ModelManager;
 import dev.vertexx.waystone.WaystoneListener;
 import dev.vertexx.waystone.WaystoneManager;
 import java.io.File;
@@ -36,6 +39,9 @@ public final class PluginMain extends JavaPlugin {
     private HonorManager honor;
     private CombatListener combat;
     private ResourcePackManager resourcePack;
+    private ModelManager models;
+    private PanelManager panel;
+    private AutoUpdater updater;
     private volatile boolean ready;
 
     @Override
@@ -51,6 +57,8 @@ public final class PluginMain extends JavaPlugin {
         honor = new HonorManager(this);
         combat = new CombatListener(this);
         resourcePack = new ResourcePackManager(this);
+        models = new ModelManager(this);
+        panel = new PanelManager(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(onboarding, this);
@@ -58,15 +66,17 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(new GraveListener(this), this);
         plugins.registerEvents(combat, this);
         plugins.registerEvents(resourcePack, this);
+        plugins.registerEvents(models, this);
+        plugins.registerEvents(panel, this);
 
         register("reino", new KingdomCommand(this));
         register("tumulo", new GraveCommand(this));
         register("honra", new HonorCommand(this));
         register("pacote", resourcePack);
 
-        AutoUpdater updater = new AutoUpdater(this);
+        updater = new AutoUpdater(this);
         plugins.registerEvents(updater, this);
-        register("vertexx", updater);
+        register("vertexx", new PanelCommand(this));
         updater.start();
 
         loadAsync();
@@ -80,12 +90,16 @@ public final class PluginMain extends JavaPlugin {
             YamlConfiguration graveData = graves.read();
             YamlConfiguration honorData = honor.read();
             YamlConfiguration packData = resourcePack.read();
+            YamlConfiguration panelData = panel.read();
             Bukkit.getScheduler().runTask(this, () -> {
                 kingdoms.apply(kingdomData);
                 waystones.apply(waystoneData);
                 graves.apply(graveData);
                 honor.apply(honorData);
                 resourcePack.apply(packData);
+                panel.apply(panelData);
+                models.load(waystones.all());
+                models.start();
                 waystones.startAmbient();
                 honor.startTasks();
                 ready = true;
@@ -104,7 +118,9 @@ public final class PluginMain extends JavaPlugin {
             graves.saveNow();
             honor.saveNow();
             resourcePack.saveNow();
+            panel.saveNow();
         }
+        models.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }
 
@@ -130,6 +146,18 @@ public final class PluginMain extends JavaPlugin {
 
     public WaystoneManager waystones() {
         return waystones;
+    }
+
+    public ModelManager models() {
+        return models;
+    }
+
+    public PanelManager panel() {
+        return panel;
+    }
+
+    public AutoUpdater updater() {
+        return updater;
     }
 
     public GraveManager graves() {

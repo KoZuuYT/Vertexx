@@ -116,6 +116,10 @@ public final class GraveManager {
 
     // ── Consulta ────────────────────────────────────────────────
 
+    public int count() {
+        return byId.size();
+    }
+
     public boolean hasGraves() {
         return !byPos.isEmpty();
     }
