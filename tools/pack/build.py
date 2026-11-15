@@ -372,8 +372,11 @@ def build_assets():
     # atlas: as texturas dos modelos de entidade ficam em textures/entity/, que o atlas padrão (block/ e item/)
     # não inclui; sem isso o modelo aparece com a textura "faltando"
     atlas = {"sources": [{"type": "minecraft:directory", "source": "entity", "prefix": "entity/"}]}
-    write_json(NS / "atlases" / "blocks.json", atlas)
-    write_json(NS / "atlases" / "items.json", atlas)
+    # os atlas "blocks" e "items" pertencem ao namespace minecraft: o arquivo tem de ficar em assets/minecraft/atlases/
+    # (em assets/vertexx/ o jogo ignora). A fonte "directory" varre textures/entity de todos os namespaces.
+    mc_atlases = PACK / "assets" / "minecraft" / "atlases"
+    write_json(mc_atlases / "blocks.json", atlas)
+    write_json(mc_atlases / "items.json", atlas)
 
     # pack.mcmeta (formato com versão maior/menor do 26.x)
     write_json(PACK / "pack.mcmeta", {"pack": {
