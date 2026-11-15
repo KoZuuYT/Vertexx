@@ -20,6 +20,11 @@ THEMES = {  # ordem = U+E100 + índice (mesma de Ui.Theme)
     "aurudos": dict(dark=(58, 32, 4), mid=(217, 130, 0), light=(255, 224, 130), accent=(255, 143, 0)),
     "cafetoes": dict(dark=(48, 8, 10), mid=(183, 28, 28), light=(255, 138, 128), accent=(229, 57, 53)),
     "outlaw": dict(dark=(22, 8, 10), mid=(140, 22, 26), light=(230, 96, 84), accent=(255, 170, 60)),
+    # temas do sistema de status e dos upgrades (índices 5 a 8, ver Ui.Theme)
+    "stats": dict(dark=(8, 36, 28), mid=(36, 160, 110), light=(150, 240, 200), accent=(80, 220, 160)),
+    "tree": dict(dark=(8, 26, 48), mid=(30, 140, 210), light=(150, 220, 255), accent=(76, 201, 240)),
+    "info": dict(dark=(48, 36, 6), mid=(200, 160, 30), light=(255, 230, 140), accent=(255, 209, 102)),
+    "forge": dict(dark=(50, 22, 6), mid=(214, 100, 20), light=(255, 190, 110), accent=(255, 159, 28)),
 }
 
 
@@ -72,6 +77,38 @@ def _daggers(d, cx, cy, r, fill, edge):
         d.line([(x0 * S, y0 * S), (x1 * S, y1 * S)], fill=fill, width=int(1.4 * S))
 
 
+def _motif_stats(d, cx, cy, light, accent):
+    for i, h in enumerate((3, 5, 7, 9)):  # barras de um gráfico crescente
+        x = cx - 8 + i * 4
+        _rect(d, x, cy + 5 - h, x + 3, cy + 5, fill=_mix(light, accent, i / 3))
+
+
+def _motif_tree(d, cx, cy, light, accent):
+    nodes = [(cx, cy + 3), (cx - 6, cy - 3), (cx + 6, cy - 3), (cx, cy - 6)]
+    for a, b in ((0, 1), (0, 2), (0, 3)):
+        d.line([(nodes[a][0] * S, nodes[a][1] * S), (nodes[b][0] * S, nodes[b][1] * S)], fill=_scale(light, 0.8), width=S)
+    for x, y in nodes:
+        d.ellipse([(x - 2) * S, (y - 2) * S, (x + 2) * S, (y + 2) * S], fill=accent, outline=light)
+
+
+def _motif_info(d, cx, cy, light, accent):
+    d.ellipse([(cx - 6) * S, (cy - 6) * S, (cx + 6) * S, (cy + 6) * S], outline=light, width=S)
+    _rect(d, cx - 1, cy - 1, cx + 1, cy + 4, fill=accent)
+    _rect(d, cx - 1, cy - 4, cx + 1, cy - 2, fill=accent)
+
+
+def _motif_forge(d, cx, cy, light, accent):
+    _rect(d, cx - 7, cy - 4, cx + 6, cy - 1, fill=light)     # bigorna: face, cintura e base
+    _rect(d, cx - 4, cy - 1, cx + 3, cy + 2, fill=_scale(light, 0.7))
+    _rect(d, cx - 6, cy + 2, cx + 5, cy + 5, fill=_scale(light, 0.5))
+    _rect(d, cx + 6, cy - 4, cx + 9, cy - 2, fill=light)
+    for dx, dy in ((-3, -7), (1, -8), (4, -6)):                # faíscas
+        _rect(d, cx + dx, cy + dy, cx + dx + 1, cy + dy + 1, fill=accent)
+
+
+MOTIFS = {"stats": _motif_stats, "tree": _motif_tree, "info": _motif_info, "forge": _motif_forge}
+
+
 def background(name: str, emblem: Image.Image | None) -> Image.Image:
     t = THEMES[name]
     dark, mid, light, accent = t["dark"], t["mid"], t["light"], t["accent"]
@@ -102,6 +139,8 @@ def background(name: str, emblem: Image.Image | None) -> Image.Image:
         img.alpha_composite(small, ((W - 21) * S, 2 * S))
     elif name == "outlaw":
         _daggers(d, W - 14, 10, 5.5, (225, 230, 240), EDGE[:3])
+    elif name in MOTIFS:
+        MOTIFS[name](d, W - 14, 10, light, accent)
     else:
         _star(d, W - 14, 10, 6.5, GOLD)
 
@@ -266,7 +305,52 @@ def icon_broken():
     return _fin(img)
 
 
+def icon_lock():
+    img, d = _canvas()
+    d.arc([34, 8, 94, 72], 180, 360, fill=EDGE, width=26)
+    d.arc([40, 14, 88, 66], 180, 360, fill=(190, 196, 210, 255), width=12)
+    d.rounded_rectangle([20, 54, 108, 120], radius=14, fill=EDGE)
+    d.rounded_rectangle([28, 62, 100, 112], radius=10, fill=(150, 156, 172, 255))
+    d.ellipse([56, 74, 72, 90], fill=EDGE)
+    d.rectangle([61, 84, 67, 102], fill=EDGE)
+    return _fin(img)
+
+
+def icon_tab_stats():
+    img, d = _canvas()
+    d.rounded_rectangle([10, 10, 118, 118], radius=16, fill=EDGE)
+    for i, h in enumerate((34, 56, 78, 96)):
+        x = 22 + i * 22
+        d.rectangle([x, 108 - h, x + 16, 108], fill=(80, 220, 160, 255))
+        d.rectangle([x, 108 - h, x + 16, 108 - h + 6], fill=(190, 255, 225, 255))
+    return _fin(img)
+
+
+def icon_tab_tree():
+    img, d = _canvas()
+    nodes = [(64, 98), (28, 56), (100, 56), (64, 20)]
+    for a, b in ((0, 1), (0, 2), (0, 3)):
+        _outline_line(d, [nodes[a], nodes[b]], (150, 220, 255, 255), 10, extra=10)
+    for x, y in nodes:
+        d.ellipse([x - 19, y - 19, x + 19, y + 19], fill=EDGE)
+        d.ellipse([x - 12, y - 12, x + 12, y + 12], fill=(76, 201, 240, 255))
+    return _fin(img)
+
+
+def icon_tab_info():
+    img, d = _canvas()
+    d.ellipse([8, 8, 120, 120], fill=EDGE)
+    d.ellipse([18, 18, 110, 110], fill=(255, 209, 102, 255))
+    d.rounded_rectangle([56, 52, 72, 94], radius=4, fill=EDGE)
+    d.ellipse([54, 30, 74, 48], fill=EDGE)
+    return _fin(img)
+
+
 ICONS = {
+    "ui_lock": icon_lock,
+    "tab_stats": icon_tab_stats,
+    "tab_tree": icon_tab_tree,
+    "tab_info": icon_tab_info,
     "ui_close": icon_close,
     "ui_back": lambda: icon_back(False),
     "ui_next": lambda: icon_back(True),

@@ -56,9 +56,40 @@ public final class PanelCommand implements TabExecutor {
                     Msg.send(sender, "<red>Apenas jogadores podem usar este comando.");
                 }
             }
-            default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? " [painel|livro|mob|versao|atualizar]" : " livro"));
+            case "xp" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else {
+                    giveXp(sender, args);
+                }
+            }
+            default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? " [painel|livro|mob|xp|versao|atualizar]" : " livro"));
         }
         return true;
+    }
+
+    /** {@code /vertexx xp <jogador> <status> <quantidade>}: concede XP de status (teste e eventos). */
+    private void giveXp(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            Msg.send(sender, "<gray>Uso: <white>/vertexx xp <jogador> <status> <quantidade>");
+            return;
+        }
+        Player target = plugin.getServer().getPlayerExact(args[1]);
+        if (target == null) {
+            Msg.send(sender, "<red>Jogador não está online.");
+            return;
+        }
+        dev.vertexx.rpg.Stat stat;
+        double amount;
+        try {
+            stat = dev.vertexx.rpg.Stat.valueOf(args[2].toUpperCase(java.util.Locale.ROOT));
+            amount = Double.parseDouble(args[3]);
+        } catch (IllegalArgumentException e) {
+            Msg.send(sender, "<red>Status ou quantidade inválidos.");
+            return;
+        }
+        plugin.rpg().addXp(target, stat, amount);
+        Msg.send(sender, "<green>XP concedido.");
     }
 
     /** {@code /vertexx mob <tipo> [nivel] [elite]}: cria um mob nivelado à sua frente (teste). */
@@ -94,6 +125,6 @@ public final class PanelCommand implements TabExecutor {
         if (args.length != 1) {
             return List.of();
         }
-        return sender.hasPermission("vertexx.admin") ? List.of("painel", "livro", "mob", "versao", "atualizar") : List.of("livro");
+        return sender.hasPermission("vertexx.admin") ? List.of("painel", "livro", "mob", "xp", "versao", "atualizar") : List.of("livro");
     }
 }

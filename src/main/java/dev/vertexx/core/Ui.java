@@ -16,14 +16,30 @@ import org.bukkit.inventory.ItemStack;
 public final class Ui {
 
     /**
-     * Temas do fundo; a ordem define o caractere do glifo (U+E100 + ordinal). Só o tema principal é usado
-     * agora, mas a ordem original é mantida para não invalidar o resource pack já publicado.
+     * Temas do fundo; o índice define o caractere do glifo (U+E100 + índice) e acompanha a ordem de
+     * {@code THEMES} em tools/pack/menus.py. Os índices 1 a 4 eram temas antigos e ficam reservados.
      */
     public enum Theme {
-        VERTEXX;
+        VERTEXX(0, Material.PURPLE_STAINED_GLASS_PANE),
+        STATS(5, Material.LIME_STAINED_GLASS_PANE),
+        TREE(6, Material.CYAN_STAINED_GLASS_PANE),
+        INFO(7, Material.YELLOW_STAINED_GLASS_PANE),
+        FORGE(8, Material.ORANGE_STAINED_GLASS_PANE);
+
+        private final int index;
+        private final Material pane;
+
+        Theme(int index, Material pane) {
+            this.index = index;
+            this.pane = pane;
+        }
 
         public Material pane() {
-            return Material.PURPLE_STAINED_GLASS_PANE;
+            return pane;
+        }
+
+        public char glyph() {
+            return (char) (0xE100 + index);
         }
     }
 
@@ -44,7 +60,7 @@ public final class Ui {
         if (!pack) {
             return text;
         }
-        char glyph = (char) (0xE100 + theme.ordinal());
+        char glyph = theme.glyph();
         return Component.text()
                 .color(NamedTextColor.WHITE)
                 .append(Component.text(BACK_UP).font(MENU_FONT))

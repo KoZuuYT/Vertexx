@@ -318,12 +318,18 @@ public final class MobManager implements Listener {
                 if (!inside(generated, loc)) {
                     continue;
                 }
-                best = Math.max(best, bonusFor(generated.getStructure().getKey().getKey()));
+                best = Math.max(best, bonusFor(structureName(generated)));
             }
         } catch (RuntimeException ignored) {
             // chunk sem dados de estrutura: sem bônus
         }
         return best;
+    }
+
+    private static String structureName(GeneratedStructure generated) {
+        NamespacedKey key = io.papermc.paper.registry.RegistryAccess.registryAccess()
+                .getRegistry(io.papermc.paper.registry.RegistryKey.STRUCTURE).getKey(generated.getStructure());
+        return key == null ? "" : key.getKey();
     }
 
     private static boolean inside(GeneratedStructure generated, Location loc) {
@@ -623,6 +629,10 @@ public final class MobManager implements Listener {
         }
         if (elite) {
             dropEliteLoot(event, level);
+        }
+        Player killer = mob.getKiller();
+        if (killer != null && plugin.skills() != null) {
+            plugin.skills().onMobKilled(killer, mob, level, elite);
         }
     }
 

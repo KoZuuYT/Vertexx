@@ -238,6 +238,59 @@ def key_icon(kind: str) -> Image.Image:
     return img
 
 
+BANNERS = {  # nome: (cor principal, cor clara, símbolo); ordem = U+E030 + índice (ver Cinematics.Banner)
+    "level": ((255, 190, 40), (255, 240, 170), "star"),
+    "skill": ((60, 180, 240), (190, 240, 255), "gem"),
+    "elite": ((220, 40, 120), (255, 170, 210), "crown"),
+    "forge": ((255, 140, 20), (255, 215, 150), "anvil"),
+    "stat": ((44, 182, 125), (170, 255, 215), "chevrons"),
+}
+
+
+def banner_image(name: str) -> Image.Image:
+    """Faixa de título 3:1: lâminas de luz saindo de um emblema central com brilho."""
+    main, light, symbol = BANNERS[name]
+    W, H = 384, 128
+    cx, cy = W // 2, H // 2
+    layer = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    for sign in (-1, 1):
+        for width, length, col, alpha in ((16, 186, main, 190), (8, 150, light, 235), (3, 120, (255, 255, 255), 255)):
+            pts = [(cx + sign * 34, cy - width), (cx + sign * (34 + length), cy), (cx + sign * 34, cy + width)]
+            d.polygon(pts, fill=col + (alpha,))
+        for dy in (-30, 30):  # filetes finos acima e abaixo
+            d.line([(cx + sign * 60, cy + dy), (cx + sign * 150, cy + dy * 0.9)], fill=light + (170,), width=2)
+            d.ellipse([cx + sign * 150 - 4, cy + dy * 0.9 - 4, cx + sign * 150 + 4, cy + dy * 0.9 + 4],
+                      fill=GOLD + (255,))
+    d.ellipse([cx - 40, cy - 40, cx + 40, cy + 40], fill=(16, 10, 30, 235), outline=GOLD + (255,), width=4)
+    d.ellipse([cx - 33, cy - 33, cx + 33, cy + 33], outline=main + (255,), width=3)
+    sym = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    sd = ImageDraw.Draw(sym)
+    if symbol == "star":
+        pts = []
+        for i in range(10):
+            ang = math.pi / 5 * i - math.pi / 2
+            r = 27 if i % 2 == 0 else 11
+            pts.append((cx + math.cos(ang) * r, cy + math.sin(ang) * r))
+        sd.polygon(pts, fill=light + (255,), outline=main + (255,))
+    elif symbol == "gem":
+        sd.polygon([(cx, cy - 28), (cx + 22, cy - 4), (cx, cy + 28), (cx - 22, cy - 4)],
+                   fill=light + (255,), outline=main + (255,))
+        sd.polygon([(cx, cy - 28), (cx + 22, cy - 4), (cx, cy - 4)], fill=(255, 255, 255, 255))
+    elif symbol == "crown":
+        sd.polygon([(cx - 24, cy + 14), (cx - 28, cy - 14), (cx - 12, cy), (cx, cy - 22), (cx + 12, cy),
+                    (cx + 28, cy - 14), (cx + 24, cy + 14)], fill=light + (255,), outline=main + (255,))
+    elif symbol == "anvil":
+        sd.polygon([(cx - 28, cy - 14), (cx + 26, cy - 14), (cx + 16, cy), (cx + 8, cy + 4), (cx + 14, cy + 18),
+                    (cx - 14, cy + 18), (cx - 8, cy + 4), (cx - 16, cy)], fill=light + (255,), outline=main + (255,))
+    else:  # chevrons
+        for k in range(3):
+            y = cy + 14 - k * 14
+            sd.line([(cx - 20, y), (cx, y - 14), (cx + 20, y)], fill=light + (255,), width=6)
+    layer.alpha_composite(sym)
+    return Image.alpha_composite(glow(layer, 10, 1.4), layer)
+
+
 def overlay_solid() -> Image.Image:
     return Image.new("RGBA", (64, 32), (255, 255, 255, 255))
 
@@ -262,6 +315,8 @@ def build_assets():
     for kind in ("lmb", "rmb", "shift"):
         save(key_icon(kind), tex / "font" / f"key_{kind}.png")
     save(overlay_solid(), tex / "font" / "solid.png")
+    for name in BANNERS:
+        save(banner_image(name), tex / "font" / f"banner_{name}.png")
 
     # fonte: sobreposições de tela cheia, emblemas e ícones de teclas
     providers = [
@@ -274,6 +329,9 @@ def build_assets():
     for i, kind in enumerate(("lmb", "rmb", "shift")):
         providers.append({"type": "bitmap", "file": f"vertexx:font/key_{kind}.png", "ascent": 8,
                           "height": 10, "chars": [chr(0xE020 + i)]})
+    for i, name in enumerate(BANNERS):
+        providers.append({"type": "bitmap", "file": f"vertexx:font/banner_{name}.png", "ascent": 30,
+                          "height": 36, "chars": [chr(0xE030 + i)]})
     providers.append({"type": "space", "advances": {"": 4, "": 12, "": -4}})
     write_json(NS / "font" / "cinematic.json", {"providers": providers})
 
@@ -313,7 +371,7 @@ def build_assets():
 
     # pack.mcmeta (formato com versão maior/menor do 26.x)
     write_json(PACK / "pack.mcmeta", {"pack": {
-        "description": "§dVertexx §7— cerimônia dos reinos e menus",
+        "description": "§dVertexx §7— menus, status e cinemáticas",
         "min_format": [97, 0], "max_format": [99, 0]}})
     pack_png = render_emblem("enternais", 128)
     bg = Image.new("RGBA", (128, 128), (20, 12, 48, 255))

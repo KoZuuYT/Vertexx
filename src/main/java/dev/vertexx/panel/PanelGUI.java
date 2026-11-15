@@ -152,6 +152,11 @@ public final class PanelGUI implements InventoryHolder {
                 List.of("<gray>Lista de comandos e dicas.", "", "<yellow>▶ Clique para abrir")),
                 c -> go(Page.GUIDE));
 
+        set(31, Items.of(Material.NETHER_STAR, "<gradient:#c4a7ff:#2cb67d>Status e Habilidades",
+                List.of("<gray>Níveis, árvore de habilidades e", "<gray>informações do sistema.", "",
+                        "<yellow>▶ Clique para abrir")),
+                c -> dev.vertexx.rpg.StatsGUI.open(plugin, player, dev.vertexx.rpg.StatsGUI.Page.STATS));
+
         if (admin()) {
             set(40, Items.of(Material.COMMAND_BLOCK, "<red><bold>Administração",
                     List.of("<gray>Status, atualização, configurações", "<gray>e todos os Waystones.", "",
@@ -222,6 +227,7 @@ public final class PanelGUI implements InventoryHolder {
         set(20, Items.of(Material.SKELETON_SKULL, "<white>/tumulo", List.of("<gray>Lista seus túmulos pendentes.")), null);
         set(22, Items.of(Material.PAINTING, "<white>/pacote", List.of("<gray>Aceita ou recusa o pacote visual opcional.")), null);
         set(24, Items.of(Material.BOOK, "<white>/vertexx livro", List.of("<gray>Recebe outro Guia do Vertexx.")), null);
+        set(29, Items.of(Material.NETHER_STAR, "<white>/vstats", List.of("<gray>Status, habilidades e informações.")), null);
         set(31, Items.of(Material.LODESTONE, "<white>Waystones",
                 List.of("<gray>Clique direito para viajar.", "<gray>Clique em um novo Waystone para descobri-lo.")), null);
     }

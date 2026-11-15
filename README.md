@@ -75,6 +75,20 @@ Mobs podem ter **traits** (Veloz, Bruto, Vampírico, Explosivo...) e uns poucos 
 maiores, com traits melhores, barra de chefe, drops especiais e **Essência Elite** (usada nos upgrades).
 Tudo é ajustável em `mobs:` no `config.yml`. Teste com `/vertexx mob <tipo> [nivel] [elite]`.
 
+### Status, nível geral e habilidades
+
+Dez status sobem fazendo a atividade correspondente: **Mineração, Escavação, Lenhador, Agricultura, Luta,
+Arquearia, Resistência, Acrobacia, Pesca e Exploração**. Cada um dá um bônus passivo pequeno e todo XP
+também soma no **nível geral**, que rende **pontos de habilidade** (2 a cada 5 níveis). Abra o menu com
+`/vstats` ou pelo Guia do Vertexx: três páginas (Status, Árvore de Habilidades e Informações).
+
+A árvore tem 16 habilidades: Mãos Rápidas, **Pico Largo** (mineração 2x2 e 3x3 temporária), Veeiro (vein
+miner), Garimpeiro, Machadeiro (derruba a árvore), Colheita Farta, Replantio, **Golpe Atordoante**, Frenesi,
+Ímã, **Investida** (dash), Pés Leves, Pele Grossa, Vitalidade, Reposição e Alcance do Construtor.
+Controles: **F** usa a habilidade ativa selecionada, **Shift + F** troca, e agachado ativa Veeiro e
+Machadeiro. Nenhuma habilidade afeta jogadores. Subir de nível toca uma cinemática (banner do resource
+pack, clarão e sons; sem o pacote, título, partículas e sons vanilla).
+
 ## Menus
 
 Todos os menus têm duas versões com a mesma função. Com o **resource pack** carregado, ganham fundo
@@ -88,6 +102,9 @@ emblemas próprios. Sem o pacote, aparecem com os painéis de vidro vanilla.
 | `/tumulo` | todos | Coordenadas dos seus túmulos |
 | `/tumulo chave [jogador] [qtd]` | admin | Entrega Chaves de Túmulo |
 | `/pacote [aceitar\|recusar]` | todos | Resource pack do servidor |
+| `/vstats [habilidades\|info]` | todos | Status, árvore de habilidades e informações |
+| `/vertexx mob <tipo> [nivel] [elite]` | admin | Cria um mob nivelado para teste |
+| `/vertexx xp <jogador> <status> <qtd>` | admin | Concede XP de status |
 | `/vertexx` | admin | Abre o painel completo |
 | `/vertexx livro` | todos | Recebe o Guia do Vertexx |
 | `/vertexx versao\|atualizar` | admin | Versão e atualização |
@@ -105,6 +122,7 @@ Tudo fica em `plugins/Vertexx/`, salvo de forma assíncrona:
 | `graves.yml` | Túmulos pendentes |
 | `resourcepack.yml` | Quem aceitou ou recusou o pacote |
 | `panel.yml` | Quem já recebeu o Guia |
+| `rpg.yml` | Status, nível geral, pontos e habilidades dos jogadores |
 
 ## Estrutura do projeto
 
@@ -147,6 +165,7 @@ Para compilar e publicar versões, veja [docs/DESENVOLVIMENTO.md](docs/DESENVOLV
 | 0.9.0 | SMP pacífico: removidos reinos, mercenários, recompensas, honra e a cerimônia de escolha. Ficam Waystones, túmulos, painel, resource pack e auto-update; a viagem não depende mais de reino nem de combate |
 
 | 0.10.0 | Mobs nivelados por distância, dimensão e estruturas; traits; mobs Elite com barra de chefe e Essência Elite |
+| 0.11.0 | Status de atividade, nível geral, árvore de habilidades (16), `/vstats` com 3 páginas, cinemáticas com banners do resource pack |
 ## Servidor de teste (Windows)
 
 `tools\VertexxServer.exe` é um aplicativo leve (~20 KB) para ligar e desligar o Paper de teste da pasta

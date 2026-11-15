@@ -64,6 +64,51 @@
       ]
     },
     {
+      "type": "bitmap",
+      "file": "vertexx:font/banner_level.png",
+      "ascent": 30,
+      "height": 36,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/banner_skill.png",
+      "ascent": 30,
+      "height": 36,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/banner_elite.png",
+      "ascent": 30,
+      "height": 36,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/banner_forge.png",
+      "ascent": 30,
+      "height": 36,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:font/banner_stat.png",
+      "ascent": 30,
+      "height": 36,
+      "chars": [
+        ""
+      ]
+    },
+    {
       "type": "space",
       "advances": {
         "": 4,

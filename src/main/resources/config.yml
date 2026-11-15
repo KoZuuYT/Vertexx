@@ -78,6 +78,20 @@ mobs:
     # Chance de dropar Essencia Elite (usada nos upgrades de fornalhas e baus).
     essence-chance: 0.6
 
+rpg:
+  # Status de atividade (mineracao, luta...), nivel geral e arvore de habilidades.
+  enabled: true
+  xp-multiplier: 1.0
+  # Parte do XP de cada atividade que tambem soma no nivel geral.
+  general-share: 0.8
+  max-level: 100
+  max-stat-level: 100
+  xp-toast: true
+  # Niveis de XP do Minecraft cobrados para redefinir a arvore de habilidades.
+  respec-cost-levels: 5
+  # F usa a habilidade ativa e Shift+F troca (impede trocar item de mao com F).
+  cast-with-swap-key: true
+
 # Pacote de recursos. Por padrão o servidor descobre sozinho o Vertexx-Pack.zip da release mais
 # recente do GitHub (baixa, confere e calcula o SHA-1) e o envia aos jogadores. Quem recusar joga
 # com o visual vanilla.

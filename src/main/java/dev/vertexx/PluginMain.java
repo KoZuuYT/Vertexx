@@ -8,6 +8,10 @@ import dev.vertexx.mob.MobManager;
 import dev.vertexx.pack.ResourcePackManager;
 import dev.vertexx.panel.PanelCommand;
 import dev.vertexx.panel.PanelManager;
+import dev.vertexx.rpg.ActivityListener;
+import dev.vertexx.rpg.RpgManager;
+import dev.vertexx.rpg.SkillManager;
+import dev.vertexx.rpg.StatsCommand;
 import dev.vertexx.update.AutoUpdater;
 import dev.vertexx.waystone.ModelManager;
 import dev.vertexx.waystone.WaystoneListener;
@@ -32,6 +36,8 @@ public final class PluginMain extends JavaPlugin {
     private ModelManager models;
     private PanelManager panel;
     private MobManager mobs;
+    private RpgManager rpg;
+    private SkillManager skills;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -47,6 +53,8 @@ public final class PluginMain extends JavaPlugin {
         models = new ModelManager(this);
         panel = new PanelManager(this);
         mobs = new MobManager(this);
+        rpg = new RpgManager(this);
+        skills = new SkillManager(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -56,9 +64,13 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(models, this);
         plugins.registerEvents(panel, this);
         plugins.registerEvents(mobs, this);
+        plugins.registerEvents(rpg, this);
+        plugins.registerEvents(skills, this);
+        plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
         register("pacote", resourcePack);
+        register("vstats", new StatsCommand(this));
 
         updater = new AutoUpdater(this);
         plugins.registerEvents(updater, this);
@@ -66,6 +78,7 @@ public final class PluginMain extends JavaPlugin {
         updater.start();
         resourcePack.startResolver();
         mobs.start();
+        rpg.start();
 
         loadAsync();
     }
@@ -77,14 +90,17 @@ public final class PluginMain extends JavaPlugin {
             YamlConfiguration graveData = graves.read();
             YamlConfiguration packData = resourcePack.read();
             YamlConfiguration panelData = panel.read();
+            YamlConfiguration rpgData = rpg.read();
             Bukkit.getScheduler().runTask(this, () -> {
                 waystones.apply(waystoneData);
                 graves.apply(graveData);
                 resourcePack.apply(packData);
                 panel.apply(panelData);
+                rpg.apply(rpgData);
                 models.load(waystones.all());
                 models.start();
                 waystones.startAmbient();
+                rpg.refreshOnline();
                 ready = true;
                 getLogger().info("Dados carregados. Vertexx " + getPluginMeta().getVersion() + " pronto.");
                 // cobre /reload e jogadores que já estavam online
@@ -100,9 +116,11 @@ public final class PluginMain extends JavaPlugin {
             graves.saveNow();
             resourcePack.saveNow();
             panel.saveNow();
+            rpg.saveNow();
         }
         models.shutdown();
         mobs.shutdown();
+        rpg.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }
 
@@ -132,6 +150,14 @@ public final class PluginMain extends JavaPlugin {
 
     public PanelManager panel() {
         return panel;
+    }
+
+    public RpgManager rpg() {
+        return rpg;
+    }
+
+    public SkillManager skills() {
+        return skills;
     }
 
     public MobManager mobs() {
