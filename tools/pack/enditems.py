@@ -84,6 +84,27 @@ def levitation_core():
     return img
 
 
+def amber_fragment():
+    return ramp_recolor(vanilla("honeycomb"), ["#4a2200", "#a8560a", "#e8920f", "#ffc23a", "#fff0a0"])
+
+
+def calcified_fossil():
+    return ramp_recolor(vanilla("bone"), ["#262220", "#4a423c", "#7a6e62", "#a89c8a", "#d8ccb4"])
+
+
+def termite_larva():
+    return ramp_recolor(vanilla("slime_ball"), ["#5a4a30", "#9a8460", "#d8c496", "#f2e6c0", "#fffbe8"])
+
+
+def coconut():
+    return ramp_recolor(vanilla("cocoa_beans"), ["#1c0f06", "#4a2a12", "#7a4a22", "#e8e0d0", "#ffffff"])
+
+
+def ostrich_egg():
+    img = ramp_recolor(vanilla("egg"), ["#8a7a5a", "#c9b98c", "#e8dcb8", "#f6efd6", "#ffffff"])
+    return img.resize((16, 16))
+
+
 # ── mochilas ───────────────────────────────────────────────────
 
 TIERS = {
@@ -157,6 +178,11 @@ def build(ns, save, write_json):
         "ethereal_membrane": ethereal_membrane(),
         "void_chitin": void_chitin(),
         "levitation_core": levitation_core(),
+        "amber_fragment": amber_fragment(),
+        "calcified_fossil": calcified_fossil(),
+        "termite_larva": termite_larva(),
+        "coconut": coconut(),
+        "ostrich_egg": ostrich_egg(),
     }
     for tier in TIERS:
         items[tier] = backpack(tier)

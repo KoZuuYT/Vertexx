@@ -93,6 +93,19 @@ public final class PanelCommand implements TabExecutor {
                     giveItem(sender, args);
                 }
             }
+            case "arida" -> {
+                if (!admin || args.length < 4) {
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx arida <oasis|baobab|mound|cactus|tumble> <x> <z></white>");
+                } else {
+                    try {
+                        org.bukkit.World w = sender instanceof Player p ? p.getWorld() : plugin.getServer().getWorlds().get(0);
+                        String done = plugin.arid().demo(args[1], w, Integer.parseInt(args[2]), Integer.parseInt(args[3]));
+                        Msg.send(sender, done == null ? "<red>Estrutura desconhecida." : "<green>Gerado: " + done);
+                    } catch (NumberFormatException e) {
+                        Msg.send(sender, "<red>Coordenadas inválidas.");
+                    }
+                }
+            }
             case "clima" -> {
                 if (!admin) {
                     Msg.send(sender, "<red>Você não tem permissão.");
@@ -320,7 +333,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "clima", "cabeca", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "clima", "arida", "cabeca", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {

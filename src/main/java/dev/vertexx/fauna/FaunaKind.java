@@ -5,6 +5,8 @@ import org.bukkit.Material;
 import org.bukkit.entity.Allay;
 import org.bukkit.entity.Breeze;
 import org.bukkit.entity.Cow;
+import org.bukkit.entity.Fox;
+import org.bukkit.entity.Horse;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Parrot;
 import org.bukkit.entity.Silverfish;
@@ -24,7 +26,10 @@ public enum FaunaKind {
     VOID_RAY("voidray", "Arraia do Vazio", "<light_purple>", Material.PHANTOM_MEMBRANE, Allay.class),
     END_CRAWLER("endcrawler", "Rastejador do Fim", "<dark_purple>", Material.OBSIDIAN, Silverfish.class),
     SHULKER_SENTINEL("shulkersentinel", "Sentinela de Shulker", "<light_purple>", Material.SHULKER_SHELL, Breeze.class),
-    AMETHYST_GOLEM("amethystgolem", "Golem de Ametista", "<light_purple>", Material.AMETHYST_BLOCK, Allay.class);
+    AMETHYST_GOLEM("amethystgolem", "Golem de Ametista", "<light_purple>", Material.AMETHYST_BLOCK, Allay.class),
+    MEERKAT("meerkat", "Suricato", "<gold>", Material.SAND, Fox.class),
+    OSTRICH("ostrich", "Avestruz", "<white>", Material.FEATHER, Horse.class),
+    VULTURE("vulture", "Abutre", "<dark_red>", Material.ROTTEN_FLESH, Parrot.class);
 
     private final String key;
     private final String display;
@@ -80,6 +85,9 @@ public enum FaunaKind {
             case "rastejador", "crawler" -> END_CRAWLER;
             case "sentinela", "sentinel" -> SHULKER_SENTINEL;
             case "ametista" -> AMETHYST_GOLEM;
+            case "suricato" -> MEERKAT;
+            case "avestruz" -> OSTRICH;
+            case "abutre" -> VULTURE;
             default -> null;
         };
     }

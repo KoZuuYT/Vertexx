@@ -254,3 +254,14 @@ overworld:
     enabled: true
     chance: 0.18              # chance por clima a cada 20 s (se houver jogador no bioma)
     duration-seconds: 90
+  arid:
+    generation: true          # oásis, baobás, cupinzeiros, cactos-barril e tumbleweeds em chunks novos
+    mobs: true                # suricato, avestruz e abutre
+    ostrich-eggs: true
+    oasis-chance: 0.025       # por chunk novo de deserto
+    baobab-chance: 0.05       # por chunk novo de savana
+    termite-chance: 0.06
+    cactus-chance: 0.2        # por chunk novo de badlands
+    tumbleweed-chance: 0.1
+    tumbleweed-cap: 40
+    hatch-seconds: 180        # tempo para o ovo de avestruz chocar no feno

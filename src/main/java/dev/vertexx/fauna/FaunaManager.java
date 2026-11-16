@@ -300,6 +300,9 @@ public final class FaunaManager implements Listener {
             case END_CRAWLER -> new EndCrawler(this, mob);
             case SHULKER_SENTINEL -> new ShulkerSentinel(this, mob);
             case AMETHYST_GOLEM -> new AmethystGolem(this, mob);
+            case MEERKAT -> new Meerkat(this, mob);
+            case OSTRICH -> new Ostrich(this, mob);
+            case VULTURE -> new Vulture(this, mob);
         };
         // nome próprio (invisível, o mob-base também é): mensagens de morte e legendas citam a criatura, não a vaca
         if (mob.customName() == null) {
@@ -444,6 +447,9 @@ public final class FaunaManager implements Listener {
                     case END_CRAWLER -> 2.2;
                     case SHULKER_SENTINEL -> 1.0;
                     case AMETHYST_GOLEM -> 1.0;
+                    case MEERKAT -> 1.0;
+                    case OSTRICH -> 1.0;
+                    case VULTURE -> 1.0;
                 });
             }
             entity.setInvisible(true);
@@ -630,6 +636,15 @@ public final class FaunaManager implements Listener {
             if (random.nextDouble() < 0.7) {
                 event.getDrops().add(dev.vertexx.end.EndItem.LEVITATION_CORE.create(plugin));
             }
+        } else if (critter.kind() == FaunaKind.VULTURE) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.FEATHER, 1 + random.nextInt(3)));
+            event.getDrops().add(new ItemStack(Material.ROTTEN_FLESH, random.nextInt(3)));
+        } else if (critter.kind() == FaunaKind.MEERKAT) {
+            event.getDrops().clear();
+        } else if (critter.kind() == FaunaKind.OSTRICH) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.FEATHER, 2 + random.nextInt(4)));
         } else if (critter.kind() == FaunaKind.AMETHYST_GOLEM) {
             event.getDrops().clear();
             event.getDrops().add(new ItemStack(Material.AMETHYST_BLOCK));
@@ -698,6 +713,62 @@ public final class FaunaManager implements Listener {
         event.getPlayer().sendActionBar(Msg.mm("<gray>Golem de Tufo criado. Clique com um item para ele exibir; agache e bata para desmontar."));
     }
 
+    // ── Abutres: pontos com itens largados ─────────────────────
+
+    private final java.util.List<Object[]> hotspots = new java.util.ArrayList<>();   // {Location, tickDeAgora}
+
+    @EventHandler(ignoreCancelled = true)
+    public void onItemDrop(org.bukkit.event.entity.ItemSpawnEvent event) {
+        Location at = event.getLocation();
+        if (at.getWorld().getEnvironment() != World.Environment.NORMAL) {
+            return;
+        }
+        hotspots.removeIf(h -> (long) h[1] < tick - 2400 || ((Location) h[0]).getWorld() != at.getWorld()
+                || ((Location) h[0]).distanceSquared(at) < 36);
+        if (hotspots.size() < 40) {
+            hotspots.add(new Object[]{at.clone(), tick});
+        }
+    }
+
+    /** O ponto com itens largados mais perto de {@code from} (até {@code range} blocos), ou nulo. */
+    Location hotspot(Location from, double range) {
+        Location best = null;
+        double bestD = range * range;
+        for (Object[] h : hotspots) {
+            Location at = (Location) h[0];
+            if (at.getWorld() == from.getWorld() && (long) h[1] >= tick - 2400) {
+                double d = at.distanceSquared(from);
+                if (d < bestD) {
+                    bestD = d;
+                    best = at;
+                }
+            }
+        }
+        return best;
+    }
+
+    /** Fauna das regiões áridas: suricato (deserto), avestruz (savana) e abutre (deserto e badlands). */
+    private void spawnArid(Player player) {
+        if (!plugin.getConfig().getBoolean("overworld.arid.mobs", true)) {
+            return;
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        Location l = player.getLocation();
+        String biome = l.getBlock().getBiome().getKey().getKey();
+        boolean desert = biome.equals("desert");
+        boolean savanna = biome.startsWith("savanna");
+        boolean badlands = biome.contains("badlands");
+        if (desert && count(FaunaKind.MEERKAT, l, 64) < 3 && random.nextDouble() < 0.3) {
+            spawnNear(player, FaunaKind.MEERKAT, 12, 26, false);
+        }
+        if (savanna && count(FaunaKind.OSTRICH, l, 64) < 3 && random.nextDouble() < 0.25) {
+            spawnNear(player, FaunaKind.OSTRICH, 14, 28, false);
+        }
+        if ((desert || badlands) && count(FaunaKind.VULTURE, l, 96) < 1 && random.nextDouble() < 0.08) {
+            spawnNear(player, FaunaKind.VULTURE, 20, 36, false);
+        }
+    }
+
     // ── Surgimento natural ─────────────────────────────────────
 
     private void spawnScan() {
@@ -715,6 +786,7 @@ public final class FaunaManager implements Listener {
             if (world.getEnvironment() != World.Environment.NORMAL) {
                 continue;
             }
+            spawnArid(player);
             if (plugin.getConfig().getBoolean("fauna.rascal.enabled", true) && l.getY() < 0 && count(FaunaKind.RASCAL, l, 64) == 0
                     && random.nextDouble() < plugin.getConfig().getDouble("fauna.rascal.chance", 0.12) && inMineshaft(l)) {
                 spawnNear(player, FaunaKind.RASCAL, 9, 18, true);
@@ -879,7 +951,7 @@ public final class FaunaManager implements Listener {
             case "spawn", "criar" -> {
                 FaunaKind kind = args.length < 3 ? null : FaunaKind.parse(args[2]);
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel|amethystgolem> [variante]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel|amethystgolem|meerkat|ostrich|vulture> [variante]");
                     return;
                 }
                 String variant = args.length >= 4 && GreatHunger.VARIANTS.contains(args[3].toLowerCase(Locale.ROOT))
@@ -918,7 +990,7 @@ public final class FaunaManager implements Listener {
             return Tab.of(args[1], "spawn", "limpar", "lista");
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
-            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel", "amethystgolem");
+            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel", "amethystgolem", "meerkat", "ostrich", "vulture");
         }
         if (args.length == 4 && args[1].equalsIgnoreCase("spawn") && FaunaKind.parse(args[2]) == FaunaKind.GREAT_HUNGER) {
             return Tab.of(args[3], GreatHunger.VARIANTS.toArray(new String[0]));

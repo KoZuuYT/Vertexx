@@ -50,6 +50,7 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.end.EndWorld endWorld;
     private dev.vertexx.overworld.Curses curses;
     private dev.vertexx.overworld.Climates climates;
+    private dev.vertexx.overworld.Arid arid;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -76,6 +77,7 @@ public final class PluginMain extends JavaPlugin {
         endWorld = new dev.vertexx.end.EndWorld(this);
         curses = new dev.vertexx.overworld.Curses(this);
         climates = new dev.vertexx.overworld.Climates(this);
+        arid = new dev.vertexx.overworld.Arid(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -95,6 +97,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(endWorld, this);
         plugins.registerEvents(curses, this);
         plugins.registerEvents(climates, this);
+        plugins.registerEvents(arid, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
@@ -125,6 +128,7 @@ public final class PluginMain extends JavaPlugin {
         endWorld.start();
         curses.start();
         climates.start();
+        arid.start();
 
         loadAsync();
     }
@@ -174,6 +178,7 @@ public final class PluginMain extends JavaPlugin {
         backpacks.shutdown();
         curses.shutdown();
         climates.shutdown();
+        arid.shutdown();
         rpg.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }
@@ -232,6 +237,10 @@ public final class PluginMain extends JavaPlugin {
 
     public dev.vertexx.overworld.Curses curses() {
         return curses;
+    }
+
+    public dev.vertexx.overworld.Arid arid() {
+        return arid;
     }
 
     public dev.vertexx.overworld.Climates climates() {

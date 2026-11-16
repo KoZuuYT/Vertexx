@@ -35,6 +35,18 @@ public enum EndItem {
     LEVITATION_CORE("levitation_core", "Núcleo de Levitação", "<yellow>", Material.PAPER, 1004,
             "<gray>Cristal cinético da Sentinela de Shulker.",
             "<dark_gray>Poções de levitação e utilitários de movimento."),
+    AMBER_FRAGMENT("amber_fragment", "Fragmento de Âmbar", "<gold>", Material.PAPER, 1020,
+            "<gray>Seiva fossilizada das camadas profundas.",
+            "<dark_gray>4 fragmentos + 1 fóssil na Incubadora Geotérmica."),
+    CALCIFIED_FOSSIL("calcified_fossil", "Fóssil Calcificado", "<white>", Material.PAPER, 1021,
+            "<gray>Restos de uma criatura pré-histórica.",
+            "<dark_gray>Reviva-o na Incubadora Geotérmica."),
+    TERMITE_LARVA("termite_larva", "Larva de Cupim", "<yellow>", Material.PAPER, 1022,
+            "<gray>Isca de pesca: segure na outra mão", "<gray>ao pescar para os peixes morderem mais rápido."),
+    COCONUT("coconut", "Coco", "<white>", Material.PAPER, 1023,
+            "<gray>Fruto de palmeira de oásis.", "<dark_gray>Restaura fome e um pouco de vida."),
+    OSTRICH_EGG("ostrich_egg", "Ovo de Avestruz", "<white>", Material.PAPER, 1024,
+            "<gray>Grande e pesado.", "<dark_gray>Use num bloco de feno para chocar."),
     BACKPACK_LEATHER("backpack_leather", "Mochila de Couro", "<gold>", Material.PAPER, 1010,
             "<gray>9 espaços."),
     BACKPACK_IRON("backpack_iron", "Mochila Reforçada", "<white>", Material.PAPER, 1011,
@@ -114,6 +126,11 @@ public enum EndItem {
             meta.setCustomModelDataComponent(component);
             meta.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, id);
         });
+        if (this == COCONUT) {
+            item.setData(DataComponentTypes.FOOD, io.papermc.paper.datacomponent.item.FoodProperties.food()
+                    .nutrition(5).saturation(6f).canAlwaysEat(false).build());
+            item.setData(DataComponentTypes.CONSUMABLE, io.papermc.paper.datacomponent.item.Consumable.consumable().build());
+        }
         if (tier() > 0) {
             item.setData(DataComponentTypes.MAX_STACK_SIZE, 1);
             // vestida no peito, o pack desenha a mochila nas costas; o botão direito abre a janela (não equipa)

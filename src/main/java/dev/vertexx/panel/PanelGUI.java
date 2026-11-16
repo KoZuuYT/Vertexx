@@ -328,62 +328,63 @@ public final class PanelGUI implements InventoryHolder {
             go(Page.HOME);
             return;
         }
-        dev.vertexx.fauna.FaunaKind[] kinds = dev.vertexx.fauna.FaunaKind.values();
-        for (int i = 0; i < kinds.length && i < LIST_SLOTS.length; i++) {
-            dev.vertexx.fauna.FaunaKind kind = kinds[i];
+        List<ItemStack> entries = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        for (dev.vertexx.fauna.FaunaKind kind : dev.vertexx.fauna.FaunaKind.values()) {
             ItemStack egg = plugin.fauna().egg(kind);
             egg.editMeta(meta -> meta.lore(List.of(
                     Msg.item("<gray>Clique: <white>1 ovo"),
                     Msg.item("<gray>Shift + clique: <white>uma pilha de 16"),
                     Msg.item("<dark_gray>Use num bloco para criar a criatura."))));
-            set(LIST_SLOTS[i], egg, c -> {
-                ItemStack give = plugin.fauna().egg(kind);
-                give.setAmount(c.isShiftClick() ? 16 : 1);
-                player.getInventory().addItem(give).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
-                Fx.success(player);
-                Msg.actionBar(player, "<green>Ovo de <white>" + kind.display() + "<green> entregue.");
-            });
+            entries.add(egg);
+            names.add("Ovo de " + kind.display());
         }
-        dev.vertexx.end.EndItem[] items = dev.vertexx.end.EndItem.values();
-        for (int i = 0; i < items.length && kinds.length + i < LIST_SLOTS.length; i++) {
-            dev.vertexx.end.EndItem item = items[i];
-            ItemStack icon = item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin);
-            icon.editMeta(meta -> {
-                List<net.kyori.adventure.text.Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
-                lore.add(Msg.item(""));
-                lore.add(Msg.item("<yellow>▶ Clique: 1 unidade"));
-                if (item.tier() == 0) {
-                    lore.add(Msg.item("<yellow>▶ Shift + clique: 16"));
-                }
-                meta.lore(lore);
-            });
-            set(LIST_SLOTS[kinds.length + i], icon, c -> {
-                ItemStack give = item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin);
-                give.setAmount(item.tier() > 0 ? 1 : c.isShiftClick() ? 16 : 1);
-                player.getInventory().addItem(give).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
-                Fx.success(player);
-                Msg.actionBar(player, "<green>" + item.display() + " entregue.");
-            });
+        for (dev.vertexx.end.EndItem item : dev.vertexx.end.EndItem.values()) {
+            entries.add(item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin));
+            names.add(item.display());
         }
-        List<ItemStack> extras = new ArrayList<>();
         for (dev.vertexx.overworld.Curses.Curse curse : dev.vertexx.overworld.Curses.Curse.values()) {
-            extras.add(plugin.curses().book(curse));
+            entries.add(plugin.curses().book(curse));
+            names.add("Livro: " + curse.display());
         }
-        extras.add(plugin.climates().goggles());
-        int base = kinds.length + items.length;
-        for (int i = 0; i < extras.size() && base + i < LIST_SLOTS.length; i++) {
-            ItemStack stack = extras.get(i);
+        entries.add(plugin.climates().goggles());
+        names.add("Óculos de Explorador");
+        int per = LIST_SLOTS.length;
+        int pages = Math.max(1, (entries.size() + per - 1) / per);
+        listPage = Math.max(0, Math.min(listPage, pages - 1));
+        for (int i = 0; i < per && listPage * per + i < entries.size(); i++) {
+            int index = listPage * per + i;
+            ItemStack stack = entries.get(index);
+            String name = names.get(index);
+            boolean egg = index < dev.vertexx.fauna.FaunaKind.values().length;
             ItemStack icon = stack.clone();
             icon.editMeta(meta -> {
                 List<net.kyori.adventure.text.Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
                 lore.add(Msg.item(""));
                 lore.add(Msg.item("<yellow>▶ Clique: 1 unidade"));
+                if (stack.getMaxStackSize() > 1) {
+                    lore.add(Msg.item("<yellow>▶ Shift + clique: 16"));
+                }
                 meta.lore(lore);
             });
-            set(LIST_SLOTS[base + i], icon, c -> {
-                player.getInventory().addItem(stack.clone()).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
+            set(LIST_SLOTS[i], egg ? stack : icon, c -> {
+                ItemStack give = stack.clone();
+                give.setAmount(c.isShiftClick() && stack.getMaxStackSize() > 1 ? 16 : 1);
+                player.getInventory().addItem(give).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
                 Fx.success(player);
-                Msg.actionBar(player, "<green>Item entregue.");
+                Msg.actionBar(player, "<green>" + name + " entregue.");
+            });
+        }
+        if (listPage > 0) {
+            set(46, Items.of(Material.ARROW, "<yellow>◀ Anterior", List.of()), c -> {
+                listPage--;
+                render();
+            });
+        }
+        if (listPage < pages - 1) {
+            set(52, Items.of(Material.ARROW, "<yellow>Próxima ▶", List.of("<dark_gray>Página " + (listPage + 1) + " de " + pages)), c -> {
+                listPage++;
+                render();
             });
         }
     }
