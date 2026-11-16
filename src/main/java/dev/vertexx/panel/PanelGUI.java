@@ -38,7 +38,8 @@ public final class PanelGUI implements InventoryHolder {
         HOME("Painel"), WAYSTONES("Waystones"), GRAVES("Túmulos"),
         GUIDE("Comandos"), ADMIN("Administração"), ADMIN_WAYSTONES("Todos os Waystones"),
         ADMIN_MOBS("Criar mobs"), ADMIN_TRAITS("Traits do mob"), ADMIN_XP("Conceder XP"), ADMIN_BOSSES("Bosses"), ADMIN_EGGS("Ovos e itens"),
-        WIKI("Wiki");
+        WIKI("Wiki"), WIKI_CAT("Wiki"), WIKI_TRAITS("Wiki: Traits"), WIKI_ELITES("Wiki: Elites"), WIKI_BOSSES("Wiki: Bosses"),
+        ADMIN_SERVER("Servidor"), ADMIN_CONFIG("Configurações");
 
         private final String title;
 
@@ -71,7 +72,8 @@ public final class PanelGUI implements InventoryHolder {
     private java.util.UUID xpTarget;
     private Stat xpStat = Stat.COMBAT;
     private int xpAmount = 100;
-    private int wikiTab;
+    private String wikiCat = "waystones";
+    private int eggTab;
 
     public PanelGUI(PluginMain plugin, Player player) {
         this.plugin = plugin;
@@ -135,13 +137,14 @@ public final class PanelGUI implements InventoryHolder {
         set(CLOSE_SLOT, Items.of(Material.BARRIER, "<red>Fechar", List.of()), c -> player.closeInventory());
         if (page != Page.HOME) {
             Page back = switch (page) {
-                case ADMIN_WAYSTONES, ADMIN_MOBS, ADMIN_XP, ADMIN_BOSSES, ADMIN_EGGS -> Page.ADMIN;
+                case ADMIN_WAYSTONES, ADMIN_MOBS, ADMIN_XP, ADMIN_BOSSES, ADMIN_EGGS, ADMIN_SERVER, ADMIN_CONFIG -> Page.ADMIN;
+                case WIKI_CAT, WIKI_TRAITS, WIKI_ELITES, WIKI_BOSSES -> Page.WIKI;
                 case ADMIN_TRAITS -> Page.ADMIN_MOBS;
                 default -> Page.HOME;
             };
             set(BACK_SLOT, Items.of(Material.ARROW, "<yellow>◀ Voltar", List.of()), c -> go(back));
         }
-        set(4, Items.of(Material.BOOK, "<gradient:#c4a7ff:#2cb67d><bold>" + page.title,
+        set(4, Items.of(Material.BOOK, "<gradient:#c4a7ff:#2cb67d><bold>" + (page == Page.WIKI_CAT ? WikiData.title(wikiCat) : page.title),
                 List.of("<dark_gray>Vertexx " + plugin.getPluginMeta().getVersion())), null);
     }
 
@@ -160,6 +163,12 @@ public final class PanelGUI implements InventoryHolder {
             case ADMIN_BOSSES -> adminBosses();
             case ADMIN_EGGS -> adminEggs();
             case WIKI -> wiki();
+            case WIKI_CAT -> wikiCategory();
+            case WIKI_TRAITS -> wikiTraits();
+            case WIKI_ELITES -> wikiElites();
+            case WIKI_BOSSES -> wikiBosses();
+            case ADMIN_SERVER -> adminServer();
+            case ADMIN_CONFIG -> adminConfig();
         }
         Ui.skin(pack, inventory);
     }
@@ -184,8 +193,8 @@ public final class PanelGUI implements InventoryHolder {
                         "<yellow>▶ Clique para abrir")),
                 c -> dev.vertexx.rpg.StatsGUI.open(plugin, player, dev.vertexx.rpg.StatsGUI.Page.STATS));
 
-        set(33, Items.of(Material.ENCHANTED_BOOK, "<gradient:#c4a7ff:#2cb67d>Wiki: Traits, Elites e Bosses",
-                List.of("<gray>Todos os traits, mobs Elite", "<gray>e os bosses do Vertexx.", "",
+        set(33, Items.of(Material.ENCHANTED_BOOK, "<gradient:#c4a7ff:#2cb67d>Wiki",
+                List.of("<gray>Mobs, bosses, itens, biomas,", "<gray>estruturas e sistemas do Vertexx.", "",
                         "<yellow>▶ Clique para abrir")),
                 c -> go(Page.WIKI));
 
@@ -260,8 +269,8 @@ public final class PanelGUI implements InventoryHolder {
         set(22, Items.of(Material.PAINTING, "<white>/pacote", List.of("<gray>Aceita ou recusa o pacote visual opcional.")), null);
         set(24, Items.of(Material.BOOK, "<white>/vertexx livro", List.of("<gray>Recebe outro Guia do Vertexx.")), null);
         set(29, Items.of(Material.NETHER_STAR, "<white>/vstats", List.of("<gray>Status, habilidades e informações.")), null);
-        set(33, Items.of(Material.ENCHANTED_BOOK, "<white>Wiki", List.of("<gray>Traits, mobs Elite e bosses",
-                "<gray>estão na Wiki, aberta pela tela inicial.")), c -> go(Page.WIKI));
+        set(33, Items.of(Material.ENCHANTED_BOOK, "<white>Wiki", List.of("<gray>Mobs, bosses, itens, biomas e",
+                "<gray>estruturas, aberta pela tela inicial.")), c -> go(Page.WIKI));
         set(38, Items.of(Material.CHEST, "<white>/mochila",
                 List.of("<gray>Abre a mochila equipada no peito.", "<gray>Botão direito com ela na mão também abre.",
                         "<gray>Botão do meio num baú ou mochila: ordena.")), null);
@@ -276,51 +285,76 @@ public final class PanelGUI implements InventoryHolder {
             go(Page.HOME);
             return;
         }
+        String pending = plugin.updater().pendingVersion();
+        set(20, Items.of(Material.COMMAND_BLOCK, "<white><bold>Servidor",
+                List.of("<gray>Versão, jogadores, atualização,", "<gray>recarregar config e modelos.", "",
+                        "<gray>Vertexx: <white>" + plugin.getPluginMeta().getVersion()
+                                + (pending == null ? "" : " <yellow>(→ " + pending + ")"), "",
+                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_SERVER));
+        set(22, Items.of(Material.REPEATER, "<white><bold>Configurações",
+                List.of("<gray>Liga e desliga os módulos", "<gray>(waystones, mobs, bosses, fauna...).", "",
+                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_CONFIG));
+        set(24, Items.of(Material.LODESTONE, "<white><bold>Waystones",
+                List.of("<gray>Lista de todos, com teleporte e", "<gray>remoção.", "", "<yellow>▶ Clique para abrir")),
+                c -> go(Page.ADMIN_WAYSTONES));
+        set(29, Items.of(Material.ZOMBIE_SPAWN_EGG, "<white><bold>Criar mobs",
+                List.of("<gray>Tipo, nível, elite e traits.", "<dark_gray>Equivale a /vertexx mob", "",
+                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_MOBS));
+        set(31, Items.of(Material.EXPERIENCE_BOTTLE, "<white><bold>Conceder XP",
+                List.of("<gray>Dá XP de status a um jogador.", "<dark_gray>Equivale a /vertexx xp", "",
+                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_XP));
+        set(33, Items.of(Material.WITHER_SKELETON_SKULL, "<white><bold>Bosses",
+                List.of("<gray>Salas, testes e controle.", "<dark_gray>Equivale a /vertexx boss", "",
+                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_BOSSES));
+        set(40, Items.of(Material.ALLAY_SPAWN_EGG, "<white><bold>Ovos e itens",
+                List.of("<gray>Criaturas, itens customizados e livros,", "<gray>em abas.", "",
+                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));
+    }
+
+    private void adminServer() {
+        if (!admin()) {
+            go(Page.HOME);
+            return;
+        }
         int[] models = plugin.models().stats();
         String pending = plugin.updater().pendingVersion();
-        set(19, Items.of(Material.COMMAND_BLOCK, "<white>Servidor",
+        set(20, Items.of(Material.COMMAND_BLOCK, "<white>Servidor",
                 List.of("<gray>Vertexx: <white>" + plugin.getPluginMeta().getVersion(),
                         "<gray>Jogadores: <white>" + Bukkit.getOnlinePlayers().size() + "<dark_gray>/" + Bukkit.getMaxPlayers(),
                         "<gray>Túmulos ativos: <white>" + plugin.graves().count())), null);
-        set(20, Items.of(Material.LODESTONE, "<white>Waystones e modelos",
-                List.of("<gray>Registrados: <white>" + models[0],
-                        "<gray>Renderizados agora: <white>" + models[1],
-                        "<gray>Observadores: <white>" + models[2],
-                        "",
-                        "<yellow>▶ Clique para ver todos")), c -> go(Page.ADMIN_WAYSTONES));
-        set(21, Items.of(Material.HOPPER, "<white>Atualização pelo GitHub",
+        set(22, Items.of(Material.LODESTONE, "<white>Waystones e modelos",
+                List.of("<gray>Registrados: <white>" + models[0], "<gray>Renderizados agora: <white>" + models[1],
+                        "<gray>Observadores: <white>" + models[2])), null);
+        set(24, Items.of(Material.PAINTING, "<white>Blueprints (.bbmodel)",
+                List.of("<gray>Carregados: <white>" + plugin.blueprints().ids().size(),
+                        "<dark_gray>plugins/Vertexx/blueprints/", "<dark_gray>Detectados e atualizados sozinhos.")), null);
+        set(30, Items.of(Material.HOPPER, "<white>Atualização pelo GitHub",
                 List.of(pending == null ? "<gray>Nenhuma versão pendente." : "<yellow>Aguardando reinício: <white>" + pending,
-                        "",
-                        "<yellow>▶ Clique para checar agora")),
-                c -> plugin.updater().checkNow(player));
-        set(22, Items.of(Material.REDSTONE_TORCH, "<white>Recarregar config.yml",
+                        "", "<yellow>▶ Clique para checar agora")), c -> plugin.updater().checkNow(player));
+        set(32, Items.of(Material.REDSTONE_TORCH, "<white>Recarregar config.yml",
                 List.of("<gray>Aplica mudanças feitas no arquivo.", "", "<yellow>▶ Clique para recarregar")),
                 c -> {
                     plugin.reloadConfig();
                     Msg.send(player, "<green>config.yml recarregado.");
                     render();
                 });
-        toggle(29, "waystones.ambient-particles", Material.ENCHANTED_BOOK, "Partículas dos Waystones", true);
-        toggle(30, "waystones.model.enabled", Material.LODESTONE, "Modelos 3D dos Waystones", true);
-        toggle(31, "waystones.model.fov-culling", Material.SPYGLASS, "Ocultar fora do campo de visão", true);
-        toggle(32, "waystones.model.occlusion-culling", Material.STONE_BRICKS, "Ocultar atrás de paredes", true);
-        toggle(33, "waystones.model.assembly-animation", Material.ANVIL, "Animação de montagem", true);
-        toggle(34, "graves.enabled", Material.SKELETON_SKULL, "Túmulos", true);
-        toggle(28, "mobs.enabled", Material.ZOMBIE_HEAD, "Mobs nivelados", true);
-        toggle(35, "bosses.enabled", Material.WITHER_SKELETON_SKULL, "Bosses", true);
-        set(38, Items.of(Material.ZOMBIE_SPAWN_EGG, "<white>Criar mobs",
-                List.of("<gray>Escolha tipo, nível, elite e traits", "<gray>e crie um mob à sua frente.",
-                        "<dark_gray>Equivale a /vertexx mob", "", "<yellow>▶ Clique para abrir")),
-                c -> go(Page.ADMIN_MOBS));
-        set(39, Items.of(Material.EXPERIENCE_BOTTLE, "<white>Conceder XP",
-                List.of("<gray>Dá XP de status a um jogador.", "<dark_gray>Equivale a /vertexx xp", "",
-                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_XP));
-        set(40, Items.of(Material.WITHER_SKELETON_SKULL, "<white>Bosses",
-                List.of("<gray>Salas, testes e controle dos bosses.", "<dark_gray>Equivale a /vertexx boss", "",
-                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_BOSSES));
-        set(41, Items.of(Material.ALLAY_SPAWN_EGG, "<white>Ovos e itens",
-                List.of("<gray>Ovos das criaturas customizadas e", "<gray>itens da End Update (mochilas...).", "",
-                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));
+    }
+
+    private void adminConfig() {
+        if (!admin()) {
+            go(Page.HOME);
+            return;
+        }
+        toggle(19, "mobs.enabled", Material.ZOMBIE_HEAD, "Mobs nivelados", true);
+        toggle(20, "bosses.enabled", Material.WITHER_SKELETON_SKULL, "Bosses", true);
+        toggle(21, "fauna.enabled", Material.MOSS_BLOCK, "Criaturas customizadas", true);
+        toggle(22, "graves.enabled", Material.SKELETON_SKULL, "Túmulos", true);
+        toggle(23, "blueprints.enabled", Material.PAINTING, "Blueprints (.bbmodel)", true);
+        toggle(28, "waystones.ambient-particles", Material.ENCHANTED_BOOK, "Partículas dos Waystones", true);
+        toggle(29, "waystones.model.enabled", Material.LODESTONE, "Modelos 3D dos Waystones", true);
+        toggle(30, "waystones.model.fov-culling", Material.SPYGLASS, "Ocultar fora do campo de visão", true);
+        toggle(31, "waystones.model.occlusion-culling", Material.STONE_BRICKS, "Ocultar atrás de paredes", true);
+        toggle(32, "waystones.model.assembly-animation", Material.ANVIL, "Animação de montagem", true);
     }
 
     private void adminEggs() {
@@ -330,42 +364,48 @@ public final class PanelGUI implements InventoryHolder {
         }
         List<ItemStack> entries = new ArrayList<>();
         List<String> names = new ArrayList<>();
-        for (dev.vertexx.fauna.FaunaKind kind : dev.vertexx.fauna.FaunaKind.values()) {
-            ItemStack egg = plugin.fauna().egg(kind);
-            egg.editMeta(meta -> meta.lore(List.of(
-                    Msg.item("<gray>Clique: <white>1 ovo"),
-                    Msg.item("<gray>Shift + clique: <white>uma pilha de 16"),
-                    Msg.item("<dark_gray>Use num bloco para criar a criatura."))));
-            entries.add(egg);
-            names.add("Ovo de " + kind.display());
+        String[] tabs = {"Criaturas", "Itens", "Livros"};
+        Material[] icons = {Material.ALLAY_SPAWN_EGG, Material.AMETHYST_SHARD, Material.ENCHANTED_BOOK};
+        int[] tabSlots = {11, 13, 15};
+        for (int i = 0; i < tabs.length; i++) {
+            int index = i;
+            set(tabSlots[i], Items.of(icons[i], (eggTab == i ? "<green><bold>" : "<white>") + tabs[i],
+                    List.of(eggTab == i ? "<gray>Aberta agora." : "<yellow>▶ Clique para abrir"), eggTab == i), c -> {
+                eggTab = index;
+                listPage = 0;
+                render();
+            });
         }
-        List<String> blueprintIds = plugin.blueprints().mobs().ids();
-        for (String bp : blueprintIds) {
-            ItemStack egg = plugin.blueprints().mobs().egg(bp);
-            egg.editMeta(meta -> meta.lore(List.of(
-                    Msg.item("<gray>Blueprint automático (.bbmodel)."),
-                    Msg.item("<dark_gray>Use num bloco para criar a criatura."))));
-            entries.add(egg);
-            names.add("Ovo de " + bp);
+        if (eggTab == 0) {
+            for (dev.vertexx.fauna.FaunaKind kind : dev.vertexx.fauna.FaunaKind.values()) {
+                entries.add(plugin.fauna().egg(kind));
+                names.add("Ovo de " + kind.display());
+            }
+            for (String bp : plugin.blueprints().mobs().ids()) {
+                entries.add(plugin.blueprints().mobs().egg(bp));
+                names.add("Ovo de " + plugin.blueprints().displayName(bp));
+            }
+        } else if (eggTab == 1) {
+            for (dev.vertexx.end.EndItem item : dev.vertexx.end.EndItem.values()) {
+                entries.add(item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin));
+                names.add(item.display());
+            }
+            entries.add(plugin.climates().goggles());
+            names.add("Óculos de Explorador");
+        } else {
+            for (dev.vertexx.overworld.Curses.Curse curse : dev.vertexx.overworld.Curses.Curse.values()) {
+                entries.add(plugin.curses().book(curse));
+                names.add("Livro: " + curse.display());
+            }
         }
-        for (dev.vertexx.end.EndItem item : dev.vertexx.end.EndItem.values()) {
-            entries.add(item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin));
-            names.add(item.display());
-        }
-        for (dev.vertexx.overworld.Curses.Curse curse : dev.vertexx.overworld.Curses.Curse.values()) {
-            entries.add(plugin.curses().book(curse));
-            names.add("Livro: " + curse.display());
-        }
-        entries.add(plugin.climates().goggles());
-        names.add("Óculos de Explorador");
-        int per = LIST_SLOTS.length;
+        int[] slots = {19, 20, 21, 22, 23, 24, 25, 28, 29, 30, 31, 32, 33, 34, 37, 38, 39, 40, 41, 42, 43};
+        int per = slots.length;
         int pages = Math.max(1, (entries.size() + per - 1) / per);
         listPage = Math.max(0, Math.min(listPage, pages - 1));
         for (int i = 0; i < per && listPage * per + i < entries.size(); i++) {
             int index = listPage * per + i;
             ItemStack stack = entries.get(index);
             String name = names.get(index);
-            boolean egg = index < dev.vertexx.fauna.FaunaKind.values().length + blueprintIds.size();
             ItemStack icon = stack.clone();
             icon.editMeta(meta -> {
                 List<net.kyori.adventure.text.Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
@@ -376,7 +416,7 @@ public final class PanelGUI implements InventoryHolder {
                 }
                 meta.lore(lore);
             });
-            set(LIST_SLOTS[i], egg ? stack : icon, c -> {
+            set(slots[i], icon, c -> {
                 ItemStack give = stack.clone();
                 give.setAmount(c.isShiftClick() && stack.getMaxStackSize() > 1 ? 16 : 1);
                 player.getInventory().addItem(give).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
@@ -384,6 +424,15 @@ public final class PanelGUI implements InventoryHolder {
                 Msg.actionBar(player, "<green>" + name + " entregue.");
             });
         }
+        pager(pages);
+    }
+
+    /** Setas de página (anterior no slot 46, próxima no 52) e o contador. */
+    private void pager(int pages) {
+        if (pages <= 1) {
+            return;
+        }
+        set(47, Items.of(Material.PAPER, "<white>Página " + (listPage + 1) + " de " + pages, List.of()), null);
         if (listPage > 0) {
             set(46, Items.of(Material.ARROW, "<yellow>◀ Anterior", List.of()), c -> {
                 listPage--;
@@ -694,47 +743,41 @@ public final class PanelGUI implements InventoryHolder {
     // ── Wiki ───────────────────────────────────────────────────
 
     private void wiki() {
-        String[] names = {"Traits", "Elites", "Bosses", "Rejeitados"};
-        Material[] icons = {Material.NETHER_STAR, Material.GOLDEN_APPLE, Material.WITHER_SKELETON_SKULL, Material.MOSS_BLOCK};
-        int[] tabSlots = {10, 12, 14, 16};
-        for (int i = 0; i < 4; i++) {
-            int index = i;
-            set(tabSlots[i], Items.of(icons[i], (wikiTab == i ? "<green><bold>" : "<white>") + names[i],
-                    List.of(wikiTab == i ? "<gray>Aberta agora." : "<yellow>▶ Clique para abrir"), wikiTab == i), c -> {
-                wikiTab = index;
-                render();
-            });
+        int[] slots = {19, 21, 23, 25, 28, 30, 32, 34, 38, 40, 42};
+        List<Object[]> cats = new ArrayList<>();
+        for (WikiData.Category c : WikiData.CATEGORIES) {
+            cats.add(new Object[]{c.icon(), c.title(), c.blurb(), c.id()});
         }
-        switch (wikiTab) {
-            case 0 -> wikiTraits();
-            case 1 -> wikiElites();
-            case 2 -> wikiBosses();
-            default -> wikiFauna();
+        cats.add(2, new Object[]{Material.NETHER_STAR, "Traits dos mobs", "Comuns e de Elite.", "traits"});
+        cats.add(3, new Object[]{Material.GOLDEN_APPLE, "Mobs Elite", "Chances, drops e níveis.", "elites"});
+        cats.add(4, new Object[]{Material.WITHER_SKELETON_SKULL, "Bosses", "Wildfire e Iceologer.", "bosses"});
+        for (int i = 0; i < cats.size() && i < slots.length; i++) {
+            Object[] c = cats.get(i);
+            String id = (String) c[3];
+            set(slots[i], Items.of((Material) c[0], "<gradient:#c4a7ff:#2cb67d><bold>" + c[1],
+                    List.of("<gray>" + c[2], "", "<yellow>▶ Clique para abrir"), true), click -> {
+                switch (id) {
+                    case "traits" -> go(Page.WIKI_TRAITS);
+                    case "elites" -> go(Page.WIKI_ELITES);
+                    case "bosses" -> go(Page.WIKI_BOSSES);
+                    default -> {
+                        wikiCat = id;
+                        go(Page.WIKI_CAT);
+                    }
+                }
+            });
         }
     }
 
-    private void wikiFauna() {
-        set(19, Items.of(Material.CYAN_WOOL, "<aqua><bold>Rascal",
-                List.of("<gray>Mob Vote 2022. Criatura tímida das", "<gray>minas abandonadas, abaixo de Y=0.", "",
-                        "<white>Esconde-esconde: <gray>olhe para ele de perto", "<gray>para achá-lo; ele foge e se esconde.",
-                        "<white>Achado " + plugin.getConfig().getInt("fauna.rascal.finds-needed", 3) + " vezes: <gray>dá uma picareta",
-                        "<gray>de ferro encantada e vai embora.", "", "<dark_gray>Não pode ser ferido."), true), null);
-        set(21, Items.of(Material.TUFF, "<gray><bold>Golem de Tufo",
-                List.of("<gray>Mob Vote 2022. Estátua que você constrói.", "",
-                        "<white>Construção: <gray>tufo, tufo (ou um bloco de", "<gray>lã, para ganhar manto) e tufo cinzelado",
-                        "<gray>no topo.", "<white>Clique com um item: <gray>ele exibe.",
-                        "<gray>De tempos em tempos acorda, pega um item", "<gray>do chão e volta ao posto.", "",
-                        "<dark_gray>Agache e bata para desmontar."), true), null);
-        set(23, Items.of(Material.DANDELION, "<yellow><bold>Moobloom",
-                List.of("<gray>Mob Vote 2020. Vaca amarela coberta", "<gray>de botões-de-ouro.", "",
-                        "<white>Onde: <gray>florestas floridas e campos.", "<white>Deixa um rastro de flores, entrega",
-                        "<gray>néctar às abelhas e pode ser tosquiada", "<gray>para render flores."), true), null);
-        set(25, Items.of(Material.MOSS_BLOCK, "<green><bold>Glare",
-                List.of("<gray>Mob Vote 2021. Criatura de folhagem das", "<gray>cavernas exuberantes.", "",
-                        "<white>Aponta o escuro: <gray>paira ranzinza sobre", "<gray>pontos onde monstros podem nascer e se",
-                        "<gray>acalma quando você acende uma luz.", "<white>Bagas brilhantes: <gray>ele passa a te", "<gray>acompanhar e vigiar o escuro."), true), null);
-        set(31, Items.of(Material.BARRIER, "<white>Todos são pacíficos",
-                List.of("<gray>Nenhum deles ataca ou fere jogadores.")), null);
+    private void wikiCategory() {
+        List<ItemStack> entries = WikiData.entries(plugin, wikiCat);
+        int per = LIST_SLOTS.length;
+        int pages = Math.max(1, (entries.size() + per - 1) / per);
+        listPage = Math.max(0, Math.min(listPage, pages - 1));
+        for (int i = 0; i < per && listPage * per + i < entries.size(); i++) {
+            set(LIST_SLOTS[i], entries.get(listPage * per + i), null);
+        }
+        pager(pages);
     }
 
     private void wikiTraits() {

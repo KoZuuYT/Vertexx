@@ -129,6 +129,26 @@ armadilhado ou barril) para abrir o menu de upgrade. São 6 níveis, pagos com r
 O nível acompanha o item quando o bloco é quebrado e colocado de novo. Custos e capacidades ficam em
 `upgrades:` no `config.yml`.
 
+## Conteúdo adicionado (0.17 a 0.24)
+
+Tudo isso também está na **Wiki** do painel (tela inicial do `/vertexx` ou do Guia), organizada por categorias e páginas.
+
+- **Criaturas customizadas (17):** Rascal, Golem de Tufo, Moobloom, Glare, Caranguejo, Pinguim, Great Hunger, Barnacle,
+  Arraia do Vazio, Rastejador do Fim, Sentinela de Shulker, Golem de Ametista, Suricato, Avestruz, Abutre,
+  Anquilossauro de Ardósia e Pterodáctilo de Caverna.
+- **End Update:** biomas das ilhas externas (Floresta de Dossel do Coro e Abismos de Enderita), minério e Fragmento de
+  Enderita, Membrana Etérea, Quitina do Vazio, Núcleo de Levitação, poções de gravidade e **Mochilas** (couro 9,
+  reforçada 18, do Vazio 27 com coleta magnética; `/mochila`).
+- **Overworld Revival:** oásis com palmeiras, baobás, cupinzeiros, tumbleweeds, cactos-barril, climas extremos
+  (tempestade de areia, nevasca, ventania de altitude) e Óculos de Explorador, arqueologia profunda (Âmbar e Fósseis),
+  Incubadora Geotérmica e **maldições com benefício** (Lâmina Faminta, Toque da Ruína, Passo Etéreo, Olho de Vidro).
+- **Modelos automáticos (blueprints):** arquivos `.bbmodel` em `plugins/Vertexx/blueprints/` viram criaturas, com
+  resource pack gerado, hospedado (porta `blueprints.http-port`) e enviado sozinho, troca a quente ao salvar, mob-base,
+  sub-hitboxes (locators `hitbox*`), assento (`seat`), surgimento natural e ovos no painel. Um `<id>.yml` ao lado do
+  modelo é criado com as opções.
+- **Painel:** menus em páginas. A administração é um hub (Servidor, Configurações, Waystones, Criar mobs, XP, Bosses,
+  Ovos e itens) e "Ovos e itens" tem abas (Criaturas, Itens, Livros) com paginação.
+
 ## Menus
 
 Todos os menus têm duas versões com a mesma função. Com o **resource pack** carregado, ganham fundo
