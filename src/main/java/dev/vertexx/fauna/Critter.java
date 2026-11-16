@@ -74,6 +74,10 @@ abstract class Critter {
         return mob.getBodyYaw();
     }
 
+    float modelYaw() {
+        return yaw();
+    }
+
     protected boolean near() {
         return near;
     }
@@ -115,9 +119,21 @@ abstract class Critter {
 
     /** Chamado ao remover a criatura do mundo (descarregar, morrer, sumir). */
     void remove() {
-        model.remove();
+        if (!detached) {
+            model.remove();
+        }
         cleanup();
     }
+
+    private boolean detached;
+
+    /** Entrega o modelo à animação de morte (ele some sozinho no fim); depois disso {@link #remove()} não o apaga. */
+    ModelInstance detach() {
+        detached = true;
+        return model;
+    }
+
+
 
     protected void cleanup() {
     }

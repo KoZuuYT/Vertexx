@@ -1,4 +1,4 @@
-// Vertexx Server — janela de mundos e configurações do servidor de teste.
+﻿// Vertexx Server — janela de mundos e configurações do servidor de teste.
 // Compilado junto com ServerLauncher.cs por tools\build-launcher.ps1 (C# 5, csc do Windows).
 using System;
 using System.Collections.Generic;
@@ -55,7 +55,7 @@ internal static class ServerConfig
     {
         var map = new Dictionary<string, string>();
         if (!File.Exists(path)) return map;
-        foreach (string line in File.ReadAllLines(path))
+        foreach (string line in MainForm.ReadLinesShared(path))
         {
             int eq = line.IndexOf('=');
             if (line.StartsWith("#") || eq < 0) continue;
@@ -67,7 +67,7 @@ internal static class ServerConfig
     /// <summary>Atualiza (ou acrescenta) as chaves informadas, preservando o resto do arquivo.</summary>
     public static void Write(string path, Dictionary<string, string> changes)
     {
-        var lines = File.Exists(path) ? File.ReadAllLines(path).ToList() : new List<string>();
+        var lines = File.Exists(path) ? MainForm.ReadLinesShared(path) : new List<string>();
         foreach (var pair in changes)
         {
             string line = pair.Key + "=" + Escape(pair.Value);

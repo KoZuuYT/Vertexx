@@ -24,7 +24,7 @@ public final class ModelInstance {
 
     private static final float HIDDEN = 0.0005f;
     private static final int BLEND_TICKS = 5;
-    private static final float REANCHOR = 4f;
+    private static final float REANCHOR = 10f;
 
     private final ModelDef def;
     private final float scale;
@@ -59,6 +59,7 @@ public final class ModelInstance {
     private final boolean[] sentHidden;
 
     private Location lastAt;
+    private float roll;
     private final Quaternionf lastBasis = new Quaternionf();
 
     // luz e tinta
@@ -293,6 +294,11 @@ public final class ModelInstance {
         }
     }
 
+    /** Tomba o modelo inteiro de lado (graus), girando em torno dos pés: animação de morte. */
+    public void tilt(float degrees) {
+        this.roll = degrees;
+    }
+
     public void hideAll(boolean value) {
         java.util.Arrays.fill(hidden, value);
     }
@@ -420,15 +426,23 @@ public final class ModelInstance {
         }
     }
 
-    private void reanchor(Location at) {
+    /**
+     * Move a âncora sem salto: a posição das displays e a translação da pose interpolam juntas, na mesma duração,
+     * então a soma (posição + translação) continua uma linha reta e nada pisca nem teleporta. Só troca de mundo
+     * (ou a primeira pose) é seca.
+     */
+    private void reanchor(Location at, int duration) {
+        boolean sameWorld = anchor.getWorld() == at.getWorld();
         anchor = at.clone();
         anchor.setYaw(0);
         anchor.setPitch(0);
         for (int i = 0; i < displays.length; i++) {
             if (displays[i] != null && displays[i].isValid()) {
-                displays[i].setTeleportDuration(0);
+                displays[i].setTeleportDuration(sameWorld ? Math.max(1, Math.min(59, duration + 1)) : 0);
                 displays[i].teleport(anchor);
-                sentT[i] = null;   // próxima pose sem interpolação
+                if (!sameWorld) {
+                    sentT[i] = null;   // outro mundo: próxima pose sem interpolação
+                }
             }
         }
     }
@@ -436,12 +450,12 @@ public final class ModelInstance {
     /** Calcula a pose e a envia. {@code at} é a origem do modelo (pés), {@code yaw} o do Bukkit. */
     public void update(Location at, float yaw, int duration) {
         if (anchor.getWorld() != at.getWorld() || anchor.distanceSquared(at) > REANCHOR * REANCHOR) {
-            reanchor(at);
+            reanchor(at, duration);
         }
         lastAt = at.clone();
         light(at, duration);
         tickFlash(duration);
-        lastBasis.identity().rotateY((float) Math.toRadians(-yaw));
+        lastBasis.identity().rotateY((float) Math.toRadians(-yaw)).rotateZ((float) Math.toRadians(roll));
         compute();
         Vector3f offset = new Vector3f((float) (at.getX() - anchor.getX()), (float) (at.getY() - anchor.getY()),
                 (float) (at.getZ() - anchor.getZ()));
@@ -472,7 +486,7 @@ public final class ModelInstance {
                 continue;
             }
             display.setInterpolationDelay(0);
-            display.setInterpolationDuration(snap ? 0 : duration);
+            display.setInterpolationDuration(snap ? 0 : duration + 1);   // +1: uma atualização atrasada não deixa o modelo parar e arrancar
             display.setTransformation(new Transformation(translation, rotation, size, new Quaternionf()));
             sentT[i] = translation;
             sentQ[i] = rotation;

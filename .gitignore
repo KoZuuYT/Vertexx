@@ -11,3 +11,5 @@ build.log
 models/analysis/
 models/preview/
 __pycache__/
+
+tools/VertexxServer.exe.old

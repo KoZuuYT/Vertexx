@@ -210,3 +210,7 @@ fauna:
     radius: 10
     # Se verdadeiro, barcos sugados ate o centro quebram (o barco cai como item).
     break-boats: true
+    # Dano (em pontos de vida) de cada mordida em quem chega perto da boca.
+    bite-damage: 6
+    # Velocidade de natacao (blocos por tick) ao perseguir.
+    swim-speed: 0.075

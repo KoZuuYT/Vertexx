@@ -1,4 +1,4 @@
-// Vertexx Server — aplicativo leve para ligar e desligar o servidor Paper de teste.
+﻿// Vertexx Server — aplicativo leve para ligar e desligar o servidor Paper de teste.
 // Compile com tools\build-launcher.ps1 (usa o csc.exe que já vem com o Windows).
 using System;
 using System.Collections.Generic;
@@ -18,9 +18,23 @@ internal static class Program
     [STAThread]
     private static void Main()
     {
+        // Nada de janela de "erro do .NET Framework": excecoes nao tratadas so vao para o arquivo de log.
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
+        Application.ThreadException += (s, e) => Crash(e.Exception);
+        AppDomain.CurrentDomain.UnhandledException += (s, e) => Crash(e.ExceptionObject as Exception);
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         Application.Run(new MainForm());
+    }
+
+    private static void Crash(Exception ex)
+    {
+        try
+        {
+            File.AppendAllText(Path.Combine(Path.GetTempPath(), "VertexxServer-erros.log"),
+                DateTime.Now.ToString("s") + " " + (ex == null ? "?" : ex.ToString()) + Environment.NewLine);
+        }
+        catch { }
     }
 }
 
@@ -218,13 +232,35 @@ internal sealed class MainForm : Form
     {
         var map = new Dictionary<string, string>();
         if (!File.Exists(PropsPath)) return map;
-        foreach (string line in File.ReadAllLines(PropsPath))
+        foreach (string line in ReadLinesShared(PropsPath))
         {
             int eq = line.IndexOf('=');
             if (line.StartsWith("#") || eq < 0) continue;
             map[line.Substring(0, eq).Trim()] = line.Substring(eq + 1).Trim();
         }
         return map;
+    }
+
+    /// <summary>Le linhas mesmo se o servidor estiver gravando o arquivo no momento (tenta de novo e nunca lanca).</summary>
+    internal static List<string> ReadLinesShared(string path)
+    {
+        for (int attempt = 0; attempt < 4; attempt++)
+        {
+            try
+            {
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
+                using (var reader = new StreamReader(stream, Encoding.UTF8))
+                {
+                    var lines = new List<string>();
+                    string line;
+                    while ((line = reader.ReadLine()) != null) lines.Add(line);
+                    return lines;
+                }
+            }
+            catch (IOException) { Thread.Sleep(40); }
+            catch (UnauthorizedAccessException) { Thread.Sleep(40); }
+        }
+        return new List<string>();
     }
 
     private int ServerPort()
@@ -247,7 +283,7 @@ internal sealed class MainForm : Form
         var bytes = new byte[12];
         using (var rng = RandomNumberGenerator.Create()) rng.GetBytes(bytes);
         string generated = BitConverter.ToString(bytes).Replace("-", "").ToLowerInvariant();
-        var lines = File.Exists(PropsPath) ? File.ReadAllLines(PropsPath).ToList() : new List<string>();
+        var lines = File.Exists(PropsPath) ? ReadLinesShared(PropsPath) : new List<string>();
         SetProp(lines, "enable-rcon", "true");
         SetProp(lines, "rcon.password", string.IsNullOrEmpty(password) ? generated : password);
         File.WriteAllLines(PropsPath, lines, new UTF8Encoding(false));
@@ -303,8 +339,12 @@ internal sealed class MainForm : Form
         Directory.CreateDirectory(Path.GetDirectoryName(target));
         if (!File.Exists(target) || Hash(target) != Hash(newest))
         {
-            File.Copy(newest, target, true);
-            Append("Plugin atualizado para " + Path.GetFileName(newest) + ".");
+            try
+            {
+                File.Copy(newest, target, true);
+                Append("Plugin atualizado para " + Path.GetFileName(newest) + ".");
+            }
+            catch (IOException) { Append("Nao foi possivel atualizar o plugin agora (arquivo em uso)."); }
         }
     }
 

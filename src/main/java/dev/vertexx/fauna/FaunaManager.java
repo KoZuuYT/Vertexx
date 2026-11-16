@@ -3,6 +3,7 @@ package dev.vertexx.fauna;
 import dev.vertexx.PluginMain;
 import dev.vertexx.core.Msg;
 import dev.vertexx.core.Tab;
+import dev.vertexx.model.ModelInstance;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -143,10 +144,56 @@ public final class FaunaManager implements Listener {
             critter.remove();
         }
         critters.clear();
+        for (Dying d : dying) {
+            d.model.remove();
+        }
+        dying.clear();
+    }
+
+    /** Morte: o modelo pisca em vermelho, tomba de lado e vira fumaça, como um mob comum. */
+    private static final class Dying {
+        final ModelInstance model;
+        final Location at;
+        final float yaw;
+        final float height;
+        final float width;
+        int age;
+
+        Dying(ModelInstance model, Location at, float yaw, float height, float width) {
+            this.model = model;
+            this.at = at;
+            this.yaw = yaw;
+            this.height = height;
+            this.width = width;
+        }
+    }
+
+    private final List<Dying> dying = new ArrayList<>();
+
+    private void tickDying() {
+        for (java.util.Iterator<Dying> it = dying.iterator(); it.hasNext(); ) {
+            Dying d = it.next();
+            d.age += 2;
+            try {
+                float t = Math.min(1f, d.age / 12f);
+                d.model.tilt(90f * (1f - (1f - t) * (1f - t)));
+                d.model.hurtFlash(4);
+                d.model.update(d.at, d.yaw, 2);
+            } catch (RuntimeException e) {
+                d.age = 99;                      // nunca deixa um modelo órfão no mundo
+            }
+            if (d.age >= 22) {
+                d.model.remove();
+                World world = d.at.getWorld();
+                world.spawnParticle(Particle.POOF, d.at.clone().add(0, d.height / 2, 0), 20, d.width / 2, d.height / 3, d.width / 2, 0.02);
+                it.remove();
+            }
+        }
     }
 
     private void tickAll() {
         tick += 2;
+        tickDying();
         // cópia: remover o mob (Rascal sumindo, golem desmontado…) dispara EntityRemoveEvent, que mexe no mapa
         for (Critter critter : new java.util.ArrayList<>(critters.values())) {
             boolean keep;
@@ -457,6 +504,10 @@ public final class FaunaManager implements Listener {
         Critter critter = critterOf(event.getEntity());
         if (critter == null) {
             return;
+        }
+        if (critter.mob.getWorld().getPlayers().stream().anyMatch(p -> p.getLocation().distanceSquared(critter.mob.getLocation()) < 56 * 56)) {
+            Mob dead = critter.mob;
+            dying.add(new Dying(critter.detach(), dead.getLocation(), critter.modelYaw(), (float) dead.getHeight(), (float) dead.getWidth()));
         }
         ThreadLocalRandom random = ThreadLocalRandom.current();
         if (critter.kind() == FaunaKind.GLARE) {

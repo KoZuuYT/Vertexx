@@ -37,7 +37,7 @@ public final class PanelGUI implements InventoryHolder {
     private enum Page {
         HOME("Painel"), WAYSTONES("Waystones"), GRAVES("Túmulos"),
         GUIDE("Comandos"), ADMIN("Administração"), ADMIN_WAYSTONES("Todos os Waystones"),
-        ADMIN_MOBS("Criar mobs"), ADMIN_TRAITS("Traits do mob"), ADMIN_XP("Conceder XP"), ADMIN_BOSSES("Bosses"),
+        ADMIN_MOBS("Criar mobs"), ADMIN_TRAITS("Traits do mob"), ADMIN_XP("Conceder XP"), ADMIN_BOSSES("Bosses"), ADMIN_EGGS("Ovos das criaturas"),
         WIKI("Wiki");
 
         private final String title;
@@ -135,7 +135,7 @@ public final class PanelGUI implements InventoryHolder {
         set(CLOSE_SLOT, Items.of(Material.BARRIER, "<red>Fechar", List.of()), c -> player.closeInventory());
         if (page != Page.HOME) {
             Page back = switch (page) {
-                case ADMIN_WAYSTONES, ADMIN_MOBS, ADMIN_XP, ADMIN_BOSSES -> Page.ADMIN;
+                case ADMIN_WAYSTONES, ADMIN_MOBS, ADMIN_XP, ADMIN_BOSSES, ADMIN_EGGS -> Page.ADMIN;
                 case ADMIN_TRAITS -> Page.ADMIN_MOBS;
                 default -> Page.HOME;
             };
@@ -158,6 +158,7 @@ public final class PanelGUI implements InventoryHolder {
             case ADMIN_TRAITS -> adminTraits();
             case ADMIN_XP -> adminXp();
             case ADMIN_BOSSES -> adminBosses();
+            case ADMIN_EGGS -> adminEggs();
             case WIKI -> wiki();
         }
         Ui.skin(pack, inventory);
@@ -314,6 +315,32 @@ public final class PanelGUI implements InventoryHolder {
         set(40, Items.of(Material.WITHER_SKELETON_SKULL, "<white>Bosses",
                 List.of("<gray>Salas, testes e controle dos bosses.", "<dark_gray>Equivale a /vertexx boss", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_BOSSES));
+        set(41, Items.of(Material.ALLAY_SPAWN_EGG, "<white>Ovos das criaturas",
+                List.of("<gray>Ovos de todas as criaturas customizadas", "<gray>(Mob Vote e End Update).", "",
+                        "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));
+    }
+
+    private void adminEggs() {
+        if (!admin()) {
+            go(Page.HOME);
+            return;
+        }
+        dev.vertexx.fauna.FaunaKind[] kinds = dev.vertexx.fauna.FaunaKind.values();
+        for (int i = 0; i < kinds.length && i < LIST_SLOTS.length; i++) {
+            dev.vertexx.fauna.FaunaKind kind = kinds[i];
+            ItemStack egg = plugin.fauna().egg(kind);
+            egg.editMeta(meta -> meta.lore(List.of(
+                    Msg.item("<gray>Clique: <white>1 ovo"),
+                    Msg.item("<gray>Shift + clique: <white>uma pilha de 16"),
+                    Msg.item("<dark_gray>Use num bloco para criar a criatura."))));
+            set(LIST_SLOTS[i], egg, c -> {
+                ItemStack give = plugin.fauna().egg(kind);
+                give.setAmount(c.isShiftClick() ? 16 : 1);
+                player.getInventory().addItem(give).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
+                Fx.success(player);
+                Msg.actionBar(player, "<green>Ovo de <white>" + kind.display() + "<green> entregue.");
+            });
+        }
     }
 
     private void toggle(int slot, String path, Material icon, String label, boolean def) {
