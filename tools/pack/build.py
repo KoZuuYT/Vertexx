@@ -316,23 +316,21 @@ EGG_SPOTS = [(6, 3), (7, 3), (9, 5), (10, 6), (5, 7), (4, 8), (5, 8), (8, 9), (9
 
 
 def egg_texture(base: str, spot: str) -> Image.Image:
-    def c(h, f=1.0):
+    """Ovo vanilla (spawn_egg + overlay do jogo) tingido: multiplica a luminância pela cor, como o cliente faz."""
+    def tint(img, h):
         h = h.lstrip("#")
-        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
-        return (max(0, min(255, int(r * f))), max(0, min(255, int(g * f))), max(0, min(255, int(b * f))), 255)
-    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-    px = img.load()
-    inside = {(x, y) for y, (a, b) in EGG_ROWS.items() for x in range(a, b + 1)}
-    for (x, y) in inside:
-        edge = any((x + dx, y + dy) not in inside for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
-        # luz vindo de cima à esquerda
-        shade = 1.12 - 0.035 * (x - 4) - 0.02 * (y - 4)
-        px[x, y] = c(base, 0.55) if edge else c(base, max(0.75, min(1.2, shade)))
-    for (x, y) in EGG_SPOTS:
-        if (x, y) in inside and all((x + dx, y + dy) in inside for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-            px[x, y] = c(spot, 1.0 if x + y < 15 else 0.85)
-    px[5, 4] = c(base, 1.45)
-    px[4, 5] = c(base, 1.35)
+        col = [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+        out = img.convert("RGBA")
+        px = out.load()
+        for y in range(out.height):
+            for x in range(out.width):
+                r, g, b, a = px[x, y]
+                if a:
+                    px[x, y] = (r * col[0] // 255, g * col[1] // 255, b * col[2] // 255, a)
+        return out
+    van = Path(__file__).resolve().parent / "vanilla"
+    img = tint(Image.open(van / "spawn_egg.png"), base)
+    img.alpha_composite(tint(Image.open(van / "spawn_egg_overlay.png"), spot))
     return img
 
 

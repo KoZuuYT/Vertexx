@@ -6,6 +6,8 @@
 """
 from __future__ import annotations
 
+from pathlib import Path
+
 from PIL import Image
 
 
@@ -31,84 +33,54 @@ def _paint(rows, palette, size=16):
     return img
 
 
-# ── materiais ──────────────────────────────────────────────────
+# ── texturas vanilla recoloridas ───────────────────────────────
+
+VANILLA = Path(__file__).resolve().parent / "vanilla"
+
+
+def vanilla(name: str) -> Image.Image:
+    return Image.open(VANILLA / f"{name}.png").convert("RGBA")
+
+
+def ramp_recolor(img: Image.Image, colors) -> Image.Image:
+    """Troca as cores pela rampa ``colors`` (escura -> clara) segundo a luminância; o alfa é mantido."""
+    ramp = [_hex(c) for c in colors]
+    out = img.copy()
+    px = out.load()
+    lums = [0.299 * px[x, y][0] + 0.587 * px[x, y][1] + 0.114 * px[x, y][2]
+            for y in range(img.height) for x in range(img.width) if px[x, y][3] > 0]
+    lo, hi = min(lums), max(lums)
+    for y in range(img.height):
+        for x in range(img.width):
+            r, g, b, a = px[x, y]
+            if a == 0:
+                continue
+            t = (0.299 * r + 0.587 * g + 0.114 * b - lo) / max(1e-6, hi - lo)
+            f = t * (len(ramp) - 1)
+            i = min(len(ramp) - 2, int(f))
+            u = f - i
+            c0, c1 = ramp[i], ramp[i + 1]
+            px[x, y] = tuple(int(c0[k] + (c1[k] - c0[k]) * u) for k in range(3)) + (a,)
+    return out
+
 
 def enderite_fragment():
-    rows = [
-        ".....ooo........",
-        "....oPPPoo......",
-        "...oPqqPPPoo....",
-        "..oPqqMPPPPoo...",
-        "..oPPMMPPPPPPo..",
-        "..oPPPPDPPPPPo..",
-        "...oPPPDDPPPo...",
-        "...ooPPPDDPPo...",
-        ".....oPPPDDo....",
-        "......ooPDo.....",
-        ".......ooo......",
-    ]
-    pal = {"o": _hex("#120a1c"), "P": _hex("#3a2a52"), "q": _hex("#7a58b0"), "M": _hex("#e857e8"), "D": _hex("#241638")}
-    return _paint(rows, pal)
+    return ramp_recolor(vanilla("netherite_scrap"), ["#0e0818", "#2a1a45", "#5a3a8c", "#b04ad8", "#ff7af0"])
 
 
 def ethereal_membrane():
-    rows = [
-        "....oo..........",
-        "...oMMoo........",
-        "..oMmmMMoo......",
-        "..oMmvmmMMoo....",
-        ".oMmvmmmmmMMoo..",
-        ".oMmvmmvmmmmMMo.",
-        ".oMmmvmmvmmmmMo.",
-        "..oMmmvmmvmmmo..",
-        "..ooMmmmvmmmo...",
-        "....ooMmmmmo....",
-        "......ooMMo.....",
-        "........oo......",
-    ]
-    pal = {"o": _hex("#1d2a5c"), "M": _hex("#8fd8f5"), "m": _hex("#b49cf0"), "v": _hex("#4a64c8")}
-    img = _paint(rows, pal)
-    for x, y in ((3, 3), (12, 2), (13, 11), (2, 12)):          # faíscas
-        img.putpixel((x, y), _hex("#d8fbff"))
-    return img
+    return ramp_recolor(vanilla("phantom_membrane"), ["#2a3a88", "#5a6ad8", "#9a8cf0", "#bff0ff", "#ffffff"])
 
 
 def void_chitin():
-    rows = [
-        "...ooooooo...",
-        "..oKKKKKKKo..",
-        ".oKkkKKKKKKo.",
-        ".oKkPKKKKKKo.",
-        ".oKKKKppKKKo.",
-        ".oKKKKKKKKKo.",
-        "..oKKKKKKKo..",
-        "..oDKKKKKDo..",
-        "...oDDDDDo...",
-        "....ooooo....",
-    ]
-    pal = {"o": _hex("#07050a"), "K": _hex("#1d1829"), "k": _hex("#41345f"), "P": _hex("#8a3fc4"),
-           "p": _hex("#c864f0"), "D": _hex("#0e0b14")}
-    return _paint(rows, pal)
+    return ramp_recolor(vanilla("armadillo_scute"), ["#07050a", "#15101f", "#2b2142", "#4d3a7a", "#9a58d8"])
 
 
 def levitation_core():
-    rows = [
-        "....ooooo....",
-        "..ooPPPPPoo..",
-        ".oPPwwPPPPPo.",
-        ".oPwWWPPPPPo.",
-        "oPPwWPPPPQQPo",
-        "oPPPPPPPQQQPo",
-        "oPPPPPPQQQQPo",
-        ".oPPPPQQQQPo.",
-        ".oPPQQQQQQPo.",
-        "..ooQQQQQoo..",
-        "....ooooo....",
-    ]
-    pal = {"o": _hex("#1a0f33"), "P": _hex("#8a5ad8"), "Q": _hex("#4a2a8a"), "w": _hex("#d8c8ff"), "W": _hex("#ffffff")}
-    img = _paint(rows, pal)
-    for x, y in ((1, 1), (14, 2), (14, 13), (1, 12), (8, 0)):
-        img.putpixel((x, y), _hex("#ffe36a"))
+    img = ramp_recolor(vanilla("heart_of_the_sea"), ["#1a0f33", "#4a2a8a", "#8a5ad8", "#d8c8ff", "#fff6c8"])
+    for x, y in ((1, 2), (14, 3), (13, 13), (2, 12)):
+        if img.getpixel((x, y))[3] == 0:
+            img.putpixel((x, y), _hex("#ffe36a"))
     return img
 
 
@@ -122,68 +94,15 @@ TIERS = {
 
 
 def backpack(tier: str):
-    t = TIERS[tier]
-    main, flap, edge = _hex(t["main"]), _hex(t["flap"]), _hex(t["edge"])
-    strap, buckle = _hex(t["strap"]), _hex(t["buckle"])
-    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
-    px = img.load()
-
-    def put(x, y, c):
-        if 0 <= x < 16 and 0 <= y < 16:
-            px[x, y] = c
-
-    # orelhas (alças de cima)
-    for x0 in (3, 10):
-        for y in range(1, 5):
-            for x in range(x0, x0 + 3):
-                put(x, y, edge if (y == 1 or x in (x0, x0 + 2)) else strap)
-    # corpo
-    for y in range(3, 15):
-        for x in range(2, 14):
-            corner = (x in (2, 13)) and (y in (3, 14))
-            if corner:
-                continue
-            border = x in (2, 13) or y in (3, 14)
-            shade = 1.12 - 0.03 * (x - 2) * 0.5 - 0.02 * (y - 3)
-            put(x, y, edge if border else _shade(main, max(0.8, shade)))
-    # aba (parte de cima) com bico no meio
-    for y in range(4, 9):
-        for x in range(3, 13):
-            put(x, y, _shade(flap, 1.08 - 0.02 * (y - 4)))
-    for x in range(3, 13):
-        put(x, 9, edge)
-    for x in (7, 8):
-        put(x, 10, edge)
-    # bolsos laterais
-    for y in range(11, 14):
-        for x in (3, 4, 11, 12):
-            put(x, y, _shade(main, 0.78))
-    for y in range(11, 14):
-        put(5, y, edge)
-        put(10, y, edge)
-    # fivela e tira
-    for y in range(7, 11):
-        put(7, y, strap)
-        put(8, y, strap)
-    for y in (9, 10):
-        for x in (7, 8):
-            put(x, y, buckle)
-    put(7, 9, _shade(buckle, 1.15))
-    put(8, 10, _shade(buckle, 0.7))
-    if t["extra"] == "rivets":
-        for x, y in ((4, 5), (11, 5), (4, 8), (11, 8)):
-            put(x, y, _hex("#f4f5f8"))
-        for x in range(3, 13):
-            put(x, 4, _shade(flap, 1.25))
-    elif t["extra"] == "gold":
-        gold = _hex("#ffd24a")
-        for x in range(3, 13):
-            put(x, 8, gold)
-        for y in range(4, 9):
-            put(3, y, gold)
-            put(12, y, gold)
-        put(7, 11, _hex("#e848e8"))
-        put(8, 11, _hex("#e848e8"))
+    base = vanilla("bundle")
+    if tier == "backpack_leather":
+        return base
+    if tier == "backpack_iron":
+        return ramp_recolor(base, ["#1c1f26", "#4a505a", "#7e838c", "#b6bcc6", "#eef0f4"])
+    img = ramp_recolor(base, ["#0e0620", "#2a1458", "#5a2f96", "#9a6ae0", "#e0c8ff"])
+    for x, y in ((7, 7), (8, 7), (7, 8), (8, 8)):          # fecho dourado
+        if img.getpixel((x, y))[3] > 0:
+            img.putpixel((x, y), _hex("#ffd24a") if (x + y) % 2 else _hex("#c8981c"))
     return img
 
 
