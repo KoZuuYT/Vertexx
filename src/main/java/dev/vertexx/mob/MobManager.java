@@ -435,7 +435,9 @@ public final class MobManager implements Listener {
             return;
         }
         Component existing = entity.customName();
-        if (existing != null && !isOurName(entity)) {
+        boolean fauna = entity.getPersistentDataContainer().has(
+                new org.bukkit.NamespacedKey(plugin, "fauna_kind"), org.bukkit.persistence.PersistentDataType.STRING);
+        if (existing != null && !isOurName(entity) && !(fauna && !hasPlayerName(existing, entity))) {
             return; // nome dado por jogador (name tag): respeita
         }
         boolean elite = isElite(entity);
@@ -451,8 +453,7 @@ public final class MobManager implements Listener {
         }
         Component name = Msg.mm("<dark_gray>[" + levelColor(level) + "Lv." + level + "<dark_gray>] "
                         + (elite ? "<gold><bold>Elite</bold> " : "<white>"))
-                .append(Component.translatable(entity.getType().translationKey()).color(
-                        elite ? NamedTextColor.GOLD : NamedTextColor.WHITE))
+                .append(baseName(entity).color(elite ? NamedTextColor.GOLD : NamedTextColor.WHITE))
                 .append(Msg.mm(suffix.toString()));
         entity.customName(name);
         entity.setCustomNameVisible(false); // o texto vem do rótulo (TextDisplay com profundidade), que não atravessa paredes
@@ -509,6 +510,11 @@ public final class MobManager implements Listener {
         if (event.getCause() != EntityRemoveEvent.Cause.UNLOAD && level(event.getEntity()) > 0) {
             removeLabel(event.getEntity());
         }
+    }
+
+    /** Em criaturas customizadas, o nome padrão (o da própria criatura) não conta como name tag de jogador. */
+    private boolean hasPlayerName(Component existing, LivingEntity entity) {
+        return !Msg.plain(existing).equals(Msg.plain(baseName(entity)));
     }
 
     private boolean isOurName(LivingEntity entity) {
@@ -681,7 +687,16 @@ public final class MobManager implements Listener {
     private Component barTitle(LivingEntity mob) {
         return Msg.mm("<gold><bold>Elite</bold> <dark_gray>[" + levelColor(level(mob)) + "Lv." + level(mob)
                         + "<dark_gray>] <white>")
-                .append(Component.translatable(mob.getType().translationKey()));
+                .append(baseName(mob));
+    }
+
+    /** Nome do mob sem o nível: o da criatura customizada (Sentinela de Shulker), não o do mob-base (Breeze). */
+    private Component baseName(LivingEntity entity) {
+        String raw = entity.getPersistentDataContainer().get(
+                new org.bukkit.NamespacedKey(plugin, "fauna_kind"), org.bukkit.persistence.PersistentDataType.STRING);
+        dev.vertexx.fauna.FaunaKind kind = raw == null ? null : dev.vertexx.fauna.FaunaKind.parse(raw);
+        return kind != null ? Component.text(kind.display())
+                : Component.translatable(entity.getType().translationKey());
     }
 
     private void tickAll() {

@@ -419,6 +419,8 @@ def build_assets():
     # menus: fundos (glifos), ícones de interface, item invisível e emblemas
     import menus
     menus.build(NS, KINGDOMS, render_emblem, save, write_json)
+    import ui2
+    ui2.build(NS, save, write_json)
 
     # atlas: as texturas dos modelos de entidade ficam em textures/entity/, que o atlas padrão (block/ e item/)
     # não inclui; sem isso o modelo aparece com a textura "faltando"

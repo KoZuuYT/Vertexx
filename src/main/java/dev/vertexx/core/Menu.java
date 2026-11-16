@@ -47,6 +47,20 @@ public abstract class Menu implements InventoryHolder {
         this.inventory = Bukkit.createInventory(this, SIZE, component);
     }
 
+    /** Menu com título pronto (painel largo desenhado por {@link Canvas}). */
+    protected Menu(PluginMain plugin, Player player, Ui.Theme theme, Component title) {
+        this.plugin = plugin;
+        this.player = player;
+        this.theme = theme;
+        this.pack = plugin.resourcePack().isLoaded(player);
+        this.inventory = Bukkit.createInventory(this, SIZE, title);
+    }
+
+    /** O jogador tem o resource pack? (para montar o título antes do construtor). */
+    public static boolean packed(PluginMain plugin, Player player) {
+        return plugin.resourcePack().isLoaded(player);
+    }
+
     @Override
     public Inventory getInventory() {
         return inventory;
