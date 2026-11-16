@@ -30,11 +30,19 @@ def _split_rotated(model: Model):
     """Cubos com rotação própria viram sub-ossos (a rotação passa a ser a do osso)."""
     def walk(bone: Bone):
         keep = []
+        groups: dict = {}
         for c in bone.cubes:
             if any(abs(v) > 1e-6 for v in c.rot):
-                sub = Bone(f"{bone.name}__{slug(c.name)}", list(c.origin), list(c.rot), [copy.copy(c)], [], [])
-                sub.cubes[0].rot = [0.0, 0.0, 0.0]
-                bone.children.append(sub)
+                # cubos com a mesma rotação e o mesmo pivô dividem um sub-osso (menos ItemDisplays por mob)
+                key = (tuple(round(v, 4) for v in c.rot), tuple(round(v, 4) for v in c.origin))
+                sub = groups.get(key)
+                if sub is None:
+                    sub = Bone(f"{bone.name}__{slug(c.name)}", list(c.origin), list(c.rot), [], [], [])
+                    groups[key] = sub
+                    bone.children.append(sub)
+                cc = copy.copy(c)
+                cc.rot = [0.0, 0.0, 0.0]
+                sub.cubes.append(cc)
             else:
                 keep.append(c)
         bone.cubes = keep

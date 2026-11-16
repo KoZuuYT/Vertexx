@@ -13,3 +13,4 @@ models/preview/
 __pycache__/
 
 tools/VertexxServer.exe.old
+.mcp.json

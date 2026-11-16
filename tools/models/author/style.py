@@ -8,6 +8,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from vx.design import ALL, SIDES, Designer, Ramp, mix, rgb, shade  # noqa: E402,F401
 
+import numpy as np  # noqa: E402
+from PIL import Image  # noqa: E402
+
+VANILLA = Path(__file__).resolve().parents[2] / "pack" / "vanilla"
+_tiles: dict = {}
+
 
 def R(*hexes) -> Ramp:
     return Ramp([rgb(h) for h in hexes])
@@ -48,3 +54,27 @@ def eye(cv, i, j, white, pupil, w=2, h=1, pupil_side="in", mirror=True):
         if pupil is not None:
             px = x0 + w - 1 if (pupil_side == "in") == (side == 1) else x0
             cv.rect(px, j, 1, h, pupil)
+
+
+def _tile(name):
+    if name not in _tiles:
+        a = np.asarray(Image.open(VANILLA / f"{name}.png").convert("RGBA")).astype(float)
+        lum = 0.299 * a[..., 0] + 0.587 * a[..., 1] + 0.114 * a[..., 2]
+        _tiles[name] = (lum - lum.min()) / max(1e-6, lum.max() - lum.min())
+    return _tiles[name]
+
+
+def vanilla(name, ramp: Ramp, lo=0.0, hi=1.0, top=0.0, bottom=0.0):
+    """Textura vanilla ``name`` (em ``tools/pack/vanilla``) recolorida pela rampa segundo a luminância e ladrilhada
+    na face; ``lo``/``hi`` limitam a faixa da rampa usada, ``top``/``bottom`` clareiam/escurecem as faces de cima/baixo."""
+    def paint(cv):
+        t = _tile(name)
+        th, tw = t.shape
+        ox, oy = int(cv.rng.integers(0, tw)), int(cv.rng.integers(0, th))
+        shift = top if cv.face == "up" else bottom if cv.face == "down" else 0.0
+        n = len(ramp) - 1
+        for j in range(cv.h):
+            for i in range(cv.w):
+                v = lo + (hi - lo) * t[(j + oy) % th, (i + ox) % tw] + shift
+                cv.set(i, j, ramp[round(max(0.0, min(1.0, v)) * n)])
+    return paint
