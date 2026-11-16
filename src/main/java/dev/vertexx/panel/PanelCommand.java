@@ -20,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 /** {@code /vertexx}: painel (administradores), Guia para todos e utilitários de administração. */
 public final class PanelCommand implements TabExecutor {
 
-    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|item|cabeca|versao|atualizar]";
+    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|item|end|cabeca|versao|atualizar]";
 
     private final PluginMain plugin;
 
@@ -79,6 +79,13 @@ public final class PanelCommand implements TabExecutor {
                     plugin.fauna().command(sender, args);
                 }
             }
+            case "end" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else {
+                    endCommand(sender, args);
+                }
+            }
             case "item" -> {
                 if (!admin) {
                     Msg.send(sender, "<red>Você não tem permissão.");
@@ -108,6 +115,28 @@ public final class PanelCommand implements TabExecutor {
             default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? ADMIN_USAGE : " livro"));
         }
         return true;
+    }
+
+    /** {@code /vertexx end <zona|gerar> [x z]}: consulta a zona e aplica os biomas do End ao chunk (teste). */
+    private void endCommand(CommandSender sender, String[] args) {
+        org.bukkit.World world = sender instanceof Player p ? p.getWorld() : null;
+        for (org.bukkit.World w : plugin.getServer().getWorlds()) {
+            if (world == null && w.getEnvironment() == org.bukkit.World.Environment.THE_END) {
+                world = w;
+            }
+        }
+        if (world == null || args.length < 2) {
+            Msg.send(sender, "<gray>Uso: <white>/vertexx end <zona|gerar> [x z]");
+            return;
+        }
+        int x = args.length >= 4 ? Integer.parseInt(args[2]) : sender instanceof Player p ? p.getLocation().getBlockX() : 2000;
+        int z = args.length >= 4 ? Integer.parseInt(args[3]) : sender instanceof Player p ? p.getLocation().getBlockZ() : 0;
+        if (args[1].equalsIgnoreCase("zona")) {
+            Msg.send(sender, "<gray>Zona em " + x + " " + z + ": <white>" + plugin.endWorld().describe(world, x, z));
+        } else if (args[1].equalsIgnoreCase("gerar")) {
+            int changed = plugin.endWorld().process(world.getChunkAt(x >> 4, z >> 4));
+            Msg.send(sender, "<green>Chunk processado: <white>" + changed + "</white> blocos alterados.");
+        }
     }
 
     /** {@code /vertexx item <id> [jogador] [quantidade]}: entrega um item da End Update (materiais e mochilas). */
@@ -249,7 +278,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "cabeca", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "cabeca", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {
@@ -270,6 +299,8 @@ public final class PanelCommand implements TabExecutor {
                     return Tab.of(args[3], "10", "100", "500", "1000", "5000");
                 }
                 return List.of();
+            case "end":
+                return args.length == 2 ? Tab.of(args[1], "zona", "gerar") : List.of();
             case "item":
                 if (args.length == 2) {
                     return Tab.of(args[1], Arrays.stream(dev.vertexx.end.EndItem.values()).map(dev.vertexx.end.EndItem::id).toList());

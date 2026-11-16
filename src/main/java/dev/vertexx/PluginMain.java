@@ -47,6 +47,7 @@ public final class PluginMain extends JavaPlugin {
     private UpgradeManager upgrades;
     private dev.vertexx.end.Backpacks backpacks;
     private dev.vertexx.end.EndGear endGear;
+    private dev.vertexx.end.EndWorld endWorld;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -70,6 +71,7 @@ public final class PluginMain extends JavaPlugin {
         upgrades = new UpgradeManager(this);
         backpacks = new dev.vertexx.end.Backpacks(this);
         endGear = new dev.vertexx.end.EndGear(this);
+        endWorld = new dev.vertexx.end.EndWorld(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -86,6 +88,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(upgrades, this);
         plugins.registerEvents(backpacks, this);
         plugins.registerEvents(endGear, this);
+        plugins.registerEvents(endWorld, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
@@ -104,6 +107,7 @@ public final class PluginMain extends JavaPlugin {
         rpg.start();
         backpacks.start();
         endGear.start();
+        endWorld.start();
 
         loadAsync();
     }
@@ -201,6 +205,10 @@ public final class PluginMain extends JavaPlugin {
 
     public dev.vertexx.end.Backpacks backpacks() {
         return backpacks;
+    }
+
+    public dev.vertexx.end.EndWorld endWorld() {
+        return endWorld;
     }
 
     public dev.vertexx.end.EndGear endGear() {

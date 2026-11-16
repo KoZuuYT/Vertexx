@@ -232,4 +232,10 @@ end:
     auto-refill: true
     # Botao do meio em baus e mochilas ordena e junta as pilhas.
     sorter: true
+  biomes:
+    # Floresta de Dossel do Coro e Abismos de Enderita nas ilhas externas do End (alem de 1000 blocos), em chunks novos.
+    enabled: true
+  mobs:
+    # Arraia do Vazio, Rastejador do Fim e Sentinela de Shulker.
+    enabled: true
 

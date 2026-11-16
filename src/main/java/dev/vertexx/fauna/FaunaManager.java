@@ -241,6 +241,9 @@ public final class FaunaManager implements Listener {
             case PENGUIN -> new Penguin(this, mob);
             case GREAT_HUNGER -> new GreatHunger(this, mob);
             case BARNACLE -> new Barnacle(this, mob);
+            case VOID_RAY -> new VoidRay(this, mob);
+            case END_CRAWLER -> new EndCrawler(this, mob);
+            case SHULKER_SENTINEL -> new ShulkerSentinel(this, mob);
         };
         // nome próprio (invisível, o mob-base também é): mensagens de morte e legendas citam a criatura, não a vaca
         if (mob.customName() == null) {
@@ -381,6 +384,9 @@ public final class FaunaManager implements Listener {
                     case PENGUIN -> 0.75;
                     case GREAT_HUNGER -> 0.45;
                     case BARNACLE -> 2.2;
+                    case VOID_RAY -> 1.0;
+                    case END_CRAWLER -> 2.2;
+                    case SHULKER_SENTINEL -> 1.0;
                 });
             }
             entity.setInvisible(true);
@@ -469,6 +475,12 @@ public final class FaunaManager implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onDamage(EntityDamageEvent event) {
         Critter critter = critterOf(event.getEntity());
+        if (critter != null && !(critter instanceof TuffGolem)) {
+            double k = critter.resist(event);
+            if (k != 1.0) {
+                event.setDamage(event.getDamage() * k);
+            }
+        }
         if (!(critter instanceof TuffGolem golem)) {
             return;
         }
@@ -499,6 +511,29 @@ public final class FaunaManager implements Listener {
         critter.hurt(attacker);
     }
 
+    /** Quem minera cristais de ametista desperta os Rastejadores do Fim por perto. */
+    @EventHandler(ignoreCancelled = true)
+    public void onCrystalBreak(org.bukkit.event.block.BlockBreakEvent event) {
+        Material type = event.getBlock().getType();
+        if (type != Material.AMETHYST_CLUSTER && type != Material.LARGE_AMETHYST_BUD && type != Material.MEDIUM_AMETHYST_BUD
+                && type != Material.SMALL_AMETHYST_BUD && type != Material.AMETHYST_BLOCK && type != Material.BUDDING_AMETHYST) {
+            return;
+        }
+        for (Critter critter : critters.values()) {
+            if (critter instanceof EndCrawler crawler && critter.mob.getWorld().equals(event.getBlock().getWorld())
+                    && critter.mob.getLocation().distanceSquared(event.getBlock().getLocation()) < 16 * 16) {
+                crawler.provoke(event.getPlayer());
+            }
+        }
+    }
+
+    @EventHandler
+    public void onShoot(org.bukkit.event.entity.ProjectileLaunchEvent event) {
+        if (event.getEntity().getShooter() instanceof Entity shooter && critterOf(shooter) instanceof ShulkerSentinel sentinel) {
+            sentinel.onShoot();
+        }
+    }
+
     @EventHandler
     public void onDeath(EntityDeathEvent event) {
         Critter critter = critterOf(event.getEntity());
@@ -523,6 +558,21 @@ public final class FaunaManager implements Listener {
             event.getDrops().add(new ItemStack(Material.FEATHER, 1 + random.nextInt(2)));
         } else if (critter.kind() == FaunaKind.GREAT_HUNGER) {
             event.getDrops().clear();
+        } else if (critter.kind() == FaunaKind.VOID_RAY) {
+            event.getDrops().clear();
+            ItemStack membrane = dev.vertexx.end.EndItem.ETHEREAL_MEMBRANE.create(plugin);
+            membrane.setAmount(1 + random.nextInt(2));
+            event.getDrops().add(membrane);
+        } else if (critter.kind() == FaunaKind.END_CRAWLER) {
+            event.getDrops().clear();
+            ItemStack chitin = dev.vertexx.end.EndItem.VOID_CHITIN.create(plugin);
+            chitin.setAmount(1 + random.nextInt(2));
+            event.getDrops().add(chitin);
+        } else if (critter.kind() == FaunaKind.SHULKER_SENTINEL) {
+            event.getDrops().clear();
+            if (random.nextDouble() < 0.7) {
+                event.getDrops().add(dev.vertexx.end.EndItem.LEVITATION_CORE.create(plugin));
+            }
         } else if (critter.kind() == FaunaKind.BARNACLE) {
             event.getDrops().clear();
             event.getDrops().add(new ItemStack(Material.PRISMARINE_SHARD, 3 + random.nextInt(4)));
@@ -596,6 +646,10 @@ public final class FaunaManager implements Listener {
             }
             Location l = player.getLocation();
             World world = l.getWorld();
+            if (world.getEnvironment() == World.Environment.THE_END) {
+                spawnEnd(player);
+                continue;
+            }
             if (world.getEnvironment() != World.Environment.NORMAL) {
                 continue;
             }
@@ -631,6 +685,42 @@ public final class FaunaManager implements Listener {
                 spawnSeabed(player);
             }
         }
+    }
+
+    /** Arraias nas copas do Coro, Rastejadores nos Abismos e Sentinelas raras nos abismos e perto das cidades do End. */
+    private void spawnEnd(Player player) {
+        if (!plugin.getConfig().getBoolean("end.mobs.enabled", true)) {
+            return;
+        }
+        Location l = player.getLocation();
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        dev.vertexx.end.EndWorld.Zone zone = dev.vertexx.end.EndWorld.zoneAt(l.getWorld(), l.getBlockX(), l.getBlockZ());
+        if (zone == dev.vertexx.end.EndWorld.Zone.CANOPY && count(FaunaKind.VOID_RAY, l, 64) < 3 && random.nextDouble() < 0.35) {
+            spawnNear(player, FaunaKind.VOID_RAY, 10, 22, false);
+        }
+        if (zone == dev.vertexx.end.EndWorld.Zone.WASTES) {
+            if (count(FaunaKind.END_CRAWLER, l, 64) < 3 && random.nextDouble() < 0.3) {
+                spawnNear(player, FaunaKind.END_CRAWLER, 10, 22, false);
+            }
+            if (count(FaunaKind.SHULKER_SENTINEL, l, 64) == 0 && random.nextDouble() < 0.04) {
+                spawnNear(player, FaunaKind.SHULKER_SENTINEL, 12, 24, false);
+            }
+        }
+        if (count(FaunaKind.SHULKER_SENTINEL, l, 80) == 0 && random.nextDouble() < 0.15 && nearEndCity(l)) {
+            spawnNear(player, FaunaKind.SHULKER_SENTINEL, 8, 20, false);
+        }
+    }
+
+    private static boolean nearEndCity(Location l) {
+        Vector at = l.toVector();
+        for (GeneratedStructure generated : l.getChunk().getStructures(Structure.END_CITY)) {
+            for (StructurePiece piece : generated.getPieces()) {
+                if (piece.getBoundingBox().clone().expand(24).contains(at)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Barnacle: no fundo do oceano, a 10-20 blocos do jogador, com água por cima. */
@@ -696,7 +786,7 @@ public final class FaunaManager implements Listener {
             }
             for (int dy = 3; dy >= -4; dy--) {
                 Block b = world.getBlockAt(x, player.getLocation().getBlockY() + dy, z);
-                boolean ground = kind != FaunaKind.GLARE;
+                boolean ground = kind != FaunaKind.GLARE && kind != FaunaKind.VOID_RAY;
                 if (!b.isPassable() || b.isLiquid() || !b.getRelative(0, 1, 0).isPassable() || !b.getRelative(0, 2, 0).isPassable()
                         || (ground && b.getRelative(0, -1, 0).isPassable())) {
                     continue;
@@ -727,7 +817,7 @@ public final class FaunaManager implements Listener {
             case "spawn", "criar" -> {
                 FaunaKind kind = args.length < 3 ? null : FaunaKind.parse(args[2]);
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle> [variante]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel> [variante]");
                     return;
                 }
                 String variant = args.length >= 4 && GreatHunger.VARIANTS.contains(args[3].toLowerCase(Locale.ROOT))
@@ -766,7 +856,7 @@ public final class FaunaManager implements Listener {
             return Tab.of(args[1], "spawn", "limpar", "lista");
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
-            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle");
+            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel");
         }
         if (args.length == 4 && args[1].equalsIgnoreCase("spawn") && FaunaKind.parse(args[2]) == FaunaKind.GREAT_HUNGER) {
             return Tab.of(args[3], GreatHunger.VARIANTS.toArray(new String[0]));

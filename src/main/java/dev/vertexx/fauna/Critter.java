@@ -187,6 +187,11 @@ abstract class Critter {
         mob.getPathfinder().moveTo(to, 1.8);
     }
 
+    /** Multiplicador do dano recebido (carapaças, defesas). */
+    double resist(org.bukkit.event.entity.EntityDamageEvent event) {
+        return 1.0;
+    }
+
     /** Dano/interação específicos; devolve verdadeiro se tratou o evento. */
     boolean interact(org.bukkit.entity.Player player, org.bukkit.inventory.ItemStack hand) {
         return false;

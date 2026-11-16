@@ -2,9 +2,12 @@ package dev.vertexx.fauna;
 
 import java.util.Locale;
 import org.bukkit.Material;
+import org.bukkit.entity.Allay;
+import org.bukkit.entity.Breeze;
 import org.bukkit.entity.Cow;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Parrot;
+import org.bukkit.entity.Silverfish;
 import org.bukkit.entity.Squid;
 import org.bukkit.entity.Turtle;
 
@@ -17,7 +20,10 @@ public enum FaunaKind {
     CRAB("crab", "Caranguejo", "<blue>", Material.MANGROVE_ROOTS, Cow.class),
     PENGUIN("penguin", "Pinguim", "<dark_aqua>", Material.COD, Turtle.class),
     GREAT_HUNGER("greathunger", "Great Hunger", "<dark_green>", Material.COARSE_DIRT, Cow.class),
-    BARNACLE("barnacle", "Barnacle", "<dark_aqua>", Material.PRISMARINE, Squid.class);
+    BARNACLE("barnacle", "Barnacle", "<dark_aqua>", Material.PRISMARINE, Squid.class),
+    VOID_RAY("voidray", "Arraia do Vazio", "<light_purple>", Material.PHANTOM_MEMBRANE, Allay.class),
+    END_CRAWLER("endcrawler", "Rastejador do Fim", "<dark_purple>", Material.OBSIDIAN, Silverfish.class),
+    SHULKER_SENTINEL("shulkersentinel", "Sentinela de Shulker", "<light_purple>", Material.SHULKER_SHELL, Breeze.class);
 
     private final String key;
     private final String display;
@@ -69,6 +75,9 @@ public enum FaunaKind {
             case "pinguim" -> PENGUIN;
             case "hunger", "fome" -> GREAT_HUNGER;
             case "monstro", "lula" -> BARNACLE;
+            case "arraia", "ray" -> VOID_RAY;
+            case "rastejador", "crawler" -> END_CRAWLER;
+            case "sentinela", "sentinel" -> SHULKER_SENTINEL;
             default -> null;
         };
     }
