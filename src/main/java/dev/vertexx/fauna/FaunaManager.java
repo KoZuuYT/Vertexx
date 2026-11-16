@@ -303,6 +303,8 @@ public final class FaunaManager implements Listener {
             case MEERKAT -> new Meerkat(this, mob);
             case OSTRICH -> new Ostrich(this, mob);
             case VULTURE -> new Vulture(this, mob);
+            case DEEPSLATE_ANKYLO -> new Ankylo(this, mob);
+            case CAVE_GLIDER -> new CaveGlider(this, mob);
         };
         // nome próprio (invisível, o mob-base também é): mensagens de morte e legendas citam a criatura, não a vaca
         if (mob.customName() == null) {
@@ -450,6 +452,8 @@ public final class FaunaManager implements Listener {
                     case MEERKAT -> 1.0;
                     case OSTRICH -> 1.0;
                     case VULTURE -> 1.0;
+                    case DEEPSLATE_ANKYLO -> 1.5;
+                    case CAVE_GLIDER -> 1.0;
                 });
             }
             entity.setInvisible(true);
@@ -636,6 +640,14 @@ public final class FaunaManager implements Listener {
             if (random.nextDouble() < 0.7) {
                 event.getDrops().add(dev.vertexx.end.EndItem.LEVITATION_CORE.create(plugin));
             }
+        } else if (critter.kind() == FaunaKind.DEEPSLATE_ANKYLO) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.BONE, 2 + random.nextInt(3)));
+            event.getDrops().add(new ItemStack(Material.COBBLED_DEEPSLATE, 2));
+        } else if (critter.kind() == FaunaKind.CAVE_GLIDER) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.BONE, 1 + random.nextInt(2)));
+            event.getDrops().add(new ItemStack(Material.LEATHER, random.nextInt(2)));
         } else if (critter.kind() == FaunaKind.VULTURE) {
             event.getDrops().clear();
             event.getDrops().add(new ItemStack(Material.FEATHER, 1 + random.nextInt(3)));
@@ -951,7 +963,7 @@ public final class FaunaManager implements Listener {
             case "spawn", "criar" -> {
                 FaunaKind kind = args.length < 3 ? null : FaunaKind.parse(args[2]);
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel|amethystgolem|meerkat|ostrich|vulture> [variante]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel|amethystgolem|meerkat|ostrich|vulture|deepslateankylo|caveglider> [variante]");
                     return;
                 }
                 String variant = args.length >= 4 && GreatHunger.VARIANTS.contains(args[3].toLowerCase(Locale.ROOT))
@@ -990,7 +1002,7 @@ public final class FaunaManager implements Listener {
             return Tab.of(args[1], "spawn", "limpar", "lista");
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
-            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel", "amethystgolem", "meerkat", "ostrich", "vulture");
+            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel", "amethystgolem", "meerkat", "ostrich", "vulture", "deepslateankylo", "caveglider");
         }
         if (args.length == 4 && args[1].equalsIgnoreCase("spawn") && FaunaKind.parse(args[2]) == FaunaKind.GREAT_HUNGER) {
             return Tab.of(args[3], GreatHunger.VARIANTS.toArray(new String[0]));

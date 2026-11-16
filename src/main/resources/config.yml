@@ -265,3 +265,7 @@ overworld:
     tumbleweed-chance: 0.1
     tumbleweed-cap: 40
     hatch-seconds: 180        # tempo para o ovo de avestruz chocar no feno
+  archaeology:
+    generation: true          # bolsões de cascalho suspeito em cavernas de deepslate (chunks novos)
+    pocket-chance: 0.3
+    incubation-seconds: 180   # ciclo da Incubadora Geotérmica

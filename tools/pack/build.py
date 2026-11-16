@@ -314,6 +314,8 @@ EGGS = {
     "meerkat": ("#c4a06a", "#33241a"),
     "ostrich": ("#17151a", "#efece4"),
     "vulture": ("#3d2b1d", "#c0777e"),
+    "deepslateankylo": ("#3a3a42", "#9a78e0"),
+    "caveglider": ("#50555f", "#ffc23a"),
 }
 # formato do ovo em 16x16: linha -> (x0, x1)
 EGG_ROWS = {1: (6, 9), 2: (5, 10), 3: (4, 11), 4: (4, 11), 5: (3, 12), 6: (3, 12), 7: (3, 12), 8: (2, 13),

@@ -106,6 +106,19 @@ public final class PanelCommand implements TabExecutor {
                     }
                 }
             }
+            case "fossil" -> {
+                if (!admin || args.length < 4) {
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx fossil <x> <y> <z></white> <gray>(cria um bolsão de cascalho suspeito)");
+                } else {
+                    try {
+                        org.bukkit.World w = sender instanceof Player p ? p.getWorld() : plugin.getServer().getWorlds().get(0);
+                        int n = plugin.archaeology().demoPocket(w, Integer.parseInt(args[1]), Integer.parseInt(args[2]), Integer.parseInt(args[3]));
+                        Msg.send(sender, "<green>Bolsão criado: " + n + " blocos.");
+                    } catch (NumberFormatException e) {
+                        Msg.send(sender, "<red>Coordenadas inválidas.");
+                    }
+                }
+            }
             case "clima" -> {
                 if (!admin) {
                     Msg.send(sender, "<red>Você não tem permissão.");
@@ -333,7 +346,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "clima", "arida", "cabeca", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "clima", "arida", "fossil", "cabeca", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {
