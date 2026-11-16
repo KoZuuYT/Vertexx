@@ -168,7 +168,8 @@ bosses:
     min-spacing: 900
 
 fauna:
-  # Criaturas rejeitadas da votacao de mobs: Rascal, Golem de Tufo, Moobloom e Glare.
+  # Criaturas rejeitadas da votacao de mobs: Rascal, Golem de Tufo, Moobloom, Glare, Caranguejo, Pinguim,
+  # Great Hunger e Barnacle (monstro das profundezas).
   enabled: true
   spawn-interval-seconds: 12
   rascal:
@@ -185,3 +186,27 @@ fauna:
     chance: 0.35
   tuff-golem:
     enabled: true
+  crab:
+    enabled: true
+    # Chance por verificacao, para jogadores em manguezais.
+    chance: 0.18
+    # Blocos extras de alcance para colocar/quebrar blocos com a Garra de Caranguejo na mao.
+    claw-reach: 3.0
+  penguin:
+    enabled: true
+    # Chance por verificacao, para jogadores em praias rochosas (nascem em grupos de 2 a 3).
+    chance: 0.15
+    # Multiplicador de velocidade dos barcos com pinguins nadando por perto.
+    boat-boost: 1.12
+  great-hunger:
+    enabled: true
+    # Chance por verificacao, na superficie (a variante segue o bloco do chao).
+    chance: 0.04
+  barnacle:
+    enabled: true
+    # Chance por verificacao, para jogadores na agua ou de barco em oceanos profundos.
+    chance: 0.05
+    # Raio (blocos) do redemoinho.
+    radius: 10
+    # Se verdadeiro, barcos sugados ate o centro quebram (o barco cai como item).
+    break-boats: true

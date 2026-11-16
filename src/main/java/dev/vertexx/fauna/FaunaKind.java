@@ -5,13 +5,19 @@ import org.bukkit.Material;
 import org.bukkit.entity.Cow;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Parrot;
+import org.bukkit.entity.Squid;
+import org.bukkit.entity.Turtle;
 
 /** Criaturas "rejeitadas" da votação de mobs da Mojang que o Vertexx traz para o jogo. */
 public enum FaunaKind {
     RASCAL("rascal", "Rascal", "<aqua>", Material.CYAN_WOOL, Cow.class),
     TUFF_GOLEM("tuffgolem", "Golem de Tufo", "<gray>", Material.TUFF, Cow.class),
     MOOBLOOM("moobloom", "Moobloom", "<yellow>", Material.DANDELION, Cow.class),
-    GLARE("glare", "Glare", "<green>", Material.MOSS_BLOCK, Parrot.class);
+    GLARE("glare", "Glare", "<green>", Material.MOSS_BLOCK, Parrot.class),
+    CRAB("crab", "Caranguejo", "<blue>", Material.MANGROVE_ROOTS, Cow.class),
+    PENGUIN("penguin", "Pinguim", "<dark_aqua>", Material.COD, Turtle.class),
+    GREAT_HUNGER("greathunger", "Great Hunger", "<dark_green>", Material.COARSE_DIRT, Cow.class),
+    BARNACLE("barnacle", "Barnacle", "<dark_aqua>", Material.PRISMARINE, Squid.class);
 
     private final String key;
     private final String display;
@@ -57,6 +63,13 @@ public enum FaunaKind {
                 return kind;
             }
         }
-        return clean.equals("golem") ? TUFF_GOLEM : null;
+        return switch (clean) {
+            case "golem" -> TUFF_GOLEM;
+            case "caranguejo" -> CRAB;
+            case "pinguim" -> PENGUIN;
+            case "hunger", "fome" -> GREAT_HUNGER;
+            case "monstro", "lula" -> BARNACLE;
+            default -> null;
+        };
     }
 }

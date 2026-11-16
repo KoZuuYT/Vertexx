@@ -65,6 +65,7 @@ public final class FaunaManager implements Listener {
     private final NamespacedKey heldKey;
     private final NamespacedKey capeKey;
     private final NamespacedKey ignoreKey;
+    private final NamespacedKey variantKey;
     private final Map<UUID, Critter> critters = new HashMap<>();
     private BukkitTask task;
     private int tick;
@@ -79,6 +80,7 @@ public final class FaunaManager implements Listener {
         this.heldKey = new NamespacedKey(plugin, "fauna_held");
         this.capeKey = new NamespacedKey(plugin, "fauna_cape");
         this.ignoreKey = new NamespacedKey(plugin, "fauna_ignore");
+        this.variantKey = new NamespacedKey(plugin, "fauna_variant");
     }
 
     PluginMain plugin() {
@@ -111,6 +113,10 @@ public final class FaunaManager implements Listener {
 
     NamespacedKey ignoreKey() {
         return ignoreKey;
+    }
+
+    NamespacedKey variantKey() {
+        return variantKey;
     }
 
     private boolean enabled() {
@@ -184,6 +190,10 @@ public final class FaunaManager implements Listener {
             case TUFF_GOLEM -> new TuffGolem(this, mob);
             case MOOBLOOM -> new Moobloom(this, mob);
             case GLARE -> new Glare(this, mob);
+            case CRAB -> new Crab(this, mob);
+            case PENGUIN -> new Penguin(this, mob);
+            case GREAT_HUNGER -> new GreatHunger(this, mob);
+            case BARNACLE -> new Barnacle(this, mob);
         };
         critters.put(entity.getUniqueId(), critter);
         critter.start();
@@ -193,15 +203,27 @@ public final class FaunaManager implements Listener {
 
     /** Cria uma criatura (administração e regras de surgimento). */
     public Mob spawn(Location at, FaunaKind kind) {
+        return spawn(at, kind, null);
+    }
+
+    /** {@code variant}: variante do Great Hunger (nulo = pelo bloco do chão). */
+    public Mob spawn(Location at, FaunaKind kind, String variant) {
+        String v = kind != FaunaKind.GREAT_HUNGER ? null
+                : variant != null ? variant : GreatHunger.variantFor(at.getBlock().getRelative(0, -1, 0));
         Mob mob = at.getWorld().spawn(at, kind.base(), entity -> {
             entity.getPersistentDataContainer().set(kindKey, PersistentDataType.STRING, kind.key());
+            if (v != null) {
+                entity.getPersistentDataContainer().set(variantKey, PersistentDataType.STRING, v);
+            }
+            if (entity instanceof org.bukkit.entity.Ageable ageable) {
+                ageable.setAdult();
+            }
+            if (entity instanceof org.bukkit.entity.Breedable breedable) {
+                breedable.setAgeLock(true);
+                breedable.setBreed(false);
+            }
             entity.setPersistent(true);
             entity.setRemoveWhenFarAway(false);
-            if (entity instanceof Cow cow) {
-                cow.setAdult();
-                cow.setAgeLock(true);
-                cow.setBreed(false);
-            }
             AttributeInstance scale = entity.getAttribute(Attribute.SCALE);
             if (scale != null) {
                 scale.setBaseValue(switch (kind) {
@@ -209,6 +231,10 @@ public final class FaunaManager implements Listener {
                     case TUFF_GOLEM -> 0.85;
                     case MOOBLOOM -> 1.0;
                     case GLARE -> 1.1;
+                    case CRAB -> 0.5;
+                    case PENGUIN -> 0.75;
+                    case GREAT_HUNGER -> 0.45;
+                    case BARNACLE -> 2.2;
                 });
             }
             entity.setInvisible(true);
@@ -321,6 +347,18 @@ public final class FaunaManager implements Listener {
             event.getDrops().add(new ItemStack(Material.GLOW_BERRIES, 1 + random.nextInt(3)));
         } else if (critter.kind() == FaunaKind.MOOBLOOM) {
             event.getDrops().add(new ItemStack(Material.DANDELION, 1 + random.nextInt(2)));
+        } else if (critter.kind() == FaunaKind.CRAB) {
+            event.getDrops().clear();
+            event.getDrops().add(Crab.claw(plugin));
+        } else if (critter.kind() == FaunaKind.PENGUIN) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.FEATHER, 1 + random.nextInt(2)));
+        } else if (critter.kind() == FaunaKind.GREAT_HUNGER) {
+            event.getDrops().clear();
+        } else if (critter.kind() == FaunaKind.BARNACLE) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.PRISMARINE_SHARD, 3 + random.nextInt(4)));
+            event.getDrops().add(new ItemStack(Material.INK_SAC, 2 + random.nextInt(3)));
         }
     }
 
@@ -402,6 +440,53 @@ public final class FaunaManager implements Listener {
                     && random.nextDouble() < plugin.getConfig().getDouble("fauna.glare.chance", 0.15)) {
                 spawnNear(player, FaunaKind.GLARE, 8, 18, false);
             }
+            Biome biome = world.getBiome(l);
+            if (plugin.getConfig().getBoolean("fauna.crab.enabled", true) && biome == Biome.MANGROVE_SWAMP
+                    && count(FaunaKind.CRAB, l, 48) < 3 && random.nextDouble() < plugin.getConfig().getDouble("fauna.crab.chance", 0.18)) {
+                spawnNear(player, FaunaKind.CRAB, 8, 20, false);
+            }
+            if (plugin.getConfig().getBoolean("fauna.penguin.enabled", true) && biome == Biome.STONY_SHORE
+                    && count(FaunaKind.PENGUIN, l, 64) == 0 && random.nextDouble() < plugin.getConfig().getDouble("fauna.penguin.chance", 0.15)) {
+                int n = 2 + random.nextInt(2);
+                for (int i = 0; i < n; i++) {
+                    spawnNear(player, FaunaKind.PENGUIN, 10, 20, false);
+                }
+            }
+            if (plugin.getConfig().getBoolean("fauna.great-hunger.enabled", true) && l.getY() > 50
+                    && world.getHighestBlockYAt(l) <= l.getBlockY() + 1 && count(FaunaKind.GREAT_HUNGER, l, 96) == 0
+                    && random.nextDouble() < plugin.getConfig().getDouble("fauna.great-hunger.chance", 0.04)) {
+                spawnNear(player, FaunaKind.GREAT_HUNGER, 10, 22, false);
+            }
+            if (plugin.getConfig().getBoolean("fauna.barnacle.enabled", true) && biome.getKey().getKey().startsWith("deep_")
+                    && (player.isInWater() || player.getVehicle() instanceof org.bukkit.entity.Boat)
+                    && count(FaunaKind.BARNACLE, l, 96) == 0 && random.nextDouble() < plugin.getConfig().getDouble("fauna.barnacle.chance", 0.05)) {
+                spawnSeabed(player);
+            }
+        }
+    }
+
+    /** Barnacle: no fundo do oceano, a 10-20 blocos do jogador, com água por cima. */
+    private void spawnSeabed(Player player) {
+        World world = player.getWorld();
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (int i = 0; i < 12; i++) {
+            double angle = random.nextDouble() * Math.PI * 2;
+            double dist = 10 + random.nextDouble() * 10;
+            int x = (int) Math.floor(player.getX() + Math.cos(angle) * dist);
+            int z = (int) Math.floor(player.getZ() + Math.sin(angle) * dist);
+            if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+                continue;
+            }
+            int y = player.getLocation().getBlockY();
+            while (y > world.getMinHeight() + 1 && world.getBlockAt(x, y - 1, z).getType() == Material.WATER) {
+                y--;
+            }
+            Block spot = world.getBlockAt(x, y, z);
+            if (spot.getType() == Material.WATER && spot.getRelative(0, 3, 0).getType() == Material.WATER
+                    && player.getLocation().getY() - y >= 8) {
+                spawn(spot.getLocation().add(0.5, 0.2, 0.5), FaunaKind.BARNACLE);
+                return;
+            }
         }
     }
 
@@ -474,16 +559,18 @@ public final class FaunaManager implements Listener {
             case "spawn", "criar" -> {
                 FaunaKind kind = args.length < 3 ? null : FaunaKind.parse(args[2]);
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare>");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle> [variante]");
                     return;
                 }
+                String variant = args.length >= 4 && GreatHunger.VARIANTS.contains(args[3].toLowerCase(Locale.ROOT))
+                        ? args[3].toLowerCase(Locale.ROOT) : null;
                 Location at;
                 if (sender instanceof Player player) {
                     at = player.getLocation().add(player.getLocation().getDirection().setY(0).normalize().multiply(3));
                 } else {
                     at = Bukkit.getWorlds().get(0).getSpawnLocation().add(0.5, 1, 0.5);
                 }
-                spawn(at, kind);
+                spawn(at, kind, variant);
                 Msg.send(sender, "<green>" + kind.display() + " criado.");
             }
             case "limpar" -> {
@@ -511,7 +598,10 @@ public final class FaunaManager implements Listener {
             return Tab.of(args[1], "spawn", "limpar", "lista");
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
-            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare");
+            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle");
+        }
+        if (args.length == 4 && args[1].equalsIgnoreCase("spawn") && FaunaKind.parse(args[2]) == FaunaKind.GREAT_HUNGER) {
+            return Tab.of(args[3], GreatHunger.VARIANTS.toArray(new String[0]));
         }
         return List.of();
     }

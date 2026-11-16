@@ -370,14 +370,16 @@ public final class ModelInstance {
         Vector3f offset = new Vector3f((float) (at.getX() - anchor.getX()), (float) (at.getY() - anchor.getY()),
                 (float) (at.getZ() - anchor.getZ()));
         float unit = scale / 16f;
+        boolean[] hiddenEff = new boolean[displays.length];   // esconder um osso esconde os filhos (ossos vêm pai antes de filho)
         for (int i = 0; i < displays.length; i++) {
+            ModelDef.Bone bone = def.bones[i];
+            hiddenEff[i] = hidden[i] || (bone.parent() >= 0 && hiddenEff[bone.parent()]);
             ItemDisplay display = displays[i];
             if (display == null || !display.isValid()) {
                 continue;
             }
-            ModelDef.Bone bone = def.bones[i];
             boolean pinned = pinPos[i] != null;
-            boolean gone = hidden[i];
+            boolean gone = hiddenEff[i];
             Vector3f translation = new Vector3f(wPos[i]).mul(unit);
             Quaternionf rotation = pinned ? new Quaternionf(wRot[i]) : new Quaternionf(lastBasis).mul(wRot[i]);
             if (!pinned) {

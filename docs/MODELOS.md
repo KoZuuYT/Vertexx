@@ -139,3 +139,31 @@ Por isso eu não tinha como criá-las. Desde o 1.21.9 o componente `profile` ace
 da cabeça de cada modelo (osso `head`, 6 faces 8x8) em `models/heads/`; o build do pack as copia e escreve
 `heads.txt`; `/vertexx cabeca <nome>` entrega o item (`dev.vertexx.model.CustomHeads`). Continua exigindo o
 resource pack e **não foi visto no cliente do jogo**.
+
+## Sistema de design por referências múltiplas (0.17.0)
+
+A projeção da imagem na textura (``refscan.bake``) foi aposentada para os mobs: ela borrava faces, apagava
+rostos e inventava os lados que a referência não mostra. Agora cada mob é **desenhado**: geometria declarada
+peça a peça e textura pintada face a face em pixel art, com as cores e medidas tiradas das referências.
+
+| Módulo | Função |
+| --- | --- |
+| `vx/design.py` | `Designer` (peças por tamanho/âncora, `skin` por face, `mirror` de ossos com textura espelhada, `drop_face`) e `Canvas` (ruído agrupado, gradiente pontilhado, chamas, listras, pingos, franjas, sprites desenhados em texto) |
+| `vx/multiref.py` | pasta `models/refs/<mob>/` com várias imagens e papéis (`shape`, `color`, `both`); paleta de consenso (k-means em CIELAB com o mesmo peso por imagem); **conciliação de medidas** (ajuste por imagem e mediana ponderada pelo IoU; as divergências viram "adaptações" no relatório); painel de conferência por referência |
+| `vx/lint.py` | z-fighting (faces coplanares), casca encostada cobrindo outra face, faces transparentes ou chapadas, pares `_l/_r` incompletos, keyframes conflitantes (duas ondas no mesmo canal) e ossos inexistentes nas animações |
+| `vx/voxelize.py` + `img2bb.py` | imagem 2D → `.bbmodel`: grade de texels, eixo de simetria, partes por gargalos (CCA), auto-rig (cabeça/tronco/braços/pernas com pivô na junta), fusão gulosa em cuboides, espessura por distância à borda + luminância + bordas de Canny |
+| `vx/build.py` | atlas com uma ilha por face e margem de 1 px preenchida com a cor da borda (sem vazamento de textura nas dobras); cresce sozinho |
+| `author/kit.py` | `make(...)`: referências → paleta → conciliação → lint → `.bbmodel` → prancha (8 vistas × 4 instantes) → painel por referência → `models/analysis/<mob>.json` |
+
+```powershell
+python tools\models\author\rascal.py          # um mob
+python tools\models\img2bb.py arte.png --name estatua   # sprite → .bbmodel (models/generated)
+```
+
+**Correção importante da prévia:** até a 0.16.4 as pranchas aplicavam as animações sem a conversão editor→jogo
+nos eixos X e Z (rotações apareciam espelhadas na prévia, mas não no jogo). `kit.sheet`/`game_pose` agora usam os
+mesmos valores do plugin. Lembrete: animações **somam** à rotação de repouso do osso; não repita a rotação base
+nos keyframes.
+
+Mobs novos: Caranguejo, Pinguim (Mob Vote 2023), Great Hunger (6 variantes: terra, areia, madeira, pedra,
+ametista, grama) e Barnacle (Mob Vote 2017). Esconder um osso (`ModelInstance.hide`) esconde também os filhos.

@@ -14,22 +14,51 @@ from .model import Animation, Bone, Cube, Face, Keyframe, Locator, Model, Textur
 
 
 class Atlas:
-    """Textura única com alocação em prateleiras."""
+    """Textura única com alocação em prateleiras. Cresce em altura (potência de 2) quando enche.
 
-    def __init__(self, w: int, h: int):
+    Cada ilha de UV ganha ``pad`` texels de margem; ``bleed`` preenche essas margens com a cor da borda da face
+    vizinha, então mipmaps e filtragem no jogo nunca puxam texels de outra face (linhas escuras nas dobras)."""
+
+    def __init__(self, w: int, h: int, pad: int = 1):
         self.w, self.h = w, h
+        self.pad = pad
         self.px = np.zeros((h, w, 4), dtype=np.uint8)
+        self.used = np.zeros((h, w), dtype=bool)
         self._x = self._y = self._row = 0
 
+    def _grow(self):
+        self.px = np.concatenate([self.px, np.zeros_like(self.px)], axis=0)
+        self.used = np.concatenate([self.used, np.zeros_like(self.used)], axis=0)
+        self.h *= 2
+
     def alloc(self, rw: int, rh: int):
-        if self._x + rw > self.w:
+        p = self.pad
+        if rw + 2 * p > self.w:
+            raise ValueError(f"face {rw}x{rh} mais larga que o atlas ({self.w})")
+        if self._x + rw + 2 * p > self.w:
             self._x, self._y, self._row = 0, self._y + self._row, 0
-        if self._y + rh > self.h:
-            raise ValueError(f"atlas {self.w}x{self.h} cheio ao alocar {rw}x{rh}")
-        pos = (self._x, self._y)
-        self._x += rw
-        self._row = max(self._row, rh)
+        while self._y + rh + 2 * p > self.h:
+            self._grow()
+        pos = (self._x + p, self._y + p)
+        self._x += rw + 2 * p
+        self._row = max(self._row, rh + 2 * p)
+        self.used[pos[1]:pos[1] + rh, pos[0]:pos[0] + rw] = True
         return pos
+
+    def bleed(self):
+        """Estende a cor das bordas de cada ilha para a margem (só fora das faces; recortes continuam vazios)."""
+        px = self.px
+        filled = self.used & (px[..., 3] > 0)
+        for _ in range(self.pad):
+            src = px.copy()
+            got = filled.copy()
+            for dy, dx in ((0, 1), (0, -1), (1, 0), (-1, 0)):
+                sh = np.roll(filled, (dy, dx), axis=(0, 1))
+                shc = np.roll(src, (dy, dx), axis=(0, 1))
+                take = sh & ~got & ~self.used
+                px[take] = shc[take]
+                got |= take
+            filled = got
 
     def image(self) -> Image.Image:
         return Image.fromarray(self.px, "RGBA")
@@ -72,12 +101,13 @@ class Builder:
                  [float(v) for v in (rot or (0, 0, 0))], float(inflate))
         w, h, d = (max(1, math.ceil(hi[0] - lo[0] - 1e-6)), max(1, math.ceil(hi[1] - lo[1] - 1e-6)),
                    max(1, math.ceil(hi[2] - lo[2] - 1e-6)))
-        x, y = self.atlas.alloc(2 * d + 2 * w, d + h)
         lay = _faces_layout(w, h, d)
-        self.layout[c.uuid] = {f: (x + r[0], y + r[1], r[2], r[3]) for f, r in lay.items()}
-        for f, (fx, fy, fw, fh) in self.layout[c.uuid].items():
+        self.layout[c.uuid] = {}
+        for f, r in lay.items():
             if faces == "all" or f in faces:
-                c.faces[f] = Face([fx, fy, fx + fw, fy + fh])
+                fx, fy = self.atlas.alloc(r[2], r[3])
+                self.layout[c.uuid][f] = (fx, fy, r[2], r[3])
+                c.faces[f] = Face([fx, fy, fx + r[2], fy + r[3]])
         b.cubes.append(c)
         self.cubes[name] = c
         return c
@@ -118,6 +148,8 @@ class Builder:
         return AnimBuilder(a)
 
     def finish(self) -> Model:
+        self.atlas.bleed()
+        self.model.res = (self.atlas.w, self.atlas.h)
         self.model.textures = [Texture(self.model.name, png_bytes(self.atlas.image()), *self.model.res)]
         # cubos sem face pintada continuam válidos; faces fora de "faces" simplesmente não existem
         return self.model
@@ -133,6 +165,14 @@ class AnimBuilder:
         v = list(value) if isinstance(value, (list, tuple)) else [value, value, value]
         self.anim.tracks.setdefault(f"{bone}|{ch}", []).append(Keyframe(ch, float(time), [v], interp))
         self.anim.tracks[f"{bone}|{ch}"].sort(key=lambda k: k.time)
+        return self
+
+    def orbit(self, bone, channel, amps, phases=(0.0, 0.0, 0.0), steps=8, base=(0, 0, 0), interp="catmullrom"):
+        """Oscilação em vários eixos ao mesmo tempo (um único conjunto de keyframes por canal)."""
+        for i in range(steps + 1):
+            t = self.anim.length * i / steps
+            v = [base[a] + amps[a] * math.sin(2 * math.pi * i / steps + phases[a]) for a in range(3)]
+            self.key(bone, channel, t, v, interp)
         return self
 
     def wave(self, bone, channel, axis, amp, phase=0.0, steps=8, base=(0, 0, 0), interp="catmullrom"):
