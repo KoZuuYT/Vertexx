@@ -37,7 +37,7 @@ public final class PanelGUI implements InventoryHolder {
     private enum Page {
         HOME("Painel"), WAYSTONES("Waystones"), GRAVES("Túmulos"),
         GUIDE("Comandos"), ADMIN("Administração"), ADMIN_WAYSTONES("Todos os Waystones"),
-        ADMIN_MOBS("Criar mobs"), ADMIN_TRAITS("Traits do mob"), ADMIN_XP("Conceder XP"), ADMIN_BOSSES("Bosses"), ADMIN_EGGS("Ovos das criaturas"),
+        ADMIN_MOBS("Criar mobs"), ADMIN_TRAITS("Traits do mob"), ADMIN_XP("Conceder XP"), ADMIN_BOSSES("Bosses"), ADMIN_EGGS("Ovos e itens"),
         WIKI("Wiki");
 
         private final String title;
@@ -262,6 +262,9 @@ public final class PanelGUI implements InventoryHolder {
         set(29, Items.of(Material.NETHER_STAR, "<white>/vstats", List.of("<gray>Status, habilidades e informações.")), null);
         set(33, Items.of(Material.ENCHANTED_BOOK, "<white>Wiki", List.of("<gray>Traits, mobs Elite e bosses",
                 "<gray>estão na Wiki, aberta pela tela inicial.")), c -> go(Page.WIKI));
+        set(38, Items.of(Material.CHEST, "<white>/mochila",
+                List.of("<gray>Abre a mochila equipada no peito.", "<gray>Botão direito com ela na mão também abre.",
+                        "<gray>Botão do meio num baú ou mochila: ordena.")), null);
         set(31, Items.of(Material.LODESTONE, "<white>Waystones",
                 List.of("<gray>Clique direito para viajar.", "<gray>Clique em um novo Waystone para descobri-lo.")), null);
     }
@@ -315,8 +318,8 @@ public final class PanelGUI implements InventoryHolder {
         set(40, Items.of(Material.WITHER_SKELETON_SKULL, "<white>Bosses",
                 List.of("<gray>Salas, testes e controle dos bosses.", "<dark_gray>Equivale a /vertexx boss", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_BOSSES));
-        set(41, Items.of(Material.ALLAY_SPAWN_EGG, "<white>Ovos das criaturas",
-                List.of("<gray>Ovos de todas as criaturas customizadas", "<gray>(Mob Vote e End Update).", "",
+        set(41, Items.of(Material.ALLAY_SPAWN_EGG, "<white>Ovos e itens",
+                List.of("<gray>Ovos das criaturas customizadas e", "<gray>itens da End Update (mochilas...).", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));
     }
 
@@ -339,6 +342,27 @@ public final class PanelGUI implements InventoryHolder {
                 player.getInventory().addItem(give).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
                 Fx.success(player);
                 Msg.actionBar(player, "<green>Ovo de <white>" + kind.display() + "<green> entregue.");
+            });
+        }
+        dev.vertexx.end.EndItem[] items = dev.vertexx.end.EndItem.values();
+        for (int i = 0; i < items.length && kinds.length + i < LIST_SLOTS.length; i++) {
+            dev.vertexx.end.EndItem item = items[i];
+            ItemStack icon = item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin);
+            icon.editMeta(meta -> {
+                List<net.kyori.adventure.text.Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
+                lore.add(Msg.item(""));
+                lore.add(Msg.item("<yellow>▶ Clique: 1 unidade"));
+                if (item.tier() == 0) {
+                    lore.add(Msg.item("<yellow>▶ Shift + clique: 16"));
+                }
+                meta.lore(lore);
+            });
+            set(LIST_SLOTS[kinds.length + i], icon, c -> {
+                ItemStack give = item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin);
+                give.setAmount(item.tier() > 0 ? 1 : c.isShiftClick() ? 16 : 1);
+                player.getInventory().addItem(give).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
+                Fx.success(player);
+                Msg.actionBar(player, "<green>" + item.display() + " entregue.");
             });
         }
     }

@@ -7,6 +7,7 @@ import dev.vertexx.mob.MobManager;
 import dev.vertexx.mob.Trait;
 import dev.vertexx.rpg.Stat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import org.bukkit.command.Command;
@@ -14,11 +15,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 /** {@code /vertexx}: painel (administradores), Guia para todos e utilitários de administração. */
 public final class PanelCommand implements TabExecutor {
 
-    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|cabeca|versao|atualizar]";
+    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|item|cabeca|versao|atualizar]";
 
     private final PluginMain plugin;
 
@@ -77,6 +79,13 @@ public final class PanelCommand implements TabExecutor {
                     plugin.fauna().command(sender, args);
                 }
             }
+            case "item" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else {
+                    giveItem(sender, args);
+                }
+            }
             case "cabeca", "cabeça" -> {
                 if (!admin || !(sender instanceof org.bukkit.entity.Player self)) {
                     Msg.send(sender, "<red>Somente administradores, dentro do jogo.");
@@ -99,6 +108,44 @@ public final class PanelCommand implements TabExecutor {
             default -> Msg.send(sender, "<gray>Uso: <white>/vertexx" + (admin ? ADMIN_USAGE : " livro"));
         }
         return true;
+    }
+
+    /** {@code /vertexx item <id> [jogador] [quantidade]}: entrega um item da End Update (materiais e mochilas). */
+    private void giveItem(CommandSender sender, String[] args) {
+        dev.vertexx.end.EndItem item = null;
+        if (args.length >= 2) {
+            for (dev.vertexx.end.EndItem value : dev.vertexx.end.EndItem.values()) {
+                if (value.id().equalsIgnoreCase(args[1])) {
+                    item = value;
+                }
+            }
+        }
+        if (item == null) {
+            Msg.send(sender, "<gray>Uso: <white>/vertexx item <id> [jogador] [quantidade]</white> <gray>("
+                    + String.join(", ", Arrays.stream(dev.vertexx.end.EndItem.values()).map(dev.vertexx.end.EndItem::id).toList()) + ")");
+            return;
+        }
+        Player target = args.length >= 3 ? plugin.getServer().getPlayerExact(args[2]) : sender instanceof Player self ? self : null;
+        if (target == null) {
+            Msg.send(sender, "<red>Informe um jogador online.");
+            return;
+        }
+        int amount = 1;
+        if (args.length >= 4) {
+            try {
+                amount = Math.max(1, Math.min(64, Integer.parseInt(args[3])));
+            } catch (NumberFormatException e) {
+                amount = 1;
+            }
+        }
+        for (int i = 0; i < (item.tier() > 0 ? amount : 1); i++) {
+            ItemStack stack = item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin);
+            if (item.tier() == 0) {
+                stack.setAmount(amount);
+            }
+            target.getInventory().addItem(stack).values().forEach(rest -> target.getWorld().dropItemNaturally(target.getLocation(), rest));
+        }
+        Msg.send(sender, "<green>" + amount + "x <white>" + item.display() + "</white> para <white>" + target.getName() + "</white>.");
     }
 
     /** {@code /vertexx xp <jogador> <status> <quantidade>}: concede XP de status (teste e eventos). */
@@ -202,7 +249,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "cabeca", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "cabeca", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {
@@ -223,6 +270,11 @@ public final class PanelCommand implements TabExecutor {
                     return Tab.of(args[3], "10", "100", "500", "1000", "5000");
                 }
                 return List.of();
+            case "item":
+                if (args.length == 2) {
+                    return Tab.of(args[1], Arrays.stream(dev.vertexx.end.EndItem.values()).map(dev.vertexx.end.EndItem::id).toList());
+                }
+                return args.length == 3 ? Tab.players(args[2]) : List.of();
             case "cabeca", "cabeça":
                 return args.length == 2 ? Tab.of(args[1], dev.vertexx.model.CustomHeads.names()) : List.of();
             case "boss":

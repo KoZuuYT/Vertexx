@@ -214,3 +214,22 @@ fauna:
     bite-damage: 6
     # Velocidade de natacao (blocos por tick) ao perseguir.
     swim-speed: 0.075
+
+# ───────────────────────── End Update e mochilas ─────────────────────────
+end:
+  # Itens customizados: "model" é o item_model do resource pack (assets/vertexx/items/<id>.json) e
+  # "custom-model-data" o id numerico (para quem prefere ligar os modelos por CustomModelData).
+  items:
+    enderite_fragment: {model: "vertexx:enderite_fragment", custom-model-data: 1001}
+    ethereal_membrane: {model: "vertexx:ethereal_membrane", custom-model-data: 1002}
+    void_chitin: {model: "vertexx:void_chitin", custom-model-data: 1003}
+    levitation_core: {model: "vertexx:levitation_core", custom-model-data: 1004}
+    backpack_leather: {model: "vertexx:backpack_leather", custom-model-data: 1010}
+    backpack_iron: {model: "vertexx:backpack_iron", custom-model-data: 1011}
+    backpack_void: {model: "vertexx:backpack_void", custom-model-data: 1012}
+  quality:
+    # Ao acabar a pilha de blocos na mao, traz outra identica do inventario.
+    auto-refill: true
+    # Botao do meio em baus e mochilas ordena e junta as pilhas.
+    sorter: true
+

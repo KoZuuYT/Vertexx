@@ -18,6 +18,10 @@ commands:
     description: Abre o menu de status, habilidades e informações.
     usage: /vstats [status|habilidades|info]
     aliases: [status, skills]
+  mochila:
+    description: Abre a mochila equipada no peito (ou a primeira que estiver no inventário).
+    usage: /mochila
+    aliases: [backpack]
   vertexx:
     description: Painel do Vertexx (administradores), Guia em livro para todos e atualização pelo GitHub.
     usage: /vertexx [painel|livro|mob|xp|boss|versao|atualizar]

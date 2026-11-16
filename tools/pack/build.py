@@ -406,6 +406,10 @@ def build_assets():
         write_json(NS / "items" / f"spawn_egg_{key}.json",
                    {"model": {"type": "minecraft:model", "model": f"vertexx:item/spawn_egg_{key}"}})
 
+    # itens da End Update (materiais, mochilas e a armadura vestida das mochilas)
+    import enditems
+    enditems.build(NS, save, write_json)
+
     write_json(NS / "models" / "item" / "selector.json",
                {"parent": "minecraft:item/handheld", "textures": {"layer0": "vertexx:item/selector"}})
     write_json(NS / "items" / "selector.json",
