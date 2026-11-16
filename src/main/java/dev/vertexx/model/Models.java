@@ -17,7 +17,22 @@ public final class Models {
         this.plugin = plugin;
     }
 
+    /** Modelos gerados em tempo de execução a partir de {@code .bbmodel} (têm prioridade sobre os do jar). */
+    private final Map<String, ModelDef> dynamic = new java.util.concurrent.ConcurrentHashMap<>();
+
+    public void register(String id, ModelDef def) {
+        dynamic.put(id, def);
+    }
+
+    public void unregister(String id) {
+        dynamic.remove(id);
+    }
+
     public ModelDef get(String id) {
+        ModelDef dyn = dynamic.get(id);
+        if (dyn != null) {
+            return dyn;
+        }
         return cache.computeIfAbsent(id, key -> {
             try {
                 return ModelDef.load(plugin.getClass().getClassLoader(), key);

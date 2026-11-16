@@ -79,6 +79,32 @@ public final class PanelCommand implements TabExecutor {
                     plugin.fauna().command(sender, args);
                 }
             }
+            case "blueprint", "modelo" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else if (args.length < 2) {
+                    Msg.send(sender, "<gray>Blueprints carregados: <white>" + String.join(", ", plugin.blueprints().ids())
+                            + "</white>. <gray>Uso: <white>/vertexx blueprint <id> [mundo x y z]</white> <gray>(o normal é usar o ovo do painel).");
+                } else {
+                    org.bukkit.Location at = null;
+                    try {
+                        if (args.length >= 6) {
+                            org.bukkit.World w = plugin.getServer().getWorld(args[2]);
+                            at = w == null ? null : new org.bukkit.Location(w, Double.parseDouble(args[3]), Double.parseDouble(args[4]), Double.parseDouble(args[5]));
+                        } else if (sender instanceof Player p) {
+                            at = p.getLocation();
+                        }
+                    } catch (NumberFormatException ignored) {
+                        at = null;
+                    }
+                    if (at == null) {
+                        Msg.send(sender, "<red>Local inválido (use mundo x y z).");
+                    } else {
+                        Msg.send(sender, plugin.blueprints().mobs().spawn(at, args[1]) == null
+                                ? "<red>Blueprint desconhecido." : "<green>Criatura criada.");
+                    }
+                }
+            }
             case "end" -> {
                 if (!admin) {
                     Msg.send(sender, "<red>Você não tem permissão.");
@@ -346,7 +372,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "clima", "arida", "fossil", "cabeca", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "blueprint", "item", "end", "clima", "arida", "fossil", "cabeca", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {

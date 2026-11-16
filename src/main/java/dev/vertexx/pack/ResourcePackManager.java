@@ -111,7 +111,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
     }
 
     public boolean isConfigured() {
-        return !url().isEmpty();
+        return !url().isEmpty() || plugin.blueprints().packInfo() != null;
     }
 
     /** Fixo: assim cada versão nova do pacote substitui a anterior no cliente em vez de empilhar. */
@@ -177,9 +177,19 @@ public final class ResourcePackManager implements Listener, TabExecutor {
     private void apply(Player player) {
         String hash = sha1();
         try {
-            ResourcePackInfo info = ResourcePackInfo.resourcePackInfo(packId(), URI.create(url()), hash);
+            java.util.List<ResourcePackInfo> packs = new java.util.ArrayList<>();
+            if (!url().isEmpty()) {
+                packs.add(ResourcePackInfo.resourcePackInfo(packId(), URI.create(url()), hash));
+            }
+            ResourcePackInfo generated = plugin.blueprints().packInfo();
+            if (generated != null) {
+                packs.add(generated);     // pack gerado dos blueprints (.bbmodel)
+            }
+            if (packs.isEmpty()) {
+                return;
+            }
             player.sendResourcePacks(ResourcePackRequest.resourcePackRequest()
-                    .packs(info)
+                    .packs(packs)
                     .required(false)
                     .replace(true)
                     .prompt(Msg.mm("<gray>Pacote visual do servidor (menus, sons e ícones)."))

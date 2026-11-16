@@ -105,7 +105,13 @@ public final class ModelDef {
             if (in == null) {
                 throw new IOException("modelo não encontrado: " + id);
             }
-            JsonObject root = JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject();
+            return parse(id, JsonParser.parseReader(new InputStreamReader(in, StandardCharsets.UTF_8)).getAsJsonObject());
+        }
+    }
+
+    /** Monta o modelo a partir dos dados de runtime (do jar ou gerados em tempo de execução pelo compilador de blueprints). */
+    public static ModelDef parse(String id, JsonObject root) {
+        {
             JsonArray jb = root.getAsJsonArray("bones");
             Bone[] bones = new Bone[jb.size()];
             for (int i = 0; i < bones.length; i++) {

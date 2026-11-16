@@ -735,7 +735,7 @@ public final class FaunaManager implements Listener {
         if (at.getWorld().getEnvironment() != World.Environment.NORMAL) {
             return;
         }
-        hotspots.removeIf(h -> (long) h[1] < tick - 2400 || ((Location) h[0]).getWorld() != at.getWorld()
+        hotspots.removeIf(h -> ((Number) h[1]).longValue() < tick - 2400 || ((Location) h[0]).getWorld() != at.getWorld()
                 || ((Location) h[0]).distanceSquared(at) < 36);
         if (hotspots.size() < 40) {
             hotspots.add(new Object[]{at.clone(), tick});
@@ -748,7 +748,7 @@ public final class FaunaManager implements Listener {
         double bestD = range * range;
         for (Object[] h : hotspots) {
             Location at = (Location) h[0];
-            if (at.getWorld() == from.getWorld() && (long) h[1] >= tick - 2400) {
+            if (at.getWorld() == from.getWorld() && ((Number) h[1]).longValue() >= tick - 2400) {
                 double d = at.distanceSquared(from);
                 if (d < bestD) {
                     bestD = d;

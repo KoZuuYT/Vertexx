@@ -436,7 +436,9 @@ public final class MobManager implements Listener {
         }
         Component existing = entity.customName();
         boolean fauna = entity.getPersistentDataContainer().has(
-                new org.bukkit.NamespacedKey(plugin, "fauna_kind"), org.bukkit.persistence.PersistentDataType.STRING);
+                new org.bukkit.NamespacedKey(plugin, "fauna_kind"), org.bukkit.persistence.PersistentDataType.STRING)
+                || entity.getPersistentDataContainer().has(
+                new org.bukkit.NamespacedKey(plugin, "bp_id"), org.bukkit.persistence.PersistentDataType.STRING);
         if (existing != null && !isOurName(entity) && !(fauna && !hasPlayerName(existing, entity))) {
             return; // nome dado por jogador (name tag): respeita
         }
@@ -695,6 +697,11 @@ public final class MobManager implements Listener {
         String raw = entity.getPersistentDataContainer().get(
                 new org.bukkit.NamespacedKey(plugin, "fauna_kind"), org.bukkit.persistence.PersistentDataType.STRING);
         dev.vertexx.fauna.FaunaKind kind = raw == null ? null : dev.vertexx.fauna.FaunaKind.parse(raw);
+        String bp = entity.getPersistentDataContainer().get(
+                new org.bukkit.NamespacedKey(plugin, "bp_id"), org.bukkit.persistence.PersistentDataType.STRING);
+        if (bp != null) {
+            return Component.text(plugin.blueprints().displayName(bp));
+        }
         return kind != null ? Component.text(kind.display())
                 : Component.translatable(entity.getType().translationKey());
     }

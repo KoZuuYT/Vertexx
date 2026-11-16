@@ -339,6 +339,15 @@ public final class PanelGUI implements InventoryHolder {
             entries.add(egg);
             names.add("Ovo de " + kind.display());
         }
+        List<String> blueprintIds = plugin.blueprints().mobs().ids();
+        for (String bp : blueprintIds) {
+            ItemStack egg = plugin.blueprints().mobs().egg(bp);
+            egg.editMeta(meta -> meta.lore(List.of(
+                    Msg.item("<gray>Blueprint automático (.bbmodel)."),
+                    Msg.item("<dark_gray>Use num bloco para criar a criatura."))));
+            entries.add(egg);
+            names.add("Ovo de " + bp);
+        }
         for (dev.vertexx.end.EndItem item : dev.vertexx.end.EndItem.values()) {
             entries.add(item.tier() > 0 ? plugin.backpacks().create(item.tier()) : item.create(plugin));
             names.add(item.display());
@@ -356,7 +365,7 @@ public final class PanelGUI implements InventoryHolder {
             int index = listPage * per + i;
             ItemStack stack = entries.get(index);
             String name = names.get(index);
-            boolean egg = index < dev.vertexx.fauna.FaunaKind.values().length;
+            boolean egg = index < dev.vertexx.fauna.FaunaKind.values().length + blueprintIds.size();
             ItemStack icon = stack.clone();
             icon.editMeta(meta -> {
                 List<net.kyori.adventure.text.Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());

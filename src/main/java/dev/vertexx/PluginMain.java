@@ -41,6 +41,7 @@ public final class PluginMain extends JavaPlugin {
     private MobManager mobs;
     private BossManager bosses;
     private FaunaManager fauna;
+    private dev.vertexx.blueprint.Blueprints blueprints;
     private dev.vertexx.model.Models entityModels;
     private RpgManager rpg;
     private SkillManager skills;
@@ -70,6 +71,7 @@ public final class PluginMain extends JavaPlugin {
         mobs = new MobManager(this);
         bosses = new BossManager(this);
         fauna = new FaunaManager(this);
+        blueprints = new dev.vertexx.blueprint.Blueprints(this);
         rpg = new RpgManager(this);
         skills = new SkillManager(this);
         upgrades = new UpgradeManager(this);
@@ -125,6 +127,7 @@ public final class PluginMain extends JavaPlugin {
         mobs.start();
         bosses.start();
         fauna.start();
+        blueprints.start();
         rpg.start();
         backpacks.start();
         endGear.start();
@@ -179,6 +182,7 @@ public final class PluginMain extends JavaPlugin {
         mobs.shutdown();
         bosses.shutdown();
         fauna.shutdown();
+        blueprints.shutdown();
         backpacks.shutdown();
         curses.shutdown();
         climates.shutdown();
@@ -258,6 +262,11 @@ public final class PluginMain extends JavaPlugin {
 
     public dev.vertexx.end.EndGear endGear() {
         return endGear;
+    }
+
+    /** Modelos automáticos: .bbmodel em plugins/Vertexx/blueprints viram mobs e resource pack sem comandos. */
+    public dev.vertexx.blueprint.Blueprints blueprints() {
+        return blueprints;
     }
 
     public FaunaManager fauna() {

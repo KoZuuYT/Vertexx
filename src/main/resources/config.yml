@@ -127,6 +127,18 @@ resource-pack:
   # SHA-1 do arquivo .zip (40 caracteres) do link manual.
   sha1: ""
 
+# Modelos automáticos (estilo ModelEngine, sem comandos): arquivos .bbmodel colocados em
+# plugins/Vertexx/blueprints/ viram criaturas com resource pack gerado e enviado sozinho.
+blueprints:
+  enabled: true
+  # Porta TCP do servidor HTTP interno que entrega o pack gerado (libere no firewall/roteador).
+  http-port: 8765
+  # Endereço que os jogadores usam para baixar o pack. Vazio = server-ip, ou o IP público detectado.
+  public-host: ""
+  # Consulta api.ipify.org uma vez (sem enviar dados) para descobrir o IP público quando public-host está vazio.
+  detect-public-ip: true
+  natural-spawn-interval-seconds: 20
+
 # Sincronização automática com o GitHub: baixa a release mais recente para plugins/update/
 # e o servidor aplica no próximo reinício.
 updater:
