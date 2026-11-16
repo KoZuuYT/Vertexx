@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/great_hunger_dirt/body"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/great_hunger_dirt/body", "tints": [{"type": "minecraft:dye", "default": -1}]}}

@@ -297,6 +297,45 @@ def overlay_solid() -> Image.Image:
 
 # ═══════════════════════════ fonte, modelos, itens ═══════════════════════════
 
+# ovos das criaturas do Vertexx: (cor base, cor das pintas)
+EGGS = {
+    "rascal": ("#2f7c86", "#e3dbb8"),
+    "tuffgolem": ("#6d6961", "#4fd0dc"),
+    "moobloom": ("#f2c434", "#fdfdf2"),
+    "glare": ("#4f7a2c", "#2a2a24"),
+    "crab": ("#3d6fb0", "#e07b2a"),
+    "penguin": ("#2b2f3a", "#f2ede0"),
+    "greathunger": ("#7a5532", "#5a9a3c"),
+    "barnacle": ("#23405e", "#a7e8da"),
+}
+# formato do ovo em 16x16: linha -> (x0, x1)
+EGG_ROWS = {1: (6, 9), 2: (5, 10), 3: (4, 11), 4: (4, 11), 5: (3, 12), 6: (3, 12), 7: (3, 12), 8: (2, 13),
+            9: (2, 13), 10: (2, 13), 11: (2, 13), 12: (3, 12), 13: (3, 12), 14: (4, 11), 15: (6, 9)}
+EGG_SPOTS = [(6, 3), (7, 3), (9, 5), (10, 6), (5, 7), (4, 8), (5, 8), (8, 9), (9, 9), (8, 10), (11, 10), (11, 11),
+             (5, 11), (6, 12), (9, 13), (7, 14)]
+
+
+def egg_texture(base: str, spot: str) -> Image.Image:
+    def c(h, f=1.0):
+        h = h.lstrip("#")
+        r, g, b = (int(h[i:i + 2], 16) for i in (0, 2, 4))
+        return (max(0, min(255, int(r * f))), max(0, min(255, int(g * f))), max(0, min(255, int(b * f))), 255)
+    img = Image.new("RGBA", (16, 16), (0, 0, 0, 0))
+    px = img.load()
+    inside = {(x, y) for y, (a, b) in EGG_ROWS.items() for x in range(a, b + 1)}
+    for (x, y) in inside:
+        edge = any((x + dx, y + dy) not in inside for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+        # luz vindo de cima à esquerda
+        shade = 1.12 - 0.035 * (x - 4) - 0.02 * (y - 4)
+        px[x, y] = c(base, 0.55) if edge else c(base, max(0.75, min(1.2, shade)))
+    for (x, y) in EGG_SPOTS:
+        if (x, y) in inside and all((x + dx, y + dy) in inside for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+            px[x, y] = c(spot, 1.0 if x + y < 15 else 0.85)
+    px[5, 4] = c(base, 1.45)
+    px[4, 5] = c(base, 1.35)
+    return img
+
+
 def write_json(path: Path, data):
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -359,6 +398,13 @@ def build_assets():
         write_json(NS / "models" / "item" / f"banner_{name}.json", model)
         write_json(NS / "items" / f"banner_{name}.json",
                    {"model": {"type": "minecraft:model", "model": f"vertexx:item/banner_{name}"}})
+
+    for key, (base, spot) in EGGS.items():
+        save(egg_texture(base, spot), tex / "item" / f"spawn_egg_{key}.png")
+        write_json(NS / "models" / "item" / f"spawn_egg_{key}.json",
+                   {"parent": "minecraft:item/generated", "textures": {"layer0": f"vertexx:item/spawn_egg_{key}"}})
+        write_json(NS / "items" / f"spawn_egg_{key}.json",
+                   {"model": {"type": "minecraft:model", "model": f"vertexx:item/spawn_egg_{key}"}})
 
     write_json(NS / "models" / "item" / "selector.json",
                {"parent": "minecraft:item/handheld", "textures": {"layer0": "vertexx:item/selector"}})

@@ -61,6 +61,14 @@ public final class ModelInstance {
     private Location lastAt;
     private final Quaternionf lastBasis = new Quaternionf();
 
+    // luz e tinta
+    private int lightClock;
+    private int sentBlock = -1;
+    private int sentSky = -1;
+    private final org.bukkit.Color[] baseTint;
+    private int flash;
+    private static final org.bukkit.Color HURT = org.bukkit.Color.fromRGB(255, 96, 96);
+
     private ModelInstance(ModelDef def, NamespacedKey tag, Location at, float scaleMul) {
         this.def = def;
         this.scale = def.scale * scaleMul;
@@ -79,6 +87,7 @@ public final class ModelInstance {
         sentQ = new Quaternionf[n];
         sentS = new Vector3f[n];
         sentHidden = new boolean[n];
+        baseTint = new org.bukkit.Color[n];
         anchor = at.clone();
         anchor.setYaw(0);
         anchor.setPitch(0);
@@ -107,7 +116,8 @@ public final class ModelInstance {
                 entity.setViewRange(1.6f);
                 entity.setDisplayWidth(box);
                 entity.setDisplayHeight(box);
-                entity.setBrightness(bone.glow() ? new Display.Brightness(15, 15) : new Display.Brightness(13, 15));
+                // ossos normais recebem a luz do lugar onde o mob está (ver light()); só os emissivos ficam no máximo
+                entity.setBrightness(bone.glow() ? new Display.Brightness(15, 15) : new Display.Brightness(0, 15));
                 entity.setShadowRadius(0f);
                 entity.setInterpolationDuration(0);
                 entity.setTeleportDuration(0);
@@ -213,10 +223,74 @@ public final class ModelInstance {
         if (i < 0 || displays[i] == null) {
             return;
         }
+        baseTint[i] = color;
+        if (flash <= 0) {
+            paint(i, color);
+        }
+    }
+
+    private void paint(int i, org.bukkit.Color color) {
+        if (displays[i] == null || !displays[i].isValid()) {
+            return;
+        }
         ItemStack stack = displays[i].getItemStack();
-        stack.setData(io.papermc.paper.datacomponent.DataComponentTypes.DYED_COLOR,
-                io.papermc.paper.datacomponent.item.DyedItemColor.dyedItemColor(color));
+        if (color == null) {
+            stack.unsetData(io.papermc.paper.datacomponent.DataComponentTypes.DYED_COLOR);
+        } else {
+            stack.setData(io.papermc.paper.datacomponent.DataComponentTypes.DYED_COLOR,
+                    io.papermc.paper.datacomponent.item.DyedItemColor.dyedItemColor(color));
+        }
         displays[i].setItemStack(stack);
+    }
+
+    /** Pisca o modelo inteiro em vermelho, como um mob comum ao levar dano. */
+    public void hurtFlash(int ticks) {
+        boolean was = flash > 0;
+        flash = Math.max(flash, ticks);
+        if (!was) {
+            for (int i = 0; i < displays.length; i++) {
+                org.bukkit.Color base = baseTint[i];
+                paint(i, base == null ? HURT : base.mixColors(HURT));
+            }
+        }
+    }
+
+    private void tickFlash(int ticks) {
+        if (flash <= 0) {
+            return;
+        }
+        flash -= Math.max(1, ticks);
+        if (flash <= 0) {
+            for (int i = 0; i < displays.length; i++) {
+                paint(i, baseTint[i]);
+            }
+        }
+    }
+
+    /** Ilumina os ossos com a luz do bloco onde o mob está (a ItemDisplay fica ancorada longe às vezes). */
+    private void light(Location at, int ticks) {
+        lightClock -= Math.max(1, ticks);
+        if (lightClock > 0 && sentBlock >= 0) {
+            return;
+        }
+        lightClock = 10;
+        org.bukkit.block.Block b = at.clone().add(0, 0.3, 0).getBlock();
+        if (b.getType().isOccluding()) {
+            b = b.getRelative(0, 1, 0);
+        }
+        int block = b.getLightFromBlocks();
+        int sky = b.getLightFromSky();
+        if (block == sentBlock && sky == sentSky) {
+            return;
+        }
+        sentBlock = block;
+        sentSky = sky;
+        Display.Brightness brightness = new Display.Brightness(block, sky);
+        for (int i = 0; i < displays.length; i++) {
+            if (displays[i] != null && displays[i].isValid() && !def.bones[i].glow()) {
+                displays[i].setBrightness(brightness);
+            }
+        }
     }
 
     public void hideAll(boolean value) {
@@ -365,6 +439,8 @@ public final class ModelInstance {
             reanchor(at);
         }
         lastAt = at.clone();
+        light(at, duration);
+        tickFlash(duration);
         lastBasis.identity().rotateY((float) Math.toRadians(-yaw));
         compute();
         Vector3f offset = new Vector3f((float) (at.getX() - anchor.getX()), (float) (at.getY() - anchor.getY()),

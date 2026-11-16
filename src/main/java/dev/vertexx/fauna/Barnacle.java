@@ -115,6 +115,19 @@ final class Barnacle extends Critter {
         }
     }
 
+    /** Ancorado: não foge; atacado, abre a bocarra na hora e vira para o agressor. */
+    @Override
+    protected void onHurt(Entity attacker) {
+        if (!whirling()) {
+            cycle = REST;
+        }
+        if (attacker != null) {
+            facing = (float) Math.toDegrees(Math.atan2(-(attacker.getX() - mob.getX()), attacker.getZ() - mob.getZ()));
+        }
+        model.restart("bite");
+        mob.getWorld().playSound(mob.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_HURT, 1f, 0.6f);
+    }
+
     private void swallowBoat(Boat boat) {
         World world = boat.getWorld();
         Location at = boat.getLocation();

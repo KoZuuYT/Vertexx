@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/glare/strand0"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/glare/strand0", "tints": [{"type": "minecraft:dye", "default": -1}]}}

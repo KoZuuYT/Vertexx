@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/great_hunger_grass/sprout_b"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/great_hunger_grass/sprout_b", "tints": [{"type": "minecraft:dye", "default": -1}]}}

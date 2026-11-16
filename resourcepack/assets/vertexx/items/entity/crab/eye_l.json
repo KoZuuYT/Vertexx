@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/crab/eye_l"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/crab/eye_l", "tints": [{"type": "minecraft:dye", "default": -1}]}}

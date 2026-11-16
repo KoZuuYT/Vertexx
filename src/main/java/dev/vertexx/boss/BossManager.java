@@ -422,6 +422,9 @@ public final class BossManager implements Listener {
             }
         }
         event.setDamage(fight.damageTaken(event.getDamage()));
+        if (fight.model != null && event.getDamage() > 0) {
+            fight.model.hurtFlash(10);
+        }
         Location at = fight.pos.clone().add(0, 1.8, 0);
         if (fight.kind == BossKind.WILDFIRE) {
             fight.world.spawnParticle(Particle.FLAME, at, 8, 0.4, 0.5, 0.4, 0.05);
@@ -435,6 +438,14 @@ public final class BossManager implements Listener {
 
     private static boolean isSurvival(Player player) {
         return player.getGameMode() == GameMode.SURVIVAL || player.getGameMode() == GameMode.ADVENTURE;
+    }
+
+    /** Botão do meio no boss: não entrega o ovo do golem de ferro da hitbox. */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPick(io.papermc.paper.event.player.PlayerPickEntityEvent event) {
+        if (fightOf(event.getEntity()) != null) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)

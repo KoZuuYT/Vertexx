@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/wildfire/blade_bl"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/wildfire/blade_bl", "tints": [{"type": "minecraft:dye", "default": -1}]}}

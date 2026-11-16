@@ -116,7 +116,9 @@ def compile_model(src: Model, model_id: str, out_ns: Path, runtime_dir: Path | N
                 for i in range(3):
                     extent = max(extent, abs(c.frm[i] - pad - b.origin[i]), abs(c.to[i] + pad - b.origin[i]))
             k = max(1.0, math.ceil(extent / LIMIT * 100) / 100)
-            tint = b.name.endswith("_tint")
+            # todo osso aceita tinta (dyed_color; branco = textura original): ossos "_tint" usam para a cor
+            # (lã do golem) e o plugin usa em todos para o piscar vermelho de dano
+            tint = True
             elements = [_element(c, b.origin, k, model.res, tint) for c in b.cubes if c.faces]
             if elements:
                 used_tex = sorted({f.tex for c in b.cubes for f in c.faces.values()})
@@ -128,7 +130,7 @@ def compile_model(src: Model, model_id: str, out_ns: Path, runtime_dir: Path | N
                 ipath = out_ns / "items" / "entity" / model_id / f"{name}.json"
                 ipath.parent.mkdir(parents=True, exist_ok=True)
                 definition = {"type": "minecraft:model", "model": f"{NS}:entity/{model_id}/{name}"}
-                if tint:   # a cor vem do componente dyed_color do item (lã do golem, por exemplo)
+                if tint:
                     definition["tints"] = [{"type": "minecraft:dye", "default": -1}]
                 ipath.write_text(json.dumps({"model": definition}), encoding="utf-8")
                 model_ref = f"{NS}:entity/{model_id}/{name}"

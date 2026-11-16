@@ -40,6 +40,12 @@ final class GreatHunger extends Critter {
         mob.setSilent(true);
     }
 
+    /** IA da vaca-base: passeia, foge correndo quando apanha, evita buracos e água funda. */
+    @Override
+    protected boolean wild() {
+        return false;
+    }
+
     @Override
     FaunaKind kind() {
         return FaunaKind.GREAT_HUNGER;

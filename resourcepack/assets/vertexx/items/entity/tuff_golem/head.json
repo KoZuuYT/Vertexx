@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/tuff_golem/head"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/tuff_golem/head", "tints": [{"type": "minecraft:dye", "default": -1}]}}

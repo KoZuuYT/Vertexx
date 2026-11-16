@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/moobloom/flower3x"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/moobloom/flower3x", "tints": [{"type": "minecraft:dye", "default": -1}]}}

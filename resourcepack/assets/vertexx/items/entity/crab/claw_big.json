@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/crab/claw_big"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/crab/claw_big", "tints": [{"type": "minecraft:dye", "default": -1}]}}

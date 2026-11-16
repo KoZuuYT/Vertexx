@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/great_hunger_sand/legb_l"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/great_hunger_sand/legb_l", "tints": [{"type": "minecraft:dye", "default": -1}]}}

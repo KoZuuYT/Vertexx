@@ -195,8 +195,107 @@ public final class FaunaManager implements Listener {
             case GREAT_HUNGER -> new GreatHunger(this, mob);
             case BARNACLE -> new Barnacle(this, mob);
         };
+        // nome próprio (invisível, o mob-base também é): mensagens de morte e legendas citam a criatura, não a vaca
+        if (mob.customName() == null) {
+            mob.customName(Msg.mm(kind.color() + kind.display()));
+            mob.setCustomNameVisible(false);
+        }
         critters.put(entity.getUniqueId(), critter);
         critter.start();
+    }
+
+    // ── Ovos ───────────────────────────────────────────────────
+
+    /** Ovo da criatura: item sem comportamento vanilla (nunca vira uma vaca), com modelo próprio do pack. */
+    public ItemStack egg(FaunaKind kind) {
+        ItemStack egg = new ItemStack(Material.PAPER);
+        egg.editMeta(meta -> {
+            meta.setItemModel(new NamespacedKey("vertexx", "spawn_egg_" + kind.key()));
+            meta.itemName(Msg.mm(kind.color() + "Ovo de " + kind.display()));
+            meta.getPersistentDataContainer().set(kindKey, PersistentDataType.STRING, kind.key());
+        });
+        return egg;
+    }
+
+    private FaunaKind eggKind(ItemStack item) {
+        if (item == null || item.getType() != Material.PAPER || !item.hasItemMeta()) {
+            return null;
+        }
+        String raw = item.getItemMeta().getPersistentDataContainer().get(kindKey, PersistentDataType.STRING);
+        return raw == null ? null : FaunaKind.parse(raw);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onUseEgg(org.bukkit.event.player.PlayerInteractEvent event) {
+        if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null) {
+            return;
+        }
+        ItemStack item = event.getItem();
+        FaunaKind kind = eggKind(item);
+        if (kind == null) {
+            return;
+        }
+        event.setCancelled(true);
+        Block clicked = event.getClickedBlock();
+        Block at = clicked.isPassable() && !clicked.isLiquid() ? clicked : clicked.getRelative(event.getBlockFace());
+        spawn(at.getLocation().add(0.5, 0, 0.5), kind);
+        Player player = event.getPlayer();
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            item.setAmount(item.getAmount() - 1);
+        }
+        player.swingHand(event.getHand() == null ? EquipmentSlot.HAND : event.getHand());
+    }
+
+    /** Botão do meio numa criatura: dá o ovo dela (não o da vaca/papagaio-base). */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPick(io.papermc.paper.event.player.PlayerPickEntityEvent event) {
+        Critter critter = critterOf(event.getEntity());
+        if (critter == null) {
+            return;
+        }
+        event.setCancelled(true);
+        giveToHand(event.getPlayer(), egg(critter.kind()));
+    }
+
+    /** Mesmas regras do "pegar bloco" vanilla: seleciona se já está na barra, puxa do inventário ou (criativo) cria. */
+    static void giveToHand(Player player, ItemStack item) {
+        org.bukkit.inventory.PlayerInventory inv = player.getInventory();
+        for (int i = 0; i < 9; i++) {
+            if (item.isSimilar(inv.getItem(i))) {
+                inv.setHeldItemSlot(i);
+                return;
+            }
+        }
+        int found = -1;
+        for (int i = 9; i < 36; i++) {
+            if (item.isSimilar(inv.getItem(i))) {
+                found = i;
+                break;
+            }
+        }
+        if (found < 0 && player.getGameMode() != GameMode.CREATIVE) {
+            return;
+        }
+        int slot = inv.getHeldItemSlot();
+        if (inv.getItem(slot) != null && !inv.getItem(slot).isEmpty()) {
+            for (int i = 0; i < 9; i++) {
+                if (inv.getItem(i) == null || inv.getItem(i).isEmpty()) {
+                    slot = i;
+                    break;
+                }
+            }
+        }
+        ItemStack old = inv.getItem(slot);
+        if (found >= 0) {
+            inv.setItem(slot, inv.getItem(found));
+            inv.setItem(found, old);
+        } else {
+            inv.setItem(slot, item);
+            if (old != null && !old.isEmpty() && inv.firstEmpty() >= 0) {
+                inv.addItem(old);         // criativo: o item substituído vai para o inventário, como no vanilla
+            }
+        }
+        inv.setHeldItemSlot(slot);
     }
 
     // ── Criação ────────────────────────────────────────────────
@@ -333,6 +432,24 @@ public final class FaunaManager implements Listener {
         } else if (event instanceof EntityDamageByEntityEvent byEntity && byEntity.getDamager() instanceof Player player) {
             player.sendActionBar(Msg.mm("<gray>Agache e bata para desmontar o Golem de Tufo."));
         }
+    }
+
+    /** Dano que passou (não cancelado): flash vermelho e reação (fuga, redemoinho…). */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onHurt(EntityDamageEvent event) {
+        Critter critter = critterOf(event.getEntity());
+        if (critter == null || event.getFinalDamage() <= 0) {
+            return;
+        }
+        Entity attacker = null;
+        if (event instanceof EntityDamageByEntityEvent byEntity) {
+            attacker = byEntity.getDamager();
+            if (attacker instanceof org.bukkit.entity.Projectile projectile
+                    && projectile.getShooter() instanceof Entity shooter) {
+                attacker = shooter;
+            }
+        }
+        critter.hurt(attacker);
     }
 
     @EventHandler

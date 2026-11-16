@@ -126,6 +126,9 @@ abstract class BossFight {
             golem.setPlayerCreated(false);
             golem.setInvulnerable(true);
             golem.setCollidable(false);
+            // nome próprio: mensagens de morte ("morto por Wildfire"), legendas etc. não citam o golem de ferro-base
+            golem.customName(dev.vertexx.core.Msg.mm(kind.color() + kind.display()));
+            golem.setCustomNameVisible(false);
             golem.getPersistentDataContainer().set(bossKey, PersistentDataType.STRING, arena.id);
             AttributeInstance scale = golem.getAttribute(Attribute.SCALE);
             if (scale != null) {

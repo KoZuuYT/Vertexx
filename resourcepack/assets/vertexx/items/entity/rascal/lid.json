@@ -1,1 +1,1 @@
-{"model": {"type": "minecraft:model", "model": "vertexx:entity/rascal/lid"}}
+{"model": {"type": "minecraft:model", "model": "vertexx:entity/rascal/lid", "tints": [{"type": "minecraft:dye", "default": -1}]}}

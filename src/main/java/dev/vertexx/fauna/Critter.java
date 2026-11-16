@@ -88,7 +88,12 @@ abstract class Critter {
         lastX = mob.getX();
         lastZ = mob.getZ();
         phase += (float) (speed * 2 * 3.4);
-        think();
+        if (panic > 0) {
+            panic -= 2;
+            run();
+        } else {
+            think();
+        }
         if (!mob.isValid()) {
             return false;
         }
@@ -115,6 +120,55 @@ abstract class Critter {
     }
 
     protected void cleanup() {
+    }
+
+    // ── Dano ───────────────────────────────────────────────────
+
+    private int panic;
+    private org.bukkit.util.Vector panicFrom;
+
+    /** Levou dano (evento não cancelado): pisca vermelho e reage. */
+    final void hurt(org.bukkit.entity.Entity attacker) {
+        model.hurtFlash(10);
+        onHurt(attacker);
+    }
+
+    /**
+     * Reação ao dano. Criaturas com a IA do mob-base já entram em pânico sozinhas (PanicGoal); as "selvagens"
+     * fogem do agressor por uns segundos, correndo, antes de voltar ao comportamento normal.
+     */
+    protected void onHurt(org.bukkit.entity.Entity attacker) {
+        if (!wild()) {
+            return;
+        }
+        panic = 70;
+        panicFrom = (attacker != null ? attacker.getLocation() : mob.getLocation()).toVector();
+        run();
+    }
+
+    protected boolean panicking() {
+        return panic > 0;
+    }
+
+    private void run() {
+        if (age % 10 != 0 && panic < 68) {
+            return;
+        }
+        org.bukkit.util.Vector away = mob.getLocation().toVector().subtract(panicFrom).setY(0);
+        if (away.lengthSquared() < 0.01) {
+            double a = Math.random() * Math.PI * 2;
+            away = new org.bukkit.util.Vector(Math.cos(a), 0, Math.sin(a));
+        }
+        double a = (Math.random() - 0.5) * 1.2;      // um pouco de zigue-zague
+        away.normalize().rotateAroundY(a).multiply(7);
+        Location to = mob.getLocation().add(away);
+        Location ground = to.getWorld().getHighestBlockAt(to).getLocation().add(0.5, 1, 0.5);
+        if (Math.abs(ground.getY() - mob.getY()) < 6 && !mob.hasGravity()) {
+            to.setY(to.getY() + 0.5);               // voadores/nadadores: mantém a altura
+        } else if (Math.abs(ground.getY() - mob.getY()) < 6) {
+            to = ground;
+        }
+        mob.getPathfinder().moveTo(to, 1.8);
     }
 
     /** Dano/interação específicos; devolve verdadeiro se tratou o evento. */
