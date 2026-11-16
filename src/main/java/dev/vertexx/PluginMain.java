@@ -48,6 +48,8 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.end.Backpacks backpacks;
     private dev.vertexx.end.EndGear endGear;
     private dev.vertexx.end.EndWorld endWorld;
+    private dev.vertexx.overworld.Curses curses;
+    private dev.vertexx.overworld.Climates climates;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -72,6 +74,8 @@ public final class PluginMain extends JavaPlugin {
         backpacks = new dev.vertexx.end.Backpacks(this);
         endGear = new dev.vertexx.end.EndGear(this);
         endWorld = new dev.vertexx.end.EndWorld(this);
+        curses = new dev.vertexx.overworld.Curses(this);
+        climates = new dev.vertexx.overworld.Climates(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -89,12 +93,23 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(backpacks, this);
         plugins.registerEvents(endGear, this);
         plugins.registerEvents(endWorld, this);
+        plugins.registerEvents(curses, this);
+        plugins.registerEvents(climates, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
         register("pacote", resourcePack);
         register("vstats", new StatsCommand(this));
         register("mochila", backpacks);
+        Objects.requireNonNull(getCommand("overworldreload")).setExecutor((sender, command, label, args) -> {
+            if (!sender.hasPermission("vertexx.admin")) {
+                sender.sendMessage("Sem permissão.");
+                return true;
+            }
+            reloadConfig();
+            sender.sendMessage("Vertexx: configuração recarregada.");
+            return true;
+        });
 
         updater = new AutoUpdater(this);
         plugins.registerEvents(updater, this);
@@ -108,6 +123,8 @@ public final class PluginMain extends JavaPlugin {
         backpacks.start();
         endGear.start();
         endWorld.start();
+        curses.start();
+        climates.start();
 
         loadAsync();
     }
@@ -155,6 +172,8 @@ public final class PluginMain extends JavaPlugin {
         bosses.shutdown();
         fauna.shutdown();
         backpacks.shutdown();
+        curses.shutdown();
+        climates.shutdown();
         rpg.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }
@@ -209,6 +228,14 @@ public final class PluginMain extends JavaPlugin {
 
     public dev.vertexx.end.EndWorld endWorld() {
         return endWorld;
+    }
+
+    public dev.vertexx.overworld.Curses curses() {
+        return curses;
+    }
+
+    public dev.vertexx.overworld.Climates climates() {
+        return climates;
     }
 
     public dev.vertexx.end.EndGear endGear() {

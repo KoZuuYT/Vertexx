@@ -93,6 +93,13 @@ public final class PanelCommand implements TabExecutor {
                     giveItem(sender, args);
                 }
             }
+            case "clima" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else {
+                    climaCommand(sender, args);
+                }
+            }
             case "cabeca", "cabeça" -> {
                 if (!admin || !(sender instanceof org.bukkit.entity.Player self)) {
                     Msg.send(sender, "<red>Somente administradores, dentro do jogo.");
@@ -139,9 +146,44 @@ public final class PanelCommand implements TabExecutor {
         }
     }
 
+    /** Livros de maldição ({@code curse:<id>}) e Óculos de Explorador ({@code oculos}). */
+    private boolean giveOverworld(CommandSender sender, String[] args) {
+        ItemStack stack;
+        dev.vertexx.overworld.Curses.Curse curse = args[1].toLowerCase(Locale.ROOT).startsWith("curse:")
+                ? dev.vertexx.overworld.Curses.Curse.parse(args[1].substring(6)) : null;
+        if (curse != null) {
+            stack = plugin.curses().book(curse);
+        } else if (args[1].equalsIgnoreCase("oculos")) {
+            stack = plugin.climates().goggles();
+        } else {
+            return false;
+        }
+        Player target = args.length >= 3 ? plugin.getServer().getPlayerExact(args[2]) : sender instanceof Player self ? self : null;
+        if (target == null) {
+            Msg.send(sender, "<red>Informe um jogador online.");
+            return true;
+        }
+        target.getInventory().addItem(stack).values().forEach(rest -> target.getWorld().dropItemNaturally(target.getLocation(), rest));
+        Msg.send(sender, "<green>Item entregue a <white>" + target.getName() + "</white>.");
+        return true;
+    }
+
+    /** {@code /vertexx clima <sandstorm|blizzard|gale>}: força um clima no mundo do jogador (teste/admin). */
+    private void climaCommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player self) || args.length < 2) {
+            Msg.send(sender, "<gray>Uso (no jogo): <white>/vertexx clima <sandstorm|blizzard|gale></white>");
+            return;
+        }
+        String label = plugin.climates().force(args[1], self.getWorld());
+        Msg.send(sender, label == null ? "<red>Clima desconhecido." : "<green>" + label + " iniciada neste mundo.");
+    }
+
     /** {@code /vertexx item <id> [jogador] [quantidade]}: entrega um item da End Update (materiais e mochilas). */
     private void giveItem(CommandSender sender, String[] args) {
         dev.vertexx.end.EndItem item = null;
+        if (args.length >= 2 && giveOverworld(sender, args)) {
+            return;
+        }
         if (args.length >= 2) {
             for (dev.vertexx.end.EndItem value : dev.vertexx.end.EndItem.values()) {
                 if (value.id().equalsIgnoreCase(args[1])) {
@@ -278,7 +320,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "cabeca", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "item", "end", "clima", "cabeca", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {
@@ -301,9 +343,16 @@ public final class PanelCommand implements TabExecutor {
                 return List.of();
             case "end":
                 return args.length == 2 ? Tab.of(args[1], "zona", "gerar") : List.of();
+            case "clima":
+                return args.length == 2 ? Tab.of(args[1], "sandstorm", "blizzard", "gale") : List.of();
             case "item":
                 if (args.length == 2) {
-                    return Tab.of(args[1], Arrays.stream(dev.vertexx.end.EndItem.values()).map(dev.vertexx.end.EndItem::id).toList());
+                    List<String> ids = new java.util.ArrayList<>(Arrays.stream(dev.vertexx.end.EndItem.values()).map(dev.vertexx.end.EndItem::id).toList());
+                    for (dev.vertexx.overworld.Curses.Curse c : dev.vertexx.overworld.Curses.Curse.values()) {
+                        ids.add("curse:" + c.id());
+                    }
+                    ids.add("oculos");
+                    return Tab.of(args[1], ids);
                 }
                 return args.length == 3 ? Tab.players(args[2]) : List.of();
             case "cabeca", "cabeça":

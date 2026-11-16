@@ -22,6 +22,9 @@ commands:
     description: Abre a mochila equipada no peito (ou a primeira que estiver no inventário).
     usage: /mochila
     aliases: [backpack]
+  overworldreload:
+    description: Recarrega o config.yml do Vertexx (administradores).
+    usage: /overworldreload
   vertexx:
     description: Painel do Vertexx (administradores), Guia em livro para todos e atualização pelo GitHub.
     usage: /vertexx [painel|livro|mob|xp|boss|versao|atualizar]

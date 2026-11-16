@@ -136,7 +136,62 @@ public final class FaunaManager implements Listener {
         }
     }
 
+    private final java.util.Map<Block, org.bukkit.block.data.BlockData> pulses = new java.util.HashMap<>();
+
+    java.util.Map<Block, org.bukkit.block.data.BlockData> pulses() {
+        return pulses;
+    }
+
+    /** Sons do mundo: os golens de ametista ouvem. */
+    @EventHandler(ignoreCancelled = true)
+    public void onNote(org.bukkit.event.block.NotePlayEvent event) {
+        int note = event.getNote().getId();
+        hearAll(event.getBlock().getLocation().add(0.5, 0.5, 0.5), note);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onGameEvent(org.bukkit.event.world.GenericGameEvent event) {
+        String name = event.getEvent().getKey().getKey();
+        if (name.equals("step") || name.equals("block_activate") || name.equals("piston_extend")
+                || name.equals("piston_contract") || name.equals("instrument_play")) {
+            hearAll(event.getLocation(), -1);
+        }
+    }
+
+    private void hearAll(Location at, int note) {
+        for (Critter critter : critters.values()) {
+            if (critter instanceof AmethystGolem golem) {
+                golem.hear(at, note);
+            }
+        }
+    }
+
+    /** Construção: bloco de ametista, calcita e abóbora entalhada por cima. */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onGolemBuild(BlockPlaceEvent event) {
+        if (!enabled() || event.getBlockPlaced().getType() != Material.CARVED_PUMPKIN) {
+            return;
+        }
+        Block head = event.getBlockPlaced();
+        Block middle = head.getRelative(0, -1, 0);
+        Block base = head.getRelative(0, -2, 0);
+        if (middle.getType() != Material.CALCITE || base.getType() != Material.AMETHYST_BLOCK) {
+            return;
+        }
+        head.setType(Material.AIR);
+        middle.setType(Material.AIR);
+        base.setType(Material.AIR);
+        Location at = base.getLocation().add(0.5, 0.1, 0.5);
+        spawn(at, FaunaKind.AMETHYST_GOLEM);
+        at.getWorld().playSound(at, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 1f, 1f);
+        Msg.actionBar(event.getPlayer(), "<light_purple>Golem de Ametista invocado! Clique com um Fragmento de Ametista para sintonizar.");
+    }
+
     public void shutdown() {
+        for (var entry : pulses.entrySet()) {
+            entry.getKey().setBlockData(entry.getValue(), false);
+        }
+        pulses.clear();
         if (task != null) {
             task.cancel();
         }
@@ -244,6 +299,7 @@ public final class FaunaManager implements Listener {
             case VOID_RAY -> new VoidRay(this, mob);
             case END_CRAWLER -> new EndCrawler(this, mob);
             case SHULKER_SENTINEL -> new ShulkerSentinel(this, mob);
+            case AMETHYST_GOLEM -> new AmethystGolem(this, mob);
         };
         // nome próprio (invisível, o mob-base também é): mensagens de morte e legendas citam a criatura, não a vaca
         if (mob.customName() == null) {
@@ -387,6 +443,7 @@ public final class FaunaManager implements Listener {
                     case VOID_RAY -> 1.0;
                     case END_CRAWLER -> 2.2;
                     case SHULKER_SENTINEL -> 1.0;
+                    case AMETHYST_GOLEM -> 1.0;
                 });
             }
             entity.setInvisible(true);
@@ -573,6 +630,11 @@ public final class FaunaManager implements Listener {
             if (random.nextDouble() < 0.7) {
                 event.getDrops().add(dev.vertexx.end.EndItem.LEVITATION_CORE.create(plugin));
             }
+        } else if (critter.kind() == FaunaKind.AMETHYST_GOLEM) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.AMETHYST_BLOCK));
+            event.getDrops().add(new ItemStack(Material.CALCITE));
+            event.getDrops().add(new ItemStack(Material.CARVED_PUMPKIN));
         } else if (critter.kind() == FaunaKind.BARNACLE) {
             event.getDrops().clear();
             event.getDrops().add(new ItemStack(Material.PRISMARINE_SHARD, 3 + random.nextInt(4)));
@@ -817,7 +879,7 @@ public final class FaunaManager implements Listener {
             case "spawn", "criar" -> {
                 FaunaKind kind = args.length < 3 ? null : FaunaKind.parse(args[2]);
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel> [variante]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel|amethystgolem> [variante]");
                     return;
                 }
                 String variant = args.length >= 4 && GreatHunger.VARIANTS.contains(args[3].toLowerCase(Locale.ROOT))
@@ -856,7 +918,7 @@ public final class FaunaManager implements Listener {
             return Tab.of(args[1], "spawn", "limpar", "lista");
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
-            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel");
+            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel", "amethystgolem");
         }
         if (args.length == 4 && args[1].equalsIgnoreCase("spawn") && FaunaKind.parse(args[2]) == FaunaKind.GREAT_HUNGER) {
             return Tab.of(args[3], GreatHunger.VARIANTS.toArray(new String[0]));

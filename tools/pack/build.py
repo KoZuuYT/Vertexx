@@ -310,6 +310,7 @@ EGGS = {
     "voidray": ("#7a62d0", "#40c0bc"),
     "endcrawler": ("#15101f", "#e030e8"),
     "shulkersentinel": ("#8a5ab0", "#ffd84a"),
+    "amethystgolem": ("#6c46b8", "#e89a24"),
 }
 # formato do ovo em 16x16: linha -> (x0, x1)
 EGG_ROWS = {1: (6, 9), 2: (5, 10), 3: (4, 11), 4: (4, 11), 5: (3, 12), 6: (3, 12), 7: (3, 12), 8: (2, 13),

@@ -365,6 +365,27 @@ public final class PanelGUI implements InventoryHolder {
                 Msg.actionBar(player, "<green>" + item.display() + " entregue.");
             });
         }
+        List<ItemStack> extras = new ArrayList<>();
+        for (dev.vertexx.overworld.Curses.Curse curse : dev.vertexx.overworld.Curses.Curse.values()) {
+            extras.add(plugin.curses().book(curse));
+        }
+        extras.add(plugin.climates().goggles());
+        int base = kinds.length + items.length;
+        for (int i = 0; i < extras.size() && base + i < LIST_SLOTS.length; i++) {
+            ItemStack stack = extras.get(i);
+            ItemStack icon = stack.clone();
+            icon.editMeta(meta -> {
+                List<net.kyori.adventure.text.Component> lore = new ArrayList<>(meta.hasLore() ? meta.lore() : List.of());
+                lore.add(Msg.item(""));
+                lore.add(Msg.item("<yellow>▶ Clique: 1 unidade"));
+                meta.lore(lore);
+            });
+            set(LIST_SLOTS[base + i], icon, c -> {
+                player.getInventory().addItem(stack.clone()).values().forEach(rest -> player.getWorld().dropItemNaturally(player.getLocation(), rest));
+                Fx.success(player);
+                Msg.actionBar(player, "<green>Item entregue.");
+            });
+        }
     }
 
     private void toggle(int slot, String path, Material icon, String label, boolean def) {

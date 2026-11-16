@@ -23,7 +23,8 @@ public enum FaunaKind {
     BARNACLE("barnacle", "Barnacle", "<dark_aqua>", Material.PRISMARINE, Squid.class),
     VOID_RAY("voidray", "Arraia do Vazio", "<light_purple>", Material.PHANTOM_MEMBRANE, Allay.class),
     END_CRAWLER("endcrawler", "Rastejador do Fim", "<dark_purple>", Material.OBSIDIAN, Silverfish.class),
-    SHULKER_SENTINEL("shulkersentinel", "Sentinela de Shulker", "<light_purple>", Material.SHULKER_SHELL, Breeze.class);
+    SHULKER_SENTINEL("shulkersentinel", "Sentinela de Shulker", "<light_purple>", Material.SHULKER_SHELL, Breeze.class),
+    AMETHYST_GOLEM("amethystgolem", "Golem de Ametista", "<light_purple>", Material.AMETHYST_BLOCK, Allay.class);
 
     private final String key;
     private final String display;
@@ -78,6 +79,7 @@ public enum FaunaKind {
             case "arraia", "ray" -> VOID_RAY;
             case "rastejador", "crawler" -> END_CRAWLER;
             case "sentinela", "sentinel" -> SHULKER_SENTINEL;
+            case "ametista" -> AMETHYST_GOLEM;
             default -> null;
         };
     }

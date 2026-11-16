@@ -239,3 +239,18 @@ end:
     # Arraia do Vazio, Rastejador do Fim e Sentinela de Shulker.
     enabled: true
 
+
+# ───────────────────────── Overworld Revival ─────────────────────────
+# Recarregue com /overworldreload.
+overworld:
+  curses:
+    enabled: true
+    chest-chance: 0.06        # chance de um livro de maldição em baús de estruturas
+    librarian-chance: 0.25    # chance de um Bibliotecário Mestre oferecer um
+    bloodthirst: {damage-multiplier: 1.45, hunger-cost: 1.5}
+    fragile-stride: {speed-bonus: 0.3, damage-multiplier: 1.5}
+    glass-cannon: {durability-cost: 5}
+  climate:
+    enabled: true
+    chance: 0.18              # chance por clima a cada 20 s (se houver jogador no bioma)
+    duration-seconds: 90
