@@ -84,6 +84,14 @@ def levitation_core():
     return img
 
 
+def wildfire_core():
+    return ramp_recolor(vanilla("nether_star"), ["#3a0a00", "#8a2200", "#d85a00", "#ffa31a", "#fff2a0"])
+
+
+def iceologer_core():
+    return ramp_recolor(vanilla("nether_star"), ["#06203a", "#1a5a9a", "#4aa8e0", "#a8e8ff", "#ffffff"])
+
+
 def amber_fragment():
     return ramp_recolor(vanilla("honeycomb"), ["#4a2200", "#a8560a", "#e8920f", "#ffc23a", "#fff0a0"])
 
@@ -178,6 +186,8 @@ def build(ns, save, write_json):
         "ethereal_membrane": ethereal_membrane(),
         "void_chitin": void_chitin(),
         "levitation_core": levitation_core(),
+        "wildfire_core": wildfire_core(),
+        "iceologer_core": iceologer_core(),
         "amber_fragment": amber_fragment(),
         "calcified_fossil": calcified_fossil(),
         "termite_larva": termite_larva(),

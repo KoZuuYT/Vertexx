@@ -214,6 +214,11 @@ public final class EndWorld implements Listener {
         return changed;
     }
 
+    /** Veio de Enderita: bloco customizado (note block com a textura do pack), não mais detrito antigo. */
+    private static void ore(Block block) {
+        dev.vertexx.block.CustomBlocks.place(block, dev.vertexx.block.CustomBlock.ENDERITE_ORE);
+    }
+
     private static int pack(int lx, int y, int lz) {
         return (lx << 24) | (lz << 16) | (y & 0xFFFF);
     }
@@ -277,12 +282,10 @@ public final class EndWorld implements Listener {
                 }
                 n++;
             } else if (r < 0.045 && soil(bottom.getType())) {
-                bottom.setType(Material.ANCIENT_DEBRIS, false);
-                ores.add(pack(lx, low, lz));
+                ore(bottom);
                 n++;
                 if (rnd.nextBoolean() && soil(chunk.getBlock(lx, low + 1, lz).getType())) {
-                    chunk.getBlock(lx, low + 1, lz).setType(Material.ANCIENT_DEBRIS, false);
-                    ores.add(pack(lx, low + 1, lz));
+                    ore(chunk.getBlock(lx, low + 1, lz));
                     n++;
                 }
             }
@@ -328,8 +331,7 @@ public final class EndWorld implements Listener {
                     }
                     n++;
                 } else if (r < 0.075 && lx >= 0 && lz >= 1 && lz <= 14) {
-                    b.setType(Material.ANCIENT_DEBRIS, false);
-                    ores.add(pack(lx, y, lz));
+                    ore(b);
                     n++;
                 }
             }
@@ -356,8 +358,7 @@ public final class EndWorld implements Listener {
                         continue;
                     }
                     if (d <= 1.5) {
-                        b.setType(Material.ANCIENT_DEBRIS, false);
-                        ores.add(pack(x, cy + dy, z));
+                        ore(b);
                     } else {
                         b.setType(Material.OBSIDIAN, false);
                     }

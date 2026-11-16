@@ -49,6 +49,8 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.end.Backpacks backpacks;
     private dev.vertexx.end.EndGear endGear;
     private dev.vertexx.end.EndWorld endWorld;
+    private dev.vertexx.end.PortalLock portalLock;
+    private dev.vertexx.block.CustomBlocks customBlocks;
     private dev.vertexx.overworld.Curses curses;
     private dev.vertexx.overworld.Climates climates;
     private dev.vertexx.overworld.Arid arid;
@@ -78,6 +80,8 @@ public final class PluginMain extends JavaPlugin {
         backpacks = new dev.vertexx.end.Backpacks(this);
         endGear = new dev.vertexx.end.EndGear(this);
         endWorld = new dev.vertexx.end.EndWorld(this);
+        portalLock = new dev.vertexx.end.PortalLock(this);
+        customBlocks = new dev.vertexx.block.CustomBlocks(this);
         curses = new dev.vertexx.overworld.Curses(this);
         climates = new dev.vertexx.overworld.Climates(this);
         arid = new dev.vertexx.overworld.Arid(this);
@@ -99,6 +103,8 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(backpacks, this);
         plugins.registerEvents(endGear, this);
         plugins.registerEvents(endWorld, this);
+        plugins.registerEvents(portalLock, this);
+        plugins.registerEvents(customBlocks, this);
         plugins.registerEvents(curses, this);
         plugins.registerEvents(climates, this);
         plugins.registerEvents(arid, this);
@@ -132,6 +138,7 @@ public final class PluginMain extends JavaPlugin {
         backpacks.start();
         endGear.start();
         endWorld.start();
+        customBlocks.start();
         curses.start();
         climates.start();
         arid.start();
@@ -238,6 +245,10 @@ public final class PluginMain extends JavaPlugin {
 
     public dev.vertexx.end.Backpacks backpacks() {
         return backpacks;
+    }
+
+    public dev.vertexx.block.CustomBlocks customBlocks() {
+        return customBlocks;
     }
 
     public dev.vertexx.end.EndWorld endWorld() {

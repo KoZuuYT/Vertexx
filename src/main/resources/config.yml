@@ -244,6 +244,11 @@ end:
     auto-refill: true
     # Botao do meio em baus e mochilas ordena e junta as pilhas.
     sorter: true
+  portal:
+    # Portal do End trancado: exige os núcleos dos bosses do Underworld (um de cada) e, por último, um Olho do Ender.
+    locked: true
+    # Quantos núcleos de boss o portal pede (11; o 12º encaixe é do Olho do Ender comum).
+    core-slots: 11
   biomes:
     # Floresta de Dossel do Coro e Abismos de Enderita nas ilhas externas do End (alem de 1000 blocos), em chunks novos.
     enabled: true

@@ -47,6 +47,12 @@ public enum EndItem {
             "<gray>Fruto de palmeira de oásis.", "<dark_gray>Restaura fome e um pouco de vida."),
     OSTRICH_EGG("ostrich_egg", "Ovo de Avestruz", "<white>", Material.PAPER, 1024,
             "<gray>Grande e pesado.", "<dark_gray>Use num bloco de feno para chocar."),
+    WILDFIRE_CORE("wildfire_core", "Núcleo de Wildfire", "<gold>", Material.PAPER, 1030,
+            "<gray>O coração em brasa do guardião", "<gray>da fortaleza do Nether.",
+            "<dark_gray>Encaixa no Portal do End trancado."),
+    ICEOLOGER_CORE("iceologer_core", "Núcleo de Iceologer", "<aqua>", Material.PAPER, 1031,
+            "<gray>O núcleo congelado do senhor", "<gray>do castelo de gelo.",
+            "<dark_gray>Encaixa no Portal do End trancado."),
     BACKPACK_LEATHER("backpack_leather", "Mochila de Couro", "<gold>", Material.PAPER, 1010,
             "<gray>9 espaços."),
     BACKPACK_IRON("backpack_iron", "Mochila Reforçada", "<white>", Material.PAPER, 1011,
@@ -82,6 +88,11 @@ public enum EndItem {
 
     public String color() {
         return color;
+    }
+
+    /** Núcleos de boss que destrancam o Portal do End. */
+    public boolean isBossCore() {
+        return this == WILDFIRE_CORE || this == ICEOLOGER_CORE;
     }
 
     /** 1 a 3 para as mochilas, 0 para os demais. */

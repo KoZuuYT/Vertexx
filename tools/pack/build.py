@@ -416,6 +416,8 @@ def build_assets():
     # itens da End Update (materiais, mochilas e a armadura vestida das mochilas)
     import enditems
     enditems.build(NS, save, write_json)
+    import blocks
+    blocks.build(NS, save, write_json)
 
     write_json(NS / "models" / "item" / "selector.json",
                {"parent": "minecraft:item/handheld", "textures": {"layer0": "vertexx:item/selector"}})

@@ -355,6 +355,7 @@ public final class PanelGUI implements InventoryHolder {
         toggle(30, "waystones.model.fov-culling", Material.SPYGLASS, "Ocultar fora do campo de visão", true);
         toggle(31, "waystones.model.occlusion-culling", Material.STONE_BRICKS, "Ocultar atrás de paredes", true);
         toggle(32, "waystones.model.assembly-animation", Material.ANVIL, "Animação de montagem", true);
+        toggle(33, "end.portal.locked", Material.END_PORTAL_FRAME, "Portal do End trancado", true);
     }
 
     private void adminEggs() {
@@ -392,6 +393,10 @@ public final class PanelGUI implements InventoryHolder {
             }
             entries.add(plugin.climates().goggles());
             names.add("Óculos de Explorador");
+            for (dev.vertexx.block.CustomBlock block : dev.vertexx.block.CustomBlock.values()) {
+                entries.add(block.item(1));
+                names.add(block.display());
+            }
         } else {
             for (dev.vertexx.overworld.Curses.Curse curse : dev.vertexx.overworld.Curses.Curse.values()) {
                 entries.add(plugin.curses().book(curse));

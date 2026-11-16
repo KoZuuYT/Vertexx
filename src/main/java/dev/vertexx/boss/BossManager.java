@@ -342,9 +342,7 @@ public final class BossManager implements Listener {
             if (random.nextBoolean()) {
                 loot.add(new ItemStack(Material.ENCHANTED_GOLDEN_APPLE));
             }
-            loot.add(Items.of(Material.MAGMA_CREAM, "<gold><bold>Núcleo de Wildfire",
-                    List.of("<gray>O coração em brasa do guardião", "<gray>da fortaleza do Nether.", "",
-                            "<dark_gray>Troféu de boss"), true));
+            loot.add(dev.vertexx.end.EndItem.WILDFIRE_CORE.create(plugin));
         } else {
             loot.add(new ItemStack(Material.DIAMOND, 4 + random.nextInt(5)));
             loot.add(new ItemStack(Material.BLUE_ICE, 24 + random.nextInt(17)));
@@ -352,9 +350,7 @@ public final class BossManager implements Listener {
             if (random.nextBoolean()) {
                 loot.add(new ItemStack(Material.TOTEM_OF_UNDYING));
             }
-            loot.add(Items.of(Material.HEART_OF_THE_SEA, "<aqua><bold>Coração de Gelo",
-                    List.of("<gray>O núcleo congelado do senhor", "<gray>do castelo de gelo.", "",
-                            "<dark_gray>Troféu de boss"), true));
+            loot.add(dev.vertexx.end.EndItem.ICEOLOGER_CORE.create(plugin));
         }
         for (ItemStack item : loot) {
             world.dropItemNaturally(at, item);
