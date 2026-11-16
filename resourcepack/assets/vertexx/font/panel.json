@@ -1,0 +1,94 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_stats.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_info.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_mining.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_woodcutting.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_excavation.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_farming.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_combat.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_exploration.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_acrobatics.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "vertexx:gui/panel_endurance.png",
+      "ascent": 13,
+      "height": 222,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}
