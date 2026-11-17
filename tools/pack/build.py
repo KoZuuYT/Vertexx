@@ -308,6 +308,7 @@ EGGS = {
     "greathunger": ("#7a5532", "#5a9a3c"),
     "barnacle": ("#23405e", "#a7e8da"),
     "voidray": ("#7a62d0", "#40c0bc"),
+    "endstingray": ("#110b1c", "#ff59e6"),
     "endcrawler": ("#15101f", "#e030e8"),
     "shulkersentinel": ("#8a5ab0", "#ffd84a"),
     "amethystgolem": ("#6c46b8", "#e89a24"),

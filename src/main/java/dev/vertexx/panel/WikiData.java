@@ -180,7 +180,10 @@ final class WikiData {
                 e(Material.NETHER_BRICKS, "<gold><bold>Nether: Câmara do Wildfire",
                         "<gray>Ala anexa às fortalezas. Veja Bosses."),
                 e(Material.BLUE_ICE, "<aqua><bold>Terras geladas: Castelo de Gelo",
-                        "<gray>Fortaleza do Iceologer em biomas gelados."));
+                        "<gray>Fortaleza do Iceologer em biomas gelados."),
+                e(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Abismos: Pináculo de Quitina",
+                        "<gray>Torre-colmeia rara nas ilhas grandes dos", "<gray>Abismos de Enderita, longe do centro do End.",
+                        "<gray>Veja Bosses."));
     }
 
     // ── Estruturas ──────────────────────────────────────────────
@@ -192,6 +195,10 @@ final class WikiData {
                         "<gray>selada durante a luta."),
                 e(Material.PACKED_ICE, "<aqua><bold>Castelo de Gelo",
                         "<gray>Muralha, quatro torres e torreão com o", "<gray>salão do Iceologer, em terras geladas."),
+                e(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Pináculo de Quitina",
+                        "<gray>Torre cônica de 42 blocos de ardósia e", "<gray>obsidiana chorosa, com costelas de End Stone,",
+                        "<gray>domos âmbar/verde e quatro pontes sobre o", "<gray>abismo. Dentro: câmara de 28 blocos, poças de",
+                        "<gray>ácido (Poison I sem botas encantadas) e o", "<gray>Altar de Cristal do Vazio no ninho."),
                 e(Material.WATER_BUCKET, "<aqua><bold>Oásis",
                         "<gray>Lago com palmeiras no deserto."),
                 e(Material.JUNGLE_LOG, "<yellow><bold>Baobá",
@@ -238,6 +245,12 @@ final class WikiData {
                 e(Material.ANVIL, "<white><bold>Enderita e Quitina",
                         "<gray>Fragmento tempera armaduras contra o Vazio;", "<gray>Membrana repara Elytras; Quitina reforça",
                         "<gray>escudos."),
+                e(Material.NETHERITE_CHESTPLATE, "<dark_purple><bold>Equipamentos do Void-Scarab",
+                        "<gray>Mesa de ferraria, com 2 Placas de Quitina no", "<gray>slot do modelo:",
+                        "<gray>• Netherite + Mandíbula = <white>Segadora</white> (avanço)",
+                        "<gray>• Elytra + Membrana = <white>Élitros de Asa do Vazio</white>",
+                        "<gray>• Peitoral + Fragmento = <white>Peitoral de Quitina</white>",
+                        "<gray>Coração de Cristal recarrega com Pérolas", "<gray>do Fim na bigorna."),
                 e(Material.AXOLOTL_BUCKET, "<white><bold>Resource pack",
                         "<gray>Opcional. Ícones, menus ilustrados e", "<gray>modelos 3D. /pacote aceita ou recusa."),
                 e(Material.BOOK, "<white><bold>Comandos úteis",

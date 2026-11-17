@@ -701,6 +701,8 @@ public final class PanelGUI implements InventoryHolder {
                 c -> bossAdminClick(BossKind.WILDFIRE, c));
         set(24, Items.of(Material.HEART_OF_THE_SEA, "<aqua><bold>Iceologer", bossAdminLore(BossKind.ICEOLOGER), true),
                 c -> bossAdminClick(BossKind.ICEOLOGER, c));
+        set(25, Items.of(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Void-Scarab", bossAdminLore(BossKind.VOID_SCARAB), true),
+                c -> bossAdminClick(BossKind.VOID_SCARAB, c));
         List<String> info = new ArrayList<>();
         info.add("<gray>Salas registradas: <white>" + bosses.arenaCount());
         info.add("<gray>Lutas ativas: <white>" + bosses.activeFights() + (bosses.isBuilding() ? " <yellow>• construindo…" : ""));
@@ -755,7 +757,7 @@ public final class PanelGUI implements InventoryHolder {
         }
         cats.add(2, new Object[]{Material.NETHER_STAR, "Traits dos mobs", "Comuns e de Elite.", "traits"});
         cats.add(3, new Object[]{Material.GOLDEN_APPLE, "Mobs Elite", "Chances, drops e níveis.", "elites"});
-        cats.add(4, new Object[]{Material.WITHER_SKELETON_SKULL, "Bosses", "Wildfire e Iceologer.", "bosses"});
+        cats.add(4, new Object[]{Material.WITHER_SKELETON_SKULL, "Bosses", "Wildfire, Iceologer e Void-Scarab.", "bosses"});
         for (int i = 0; i < cats.size() && i < slots.length; i++) {
             Object[] c = cats.get(i);
             String id = (String) c[3];
@@ -848,7 +850,7 @@ public final class PanelGUI implements InventoryHolder {
 
     private void wikiBosses() {
         var c = plugin.getConfig();
-        set(20, Items.of(Material.MAGMA_CREAM, "<gold><bold>Wildfire",
+        set(19, Items.of(Material.MAGMA_CREAM, "<gold><bold>Wildfire",
                 List.of("<gray>O Blaze chefe removido da Mojang.", "",
                         "<white>Onde: <gray>Câmara do Wildfire, uma ala", "<gray>especial anexa às fortalezas do Nether.",
                         "<white>Vida: <red>" + c.getInt("bosses.wildfire.health", 450) + " ❤", "",
@@ -858,21 +860,34 @@ public final class PanelGUI implements InventoryHolder {
                         "<gold>☄ Investida Aérea <gray>— se errar, ele fica",
                         "<gray>exposto (+50% de dano); se agarrar, queima",
                         "<gray>e arremessa você."), true), null);
-        set(24, Items.of(Material.HEART_OF_THE_SEA, "<aqua><bold>Iceologer",
+        set(22, Items.of(Material.HEART_OF_THE_SEA, "<aqua><bold>Iceologer",
                 List.of("<gray>O saqueador do gelo removido da Mojang.", "",
                         "<white>Onde: <gray>Castelo de Gelo, em terras geladas.",
                         "<white>Vida: <red>" + c.getInt("bosses.iceologer.health", 380) + " ❤", "",
                         "<aqua>❄ Espinhos de Gelo <gray>— cinco espinhos", "<gray>lançados um a um (mais na fúria).",
                         "<aqua>❄ Iceberg <gray>— arranca o chão, carrega e", "<gray>arremessa na marca vermelha: saia dela!"),
                 true), null);
+        set(25, Items.of(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Void-Scarab",
+                List.of("<gray>A Matriarca de Quitina, escaravelho", "<gray>colossal do fim de jogo.", "",
+                        "<white>Onde: <gray>Pináculo de Quitina, nos Abismos", "<gray>de Enderita (longe do centro do End).",
+                        "<white>Vida: <red>" + c.getInt("bosses.void-scarab.health", 600) + " ❤",
+                        "<white>Ativar: <gray>1 Olho do Fim + 2 Fragmentos de", "<gray>Enderita no Altar de Cristal.", "",
+                        "<dark_purple>Carapaça <gray>reduz 75% do dano. Acerte o", "<gray>Núcleo Dorsal (200%): com 100 de dano ele",
+                        "<gray>entra em Sobrecarga e a carapaça cede por 6 s.", "",
+                        "<dark_purple>☄ Investida de Mandíbulas <gray>— afaste-se.",
+                        "<dark_purple>☄ Rajada de Espinhos <gray>— Levitação.",
+                        "<dark_purple>☄ Pulso do Ferrão <gray>— pule no instante.",
+                        "<dark_purple>☄ Enxame <gray>— abaixo de 50% de vida."), true), null);
         set(29, Items.of(Material.IRON_DOOR, "<white>A sala do boss",
                 List.of("<gray>Ao entrar no salão o boss desperta e a", "<gray>porta é selada até a luta acabar.",
                         "<gray>Se todos caírem, o boss reinicia.")), null);
         set(31, Items.of(Material.PLAYER_HEAD, "<white>Em grupo",
                 List.of("<gray>A vida cresce <white>60%</white> por jogador extra", "<gray>(até 4 jogadores).")), null);
         set(33, Items.of(Material.CHEST, "<white>Recompensas",
-                List.of("<gray>Essência Elite, recursos raros e um", "<gray>troféu, além de XP de Luta.", "",
-                        "<gray>Renasce em <white>" + c.getInt("bosses.respawn-minutes", 90) + " min</white>.")), null);
+                List.of("<gray>Essência Elite, recursos raros e um", "<gray>troféu, além de XP de Luta.",
+                        "<gray>O Void-Scarab solta Coração de Cristal,", "<gray>Placas de Quitina e Mandíbula.", "",
+                        "<gray>Renasce em <white>" + c.getInt("bosses.respawn-minutes", 90) + " min</white>",
+                        "<gray>(Void-Scarab: <white>" + c.getInt("bosses.void-scarab.respawn-minutes", 30) + " min</white>).")), null);
     }
 
     private void adminWaystones() {
