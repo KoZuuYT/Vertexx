@@ -68,7 +68,7 @@ final class VoidScarab extends BossFight {
     VoidScarab(BossManager manager, Arena arena) {
         super(manager, arena);
         // o ninho com o altar fica no centro; o chefe dorme atrás dele, de frente para a entrada
-        pos.add(-arena.fx * 6.5, 0, -arena.fz * 6.5);
+        pos.add(-arena.fx * 11, 0, -arena.fz * 11);
     }
 
     // ── Parâmetros ─────────────────────────────────────────────
@@ -215,11 +215,6 @@ final class VoidScarab extends BossFight {
     }
 
     // ── Despertar e morte ──────────────────────────────────────
-
-    @Override
-    protected void checkAwaken() {
-        // só o altar acorda a Matriarca (BossManager chama awaken)
-    }
 
     @Override
     protected void idlePose() {
@@ -597,14 +592,14 @@ final class VoidScarab extends BossFight {
         if (moveT == 36) {
             Fx.worldSound(base, Sound.ENTITY_GENERIC_EXPLODE, 2f, 0.5f);
             Fx.worldSound(base, Sound.ENTITY_WARDEN_SONIC_BOOM, 1.5f, 0.6f);
-            for (double r = 1; r <= 10; r += 1.5) {
+            for (double r = 1; r <= 14; r += 1.5) {
                 Fx.ring(base, Particle.EXPLOSION, r, (int) (r * 5));
                 Fx.ring(base, Particle.WITCH, r, (int) (r * 6));
             }
             for (Player player : insidePlayers()) {
                 double dx = player.getLocation().getX() - base.getX();
                 double dz = player.getLocation().getZ() - base.getZ();
-                if (Math.hypot(dx, dz) <= 10 && player.isOnGround()) {
+                if (Math.hypot(dx, dz) <= 14 && player.isOnGround()) {
                     damage(player, 16);
                     Vector away = new Vector(dx, 0, dz).normalize().multiply(0.6).setY(0.5);
                     player.setVelocity(away);

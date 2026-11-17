@@ -21,6 +21,8 @@ final class WikiData {
             new Category("waystones", "Waystones e Túmulos", Material.LODESTONE, "Viagem rápida e proteção de itens."),
             new Category("creatures", "Criaturas", Material.MOSS_BLOCK, "Todos os mobs customizados."),
             new Category("items", "Itens customizados", Material.AMETHYST_SHARD, "Materiais, mochilas, livros e utilitários."),
+            new Category("endgear", "Enderita e Equipamentos", Material.NETHERITE_CHESTPLATE,
+                    "Guia: materiais do End e como forjar."),
             new Category("biomes", "Biomas e climas", Material.GRASS_BLOCK, "Regiões novas e clima extremo."),
             new Category("structures", "Estruturas", Material.STONE_BRICKS, "Construções, salas de boss e bolsões."),
             new Category("systems", "Sistemas", Material.CRAFTING_TABLE, "Status, upgrades, mochilas e mais."));
@@ -46,6 +48,7 @@ final class WikiData {
             case "waystones" -> waystones();
             case "creatures" -> creatures();
             case "items" -> items(plugin);
+            case "endgear" -> endGear();
             case "biomes" -> biomes();
             case "structures" -> structures();
             default -> systems();
@@ -151,6 +154,54 @@ final class WikiData {
         return list;
     }
 
+    // ── Enderita e equipamentos (guia) ──────────────────────────
+
+    private static List<ItemStack> endGear() {
+        return List.of(
+                e(Material.END_STONE, "<light_purple><bold>1. Chegando aos materiais",
+                        "<gray>Tudo vem das <white>ilhas externas do End</white> (além de", "<gray>1000 blocos do centro). O progresso é:",
+                        "<gray>Enderita → temperar armadura → criaturas do", "<gray>End → Void-Scarab → equipamentos finais."),
+                e(Material.AMETHYST_CLUSTER, "<light_purple><bold>2. Minério de Enderita",
+                        "<gray>Onde: <white>Abismos de Enderita</white> (ardósia escura e", "<gray>ametista, ilhas externas do End).",
+                        "<gray>Como: <white>picareta de diamante</white> ou melhor.", "<gray>Dropa: <white>Fragmento de Enderita</white>.",
+                        "<gray>9 fragmentos = 1 Bloco de Enderita (mesa de", "<gray>criação) e o bloco volta a 9 fragmentos."),
+                e(Material.AMETHYST_SHARD, "<light_purple><bold>3. Temperar armadura (Fragmento)",
+                        "<gray>Bigorna: <white>peça de armadura + 1 Fragmento</white>", "<gray>(custa 3 níveis). Também vale na mesa de",
+                        "<gray>ferraria (fragmento no slot do material).",
+                        "<gray>Efeito por peça: <white>−25% de dano do Vazio</white>.", "<gray>As botas temperadas anulam a levitação das",
+                        "<gray>bordas dos Abismos. Cada peça só uma vez."),
+                e(Material.PHANTOM_MEMBRANE, "<aqua><bold>4. Membrana Etérea",
+                        "<gray>Dropa da <white>Arraia do Vazio</white> (Copas do Coro).", "<gray>Bigorna: Elytra + Membrana repara a Elytra.",
+                        "<gray>Também entra na poção de Queda Lenta e é", "<gray>o ingrediente dos Élitros de Asa do Vazio."),
+                e(Material.OBSIDIAN, "<dark_purple><bold>5. Quitina do Vazio",
+                        "<gray>Dropa do <white>Rastejador do Fim</white>.", "<gray>• Escudo + Quitina na bigorna: Inquebrável III",
+                        "<gray>  e repara 25% da durabilidade.", "<gray>• Mochila do Vazio (sem forma): 1 Papel,",
+                        "<gray>  2 Cascos de Shulker, 2 Quitinas e 1 Pérola", "<gray>  do Fim."),
+                e(Material.SHULKER_SHELL, "<yellow><bold>6. Núcleo de Levitação",
+                        "<gray>Dropa da <white>Sentinela de Shulker</white> (70%).", "<gray>Cervejaria: Poção Estranha + Núcleo =",
+                        "<gray>Poção de Levitação (45 s)."),
+                e(Material.CRYING_OBSIDIAN, "<dark_purple><bold>7. Void-Scarab: o chefe",
+                        "<gray>Ache o <white>Pináculo de Quitina</white> (raro, ilhas grandes", "<gray>dos Abismos, bem longe do centro do End).",
+                        "<gray>Entre na câmara e ele acorda. Os Endermans", "<gray>não entram na torre.",
+                        "<gray>Dropa: <white>Coração de Cristal</white>, <white>4–6 Placas de", "<white>Quitina Reforçada</white> e <white>Mandíbula</white>."),
+                e(Material.NETHERITE_SWORD, "<white><bold>8. Segadora de Mandíbula",
+                        "<gray>Mesa de ferraria (netherite):", "<gray>• Modelo: <white>2 Placas de Quitina Reforçada</white>",
+                        "<gray>• Base: <white>Espada de Netherite</white>", "<gray>• Material: <white>Mandíbula de Escaravelho</white>",
+                        "<gray>+2,5 de dano; clique direito: avanço com", "<gray>golpe (10,5 de dano, ignora ~40% da armadura;", "<gray>recarga de 6 s). Não fere jogadores."),
+                e(Material.ELYTRA, "<aqua><bold>9. Élitros de Asa do Vazio",
+                        "<gray>Mesa de ferraria:", "<gray>• Modelo: <white>2 Placas de Quitina Reforçada</white>",
+                        "<gray>• Base: <white>Elytra</white>", "<gray>• Material: <white>Membrana Etérea</white>",
+                        "<gray>+6 de armadura e o dobro da durabilidade."),
+                e(Material.NETHERITE_CHESTPLATE, "<dark_purple><bold>10. Peitoral de Quitina",
+                        "<gray>Mesa de ferraria:", "<gray>• Modelo: <white>2 Placas de Quitina Reforçada</white>",
+                        "<gray>• Base: <white>Peitoral de Netherite</white>", "<gray>• Material: <white>Fragmento de Enderita</white>",
+                        "<gray>−35% de dano de projétil e explosão; devolve", "<gray>3 de dano a mobs que te atacam de perto."),
+                e(Material.HEART_OF_THE_SEA, "<light_purple><bold>11. Coração de Cristal do Vazio",
+                        "<gray>Com ele no inventário, cair no Vazio (Y < −10)", "<gray>no End te devolve ao ponto seguro, com Queda",
+                        "<gray>Lenta. Tem 4 cargas.", "<gray>Clique direito: fixa uma âncora na ilha.",
+                        "<gray>Recarga: Coração + Pérolas do Fim na bigorna."));
+    }
+
     // ── Biomas e climas ─────────────────────────────────────────
 
     private static List<ItemStack> biomes() {
@@ -196,9 +247,10 @@ final class WikiData {
                 e(Material.PACKED_ICE, "<aqua><bold>Castelo de Gelo",
                         "<gray>Muralha, quatro torres e torreão com o", "<gray>salão do Iceologer, em terras geladas."),
                 e(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Pináculo de Quitina",
-                        "<gray>Torre cônica de 42 blocos de ardósia e", "<gray>obsidiana chorosa, com costelas de End Stone,",
-                        "<gray>domos âmbar/verde e quatro pontes sobre o", "<gray>abismo. Dentro: câmara de 28 blocos, poças de",
-                        "<gray>ácido (Poison I sem botas encantadas) e o", "<gray>Altar de Cristal do Vazio no ninho."),
+                        "<gray>Torre cônica de 52 blocos de ardósia e", "<gray>obsidiana chorosa, com costelas de End Stone,",
+                        "<gray>janelas âmbar/verdes e quatro pontes sobre", "<gray>o abismo. Dentro: câmara de 48 blocos de",
+                        "<gray>diâmetro, poças de ácido (Poison I sem botas", "<gray>encantadas) e o Altar no ninho central.",
+                        "<gray>Entre na câmara para acordar o chefe."),
                 e(Material.WATER_BUCKET, "<aqua><bold>Oásis",
                         "<gray>Lago com palmeiras no deserto."),
                 e(Material.JUNGLE_LOG, "<yellow><bold>Baobá",
@@ -246,7 +298,7 @@ final class WikiData {
                         "<gray>Fragmento tempera armaduras contra o Vazio;", "<gray>Membrana repara Elytras; Quitina reforça",
                         "<gray>escudos."),
                 e(Material.NETHERITE_CHESTPLATE, "<dark_purple><bold>Equipamentos do Void-Scarab",
-                        "<gray>Mesa de ferraria, com 2 Placas de Quitina no", "<gray>slot do modelo:",
+                        "<gray>Mesa de ferraria, com 2 Placas de Quitina no", "<gray>slot do modelo (guia em Enderita e Equip.):",
                         "<gray>• Netherite + Mandíbula = <white>Segadora</white> (avanço)",
                         "<gray>• Elytra + Membrana = <white>Élitros de Asa do Vazio</white>",
                         "<gray>• Peitoral + Fragmento = <white>Peitoral de Quitina</white>",

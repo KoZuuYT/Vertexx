@@ -224,6 +224,9 @@ public final class BossManager implements Listener {
             if (world == null || !world.isChunkLoaded(arena.cx >> 4, arena.cz >> 4)) {
                 continue;
             }
+            if (arena.kind == BossKind.VOID_SCARAB) {
+                purgeEndermen(arena, world);
+            }
             BossFight fight = fights.get(arena.id);
             if (fight == null) {
                 if (arena.sealed) {
@@ -529,6 +532,60 @@ public final class BossManager implements Listener {
                 ? arrow.getDamage() * Math.min(3.0, arrow.getVelocity().length()) : 4;
         routeHit(hit, shooter, amount);
         projectile.remove();
+    }
+
+    // ── Endermans fora do Pináculo ─────────────────────────────
+
+    private static final double SPIRE_ZONE = 64;
+
+    private boolean inSpireZone(Location at) {
+        if (at.getWorld() == null) {
+            return false;
+        }
+        for (Arena arena : arenas.values()) {
+            if (arena.kind == BossKind.VOID_SCARAB && arena.world.equals(at.getWorld().getName())
+                    && Math.hypot(at.getX() - arena.cx, at.getZ() - arena.cz) <= SPIRE_ZONE
+                    && at.getY() >= arena.fy - 30 && at.getY() <= arena.fy + 70) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Remove Endermans que já estejam na torre ou nas pontes (carregados antes, ou vindos de outras fontes). */
+    private void purgeEndermen(Arena arena, World world) {
+        if (slowTick % 2 != 0) {
+            return;
+        }
+        Location center = new Location(world, arena.cx + 0.5, arena.fy + 10, arena.cz + 0.5);
+        for (Entity entity : world.getNearbyEntities(center, SPIRE_ZONE, 40, SPIRE_ZONE)) {
+            if (entity.getType() == org.bukkit.entity.EntityType.ENDERMAN) {
+                entity.remove();
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEndermanSpawn(org.bukkit.event.entity.CreatureSpawnEvent event) {
+        if (event.getEntityType() != org.bukkit.entity.EntityType.ENDERMAN) {
+            return;
+        }
+        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason = event.getSpawnReason();
+        if (reason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.COMMAND
+                || reason == org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SPAWNER_EGG) {
+            return;
+        }
+        if (inSpireZone(event.getLocation())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEndermanTeleport(org.bukkit.event.entity.EntityTeleportEvent event) {
+        if (event.getEntityType() == org.bukkit.entity.EntityType.ENDERMAN && event.getTo() != null
+                && inSpireZone(event.getTo())) {
+            event.setCancelled(true);
+        }
     }
 
     // ── Altar de Cristal do Vazio ──────────────────────────────
@@ -960,13 +1017,13 @@ public final class BossManager implements Listener {
         }
     }
 
-    /** Área sólida mínima de 32x32 de pedra do End, com relevo quase plano; escolhe a entrada para o lado mais firme. */
+    /** Área sólida mínima de 40x40 de pedra do End, com relevo quase plano; escolhe a entrada para o lado mais firme. */
     private boolean planSpire(World world, int x, int z) {
         int min = Integer.MAX_VALUE;
         int max = Integer.MIN_VALUE;
         List<Integer> heights = new ArrayList<>();
-        for (int dx = -16; dx <= 16; dx += 8) {
-            for (int dz = -16; dz <= 16; dz += 8) {
+        for (int dx = -20; dx <= 20; dx += 10) {
+            for (int dz = -20; dz <= 20; dz += 10) {
                 int y = world.getHighestBlockYAt(x + dx, z + dz, HeightMap.MOTION_BLOCKING_NO_LEAVES);
                 Material type = world.getBlockAt(x + dx, y, z + dz).getType();
                 if (type.isAir() || !type.isSolid() || y < 10) {
@@ -986,8 +1043,8 @@ public final class BossManager implements Listener {
         int[] forward = sides[0];
         int best = Integer.MIN_VALUE;
         for (int[] side : sides) {
-            int y = world.getHighestBlockYAt(x + side[0] * 26, z + side[1] * 26, HeightMap.MOTION_BLOCKING_NO_LEAVES);
-            int score = world.getBlockAt(x + side[0] * 26, y, z + side[1] * 26).getType().isSolid() ? y : -1000;
+            int y = world.getHighestBlockYAt(x + side[0] * 36, z + side[1] * 36, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+            int score = world.getBlockAt(x + side[0] * 36, y, z + side[1] * 36).getType().isSolid() ? y : -1000;
             if (score > best) {
                 best = score;
                 forward = side;
@@ -1103,7 +1160,7 @@ public final class BossManager implements Listener {
             return "Já há uma construção em andamento.";
         }
         if (kind == BossKind.VOID_SCARAB) {
-            buildSpire(world, x + fx * 24, y, z + fz * 24, -fx, -fz);
+            buildSpire(world, x + fx * 42, y, z + fz * 42, -fx, -fz);
         } else if (kind == BossKind.WILDFIRE) {
             buildWildfire(world, x + fx * 30, y, z + fz * 30, -fx, -fz, 33, true);
         } else {

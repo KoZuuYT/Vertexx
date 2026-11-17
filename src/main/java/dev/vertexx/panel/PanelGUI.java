@@ -871,7 +871,7 @@ public final class PanelGUI implements InventoryHolder {
                 List.of("<gray>A Matriarca de Quitina, escaravelho", "<gray>colossal do fim de jogo.", "",
                         "<white>Onde: <gray>Pináculo de Quitina, nos Abismos", "<gray>de Enderita (longe do centro do End).",
                         "<white>Vida: <red>" + c.getInt("bosses.void-scarab.health", 600) + " ❤",
-                        "<white>Ativar: <gray>1 Olho do Fim + 2 Fragmentos de", "<gray>Enderita no Altar de Cristal.", "",
+                        "<white>Ativar: <gray>entre na câmara (o Altar também", "<gray>o acorda). Endermans não entram.", "",
                         "<dark_purple>Carapaça <gray>reduz 75% do dano. Acerte o", "<gray>Núcleo Dorsal (200%): com 100 de dano ele",
                         "<gray>entra em Sobrecarga e a carapaça cede por 6 s.", "",
                         "<dark_purple>☄ Investida de Mandíbulas <gray>— afaste-se.",
