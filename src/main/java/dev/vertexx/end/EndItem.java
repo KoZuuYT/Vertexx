@@ -61,6 +61,20 @@ public enum EndItem {
             "<gray>Carapaça do Void-Scarab.", "<dark_gray>Mesa de ferraria: equipamento pós-Netherite."),
     SCARAB_MANDIBLE("scarab_mandible", "Mandíbula de Escaravelho", "<white>", Material.PAPER, 1034,
             "<gray>Mandíbula abissal do Void-Scarab.", "<dark_gray>Forja a Segadora de Mandíbula."),
+    GLOOM_HEART("gloom_heart", "Coração da Penumbra", "<dark_aqua>", Material.PAPER, 1060,
+            "<gray>O coração azul do Gloom Stalker.",
+            "<dark_aqua>◆ Passo Sombrio <gray>(botão direito, 10 s)",
+            "<dark_gray>Invisível e silencioso para sensores de Sculk",
+            "<dark_gray>e Wardens por 8 s, com Speed II e visão noturna.",
+            "<dark_gray>32 usos; recarregue com Echo Shards na bigorna."),
+    STALKER_CLAW("stalker_claw", "Garra do Espreitador", "<dark_aqua>", Material.PAPER, 1061,
+            "<gray>Garra de ardósia do Gloom Stalker.",
+            "<dark_gray>2 Garras + espada de diamante ou netherite,",
+            "<dark_gray>na bancada, forjam as Garras de Ardósia Sônica."),
+    SCULK_CARAPACE("sculk_carapace", "Carapaça Infundida em Sculk", "<dark_aqua>", Material.PAPER, 1062,
+            "<gray>Casco do Gloom Stalker, vibrando de sculk.",
+            "<dark_gray>Mesa de ferraria: modelo + Peitoral de Netherite",
+            "<dark_gray>+ Echo Shard = Peitoral de Carapaça Sculk."),
     WARP_STONE("warp_stone", "Pedra de Warp", "<light_purple>", Material.PAPER, 1040,
             "<gray>Conecta-se a todos os Waystones", "<gray>que você já conheceu.",
             "<dark_gray>Sem custo de pérolas, mas com poucas cargas."),
@@ -99,6 +113,11 @@ public enum EndItem {
 
     public String color() {
         return color;
+    }
+
+    /** Linhas de lore base do item (sem as linhas extras). */
+    public List<String> loreLines() {
+        return lore;
     }
 
     /** Núcleos de boss que destrancam o Portal do End. */
@@ -154,7 +173,7 @@ public enum EndItem {
                     .nutrition(5).saturation(6f).canAlwaysEat(false).build());
             item.setData(DataComponentTypes.CONSUMABLE, io.papermc.paper.datacomponent.item.Consumable.consumable().build());
         }
-        if (this == CRYSTAL_HEART) {
+        if (this == CRYSTAL_HEART || this == GLOOM_HEART) {
             item.setData(DataComponentTypes.MAX_STACK_SIZE, 1);
             item.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         }

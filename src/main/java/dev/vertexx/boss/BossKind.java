@@ -9,7 +9,8 @@ public enum BossKind {
     ICEOLOGER("Iceologer", "<aqua>", BossBar.Color.BLUE, "Castelo de Gelo"),
     VOID_SCARAB("Void-Scarab", "<dark_purple>", BossBar.Color.PURPLE, "Pináculo de Quitina"),
     PARCHED_TITAN("Parched Titan", "<gold>", BossBar.Color.YELLOW, "Cidadela Soterrada"),
-    ROOT_SOVEREIGN("Root Sovereign", "<green>", BossBar.Color.GREEN, "Gruta dos Esporos Ancestrais");
+    ROOT_SOVEREIGN("Root Sovereign", "<green>", BossBar.Color.GREEN, "Gruta dos Esporos Ancestrais"),
+    GLOOM_STALKER("Gloom Stalker", "<dark_aqua>", BossBar.Color.BLUE, "Covil Ressonante");
 
     private final String display;
     private final String color;
@@ -57,7 +58,8 @@ public enum BossKind {
             if (kind.key().equalsIgnoreCase(text) || kind.key().replace("_", "").equalsIgnoreCase(text)
                     || kind == VOID_SCARAB && text.equalsIgnoreCase("scarab")
                     || kind == PARCHED_TITAN && (text.equalsIgnoreCase("titan") || text.equalsIgnoreCase("parched"))
-                    || kind == ROOT_SOVEREIGN && (text.equalsIgnoreCase("sovereign") || text.equalsIgnoreCase("root"))) {
+                    || kind == ROOT_SOVEREIGN && (text.equalsIgnoreCase("sovereign") || text.equalsIgnoreCase("root"))
+                    || kind == GLOOM_STALKER && (text.equalsIgnoreCase("stalker") || text.equalsIgnoreCase("gloom"))) {
                 return kind;
             }
         }

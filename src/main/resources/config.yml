@@ -200,6 +200,14 @@ bosses:
     min-spacing: 700
     respawn-minutes: 90
 
+  gloom-stalker:
+    # Predador do Deep Dark: chefe do Covil Ressonante (subsolo, Y -35 a -52, longe de Cidades Antigas).
+    health: 420
+    chunk-odds: 70
+    min-spawn-distance: 250
+    min-spacing: 500
+    respawn-minutes: 90
+
   root-sovereign:
     # Guardiao das Lush Caves: chefe da Gruta dos Esporos Ancestrais (subsolo, Y -10 a -45).
     health: 380

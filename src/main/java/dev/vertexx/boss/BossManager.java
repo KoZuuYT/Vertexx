@@ -266,6 +266,7 @@ public final class BossManager implements Listener {
             case VOID_SCARAB -> new VoidScarab(this, arena);
             case PARCHED_TITAN -> new ParchedTitan(this, arena);
             case ROOT_SOVEREIGN -> new RootSovereign(this, arena);
+            case GLOOM_STALKER -> new GloomStalker(this, arena);
             default -> new Iceologer(this, arena);
         };
         fights.put(arena.id, fight);
@@ -341,6 +342,7 @@ public final class BossManager implements Listener {
         long minutes = arena.kind == BossKind.VOID_SCARAB ? plugin.getConfig().getLong("bosses.void-scarab.respawn-minutes", 30)
                 : arena.kind == BossKind.PARCHED_TITAN ? plugin.getConfig().getLong("bosses.parched-titan.respawn-minutes", 90)
                 : arena.kind == BossKind.ROOT_SOVEREIGN ? plugin.getConfig().getLong("bosses.root-sovereign.respawn-minutes", 90)
+                : arena.kind == BossKind.GLOOM_STALKER ? plugin.getConfig().getLong("bosses.gloom-stalker.respawn-minutes", 90)
                 : plugin.getConfig().getLong("bosses.respawn-minutes", 90);
         if (!arena.temp) {
             arena.readyAt = minutes <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + minutes * 60_000L;
@@ -367,6 +369,15 @@ public final class BossManager implements Listener {
             loot.add(dev.vertexx.end.EndItem.SCARAB_MANDIBLE.create(plugin));
             loot.add(new ItemStack(Material.AMETHYST_SHARD, 16 + random.nextInt(17)));
             loot.add(new ItemStack(Material.ENDER_PEARL, 4 + random.nextInt(5)));
+        } else if (arena.kind == BossKind.GLOOM_STALKER) {
+            loot.add(dev.vertexx.end.EndItem.GLOOM_HEART.create(plugin));
+            ItemStack claws = dev.vertexx.end.EndItem.STALKER_CLAW.create(plugin);
+            claws.setAmount(2 + random.nextInt(2));
+            loot.add(claws);
+            ItemStack carapace = dev.vertexx.end.EndItem.SCULK_CARAPACE.create(plugin);
+            carapace.setAmount(1 + random.nextInt(2));
+            loot.add(carapace);
+            loot.add(new ItemStack(Material.ECHO_SHARD, 4 + random.nextInt(5)));
         } else if (arena.kind == BossKind.ROOT_SOVEREIGN) {
             loot.add(SovereignStaff.create(plugin));
             loot.add(new ItemStack(Material.MOSS_BLOCK, 16 + random.nextInt(9)));
@@ -487,6 +498,8 @@ public final class BossManager implements Listener {
         Location at = fight.pos.clone().add(0, 1.8, 0);
         if (fight.kind == BossKind.VOID_SCARAB) {
             fight.world.spawnParticle(Particle.PORTAL, at, 10, 0.8, 0.8, 0.8, 0.3);
+        } else if (fight.kind == BossKind.GLOOM_STALKER) {
+            fight.world.spawnParticle(Particle.SCULK_SOUL, at, 8, 0.8, 1.0, 0.8, 0.05);
         } else if (fight.kind == BossKind.ROOT_SOVEREIGN) {
             fight.world.spawnParticle(Particle.BLOCK, at, 12, 0.8, 1.0, 0.8, 0.1, Material.MANGROVE_LOG.createBlockData());
             fight.world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, at, 6, 0.8, 1.0, 0.8, 0);
@@ -756,6 +769,9 @@ public final class BossManager implements Listener {
                 }
                 if (!building) {
                     scanGrove(player);
+                }
+                if (!building) {
+                    scanLair(player);
                 }
             } else if (world.getEnvironment() == World.Environment.THE_END) {
                 scanSpire(player);
@@ -1155,6 +1171,11 @@ public final class BossManager implements Listener {
     @EventHandler
     public void onArcherShoot(org.bukkit.event.entity.EntityShootBowEvent event) {
         Byte tag = event.getEntity().getPersistentDataContainer().get(partKey, PersistentDataType.BYTE);
+        if (tag != null && tag == 3 && event.getProjectile() instanceof org.bukkit.entity.Arrow sonic) {
+            sonic.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.GLOWING, 100, 0), true);
+            sonic.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 40, 0), true);
+            sonic.setDamage(sonic.getDamage() + 1.0);
+        }
         if (tag != null && tag == 2 && event.getProjectile() instanceof org.bukkit.entity.Arrow arrow) {
             arrow.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HUNGER, 100, 1), true);
             arrow.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 60, 0), true);
@@ -1282,6 +1303,142 @@ public final class BossManager implements Listener {
             building = false;
             save();
             plugin.getLogger().info("Gruta dos Esporos Ancestrais pronta em " + cx + " " + fy + " " + cz + ".");
+        });
+    }
+
+    // ── Covil Ressonante (Gloom Stalker, Deep Dark) ────────────
+
+    private void scanLair(Player player) {
+        World world = player.getWorld();
+        int pcx = player.getLocation().getBlockX() >> 4;
+        int pcz = player.getLocation().getBlockZ() >> 4;
+        double chance = 1.0 / Math.max(1, plugin.getConfig().getInt("bosses.gloom-stalker.chunk-odds", 70));
+        double minSpawn = plugin.getConfig().getDouble("bosses.gloom-stalker.min-spawn-distance", 250);
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dz = -4; dz <= 4; dz++) {
+                int chx = pcx + dx;
+                int chz = pcz + dz;
+                int x = chx * 16 + 8;
+                int z = chz * 16 + 8;
+                String key = "lair:" + world.getName() + ":" + chx + ":" + chz;
+                if (decided.contains(key) || !world.isChunkLoaded(chx, chz)) {
+                    continue;
+                }
+                if (!"deep_dark".equals(world.getBiome(x, -45, z).getKey().getKey())) {
+                    continue;
+                }
+                decided.add(key);
+                Random random = new Random(world.getSeed() * 23 + chx * 341873128712L + chz * 132897987541L);
+                if (random.nextDouble() >= chance
+                        || Math.hypot(x - world.getSpawnLocation().getX(), z - world.getSpawnLocation().getZ()) < minSpawn
+                        || !farFromOthers(BossKind.GLOOM_STALKER, world, x, z,
+                        plugin.getConfig().getDouble("bosses.gloom-stalker.min-spacing", 500))
+                        || nearAncientCity(world, chx, chz)) {
+                    continue;
+                }
+                int[] mouth = findLairMouth(world, chx, chz, random);
+                if (mouth == null) {
+                    continue;
+                }
+                save();
+                building = true;
+                loadAround(world, mouth[0], mouth[2], 6).whenComplete((ignored, error) ->
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (error != null || !evaluateLair(world, mouth[0], mouth[1], mouth[2])) {
+                                building = false;
+                            }
+                        }));
+                return;
+            }
+        }
+        save();
+    }
+
+    /** O Covil fica longe das Cidades Antigas: nenhuma nos chunks carregados ao redor. */
+    private boolean nearAncientCity(World world, int chx, int chz) {
+        for (int dx = -6; dx <= 6; dx++) {
+            for (int dz = -6; dz <= 6; dz++) {
+                if (world.isChunkLoaded(chx + dx, chz + dz)
+                        && !world.getChunkAt(chx + dx, chz + dz, false).getStructures(Structure.ANCIENT_CITY).isEmpty()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    /** Procura, no chunk, um piso de caverna (Y entre -35 e -52) dentro do bioma Deep Dark. */
+    private int[] findLairMouth(World world, int chx, int chz, Random random) {
+        for (int attempt = 0; attempt < 40; attempt++) {
+            int x = chx * 16 + random.nextInt(16);
+            int z = chz * 16 + random.nextInt(16);
+            for (int y = -35; y >= -52; y--) {
+                if (world.getBlockAt(x, y, z).getType().isAir() && world.getBlockAt(x, y + 1, z).getType().isAir()
+                        && world.getBlockAt(x, y + 2, z).getType().isAir()
+                        && world.getBlockAt(x, y - 1, z).getType().isSolid()
+                        && "deep_dark".equals(world.getBiome(x, y, z).getKey().getKey())) {
+                    return new int[] {x, y, z};
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean evaluateLair(World world, int mx, int my, int mz) {
+        if (my - 12 < world.getMinHeight()) {
+            return false;
+        }
+        int[] best = null;
+        double bestScore = -1;
+        for (int[] d : new int[][] {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}) {
+            int solid = 0;
+            int total = 0;
+            boolean wet = false;
+            for (int dist = 10; dist <= 70; dist += 10) {
+                for (int off = -6; off <= 6; off += 6) {
+                    int x = mx + d[0] * dist + d[1] * off;
+                    int z = mz + d[1] * dist + d[0] * off;
+                    if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+                        continue;
+                    }
+                    total++;
+                    org.bukkit.block.Block block = world.getBlockAt(x, my + 2, z);
+                    if (block.isLiquid()) {
+                        wet = true;
+                    }
+                    if (block.getType().isSolid()) {
+                        solid++;
+                    }
+                }
+            }
+            double score = total == 0 || wet ? -1 : solid / (double) total;
+            if (score > bestScore) {
+                bestScore = score;
+                best = d;
+            }
+        }
+        if (best == null || bestScore < 0.35) {
+            return false;
+        }
+        plugin.getLogger().info("Construindo o Covil Ressonante em " + world.getName() + " " + mx + " " + my + " " + mz);
+        buildLair(world, mx + best[0] * Structures.LAIR_MOUTH, my, mz + best[1] * Structures.LAIR_MOUTH, -best[0], -best[1]);
+        return true;
+    }
+
+    private void buildLair(World world, int cx, int fy, int cz, int fx, int fz) {
+        building = true;
+        BlockQueue queue = new BlockQueue(world);
+        List<int[]> gate = new ArrayList<>();
+        List<int[]> seals = Structures.gloomLair(queue, cx, cz, fy, fx, fz, gate);
+        queue.run(plugin, 6000, () -> {
+            Arena arena = Arena.create(BossKind.GLOOM_STALKER, world, cx, fy, cz, fx, fz, false);
+            arena.seals.addAll(seals);
+            arena.gate.addAll(gate);
+            arena.sealMaterial = Material.REINFORCED_DEEPSLATE;
+            arenas.put(arena.id, arena);
+            building = false;
+            save();
+            plugin.getLogger().info("Covil Ressonante pronto em " + cx + " " + fy + " " + cz + ".");
         });
     }
 
@@ -1483,7 +1640,9 @@ public final class BossManager implements Listener {
         if (building) {
             return "Já há uma construção em andamento.";
         }
-        if (kind == BossKind.ROOT_SOVEREIGN) {
+        if (kind == BossKind.GLOOM_STALKER) {
+            buildLair(world, x + fx * Structures.LAIR_MOUTH, y, z + fz * Structures.LAIR_MOUTH, -fx, -fz);
+        } else if (kind == BossKind.ROOT_SOVEREIGN) {
             buildGrove(world, x + fx * Structures.GROVE_MOUTH, y, z + fz * Structures.GROVE_MOUTH, -fx, -fz);
         } else if (kind == BossKind.PARCHED_TITAN) {
             buildCitadel(world, x + fx * 120, y - 20, z + fz * 120, -fx, -fz);
@@ -1513,7 +1672,7 @@ public final class BossManager implements Listener {
             case "spawn" -> {
                 BossKind kind = args.length > 2 ? BossKind.parse(args[2]) : null;
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer|void_scarab|parched_titan|root_sovereign> [mundo x y z]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer|void_scarab|parched_titan|root_sovereign|gloom_stalker> [mundo x y z]");
                     return;
                 }
                 Location at = null;
@@ -1557,7 +1716,7 @@ public final class BossManager implements Listener {
                 } else if (sender instanceof Player player && kind != null) {
                     error = buildHere(player, kind);
                 } else {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer|void_scarab|parched_titan|root_sovereign> [mundo x y z [n|s|e|w]]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer|void_scarab|parched_titan|root_sovereign|gloom_stalker> [mundo x y z [n|s|e|w]]");
                     return;
                 }
                 Msg.send(sender, error == null ? "<green>Construindo " + kind.place() + " à sua frente…" : "<red>" + error);
@@ -1640,7 +1799,7 @@ public final class BossManager implements Listener {
         }
         String sub = args[1].toLowerCase(Locale.ROOT);
         if (args.length == 3 && List.of("spawn", "build", "attack", "tp").contains(sub)) {
-            return Tab.of(args[2], "wildfire", "iceologer", "void_scarab", "parched_titan", "root_sovereign");
+            return Tab.of(args[2], "wildfire", "iceologer", "void_scarab", "parched_titan", "root_sovereign", "gloom_stalker");
         }
         if (args.length == 4 && sub.equals("attack")) {
             BossKind kind = BossKind.parse(args[2]);
@@ -1648,7 +1807,8 @@ public final class BossManager implements Listener {
                     ? List.of("shockwave", "rush", "lunge") : kind == BossKind.VOID_SCARAB
                     ? List.of("clamp", "volley", "stinger", "swarm") : kind == BossKind.PARCHED_TITAN
                     ? List.of("parry", "cleave", "quicksand", "leap", "rush", "spin") : kind == BossKind.ROOT_SOVEREIGN
-                    ? List.of("spore", "snare", "vortex", "dash", "frenzy", "thorns") : List.of("spikes", "iceberg"));
+                    ? List.of("spore", "snare", "vortex", "dash", "frenzy", "thorns") : kind == BossKind.GLOOM_STALKER
+                    ? List.of("pounce", "sonic", "snare", "leap", "shred", "overload") : List.of("spikes", "iceberg"));
         }
         if (args.length == 4 && (sub.equals("spawn") || sub.equals("build"))) {
             return Tab.of(args[3], Bukkit.getWorlds().stream().map(World::getName).toList());

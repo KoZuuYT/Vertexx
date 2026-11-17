@@ -1104,4 +1104,194 @@ final class Structures {
         carve(f, -1, 87, 1, GROVE_MOUTH + 2, fy, fy + 3);
         return seals;
     }
+
+    // ── Covil Ressonante (Gloom Stalker) ───────────────────────
+
+    /** Catalisadores de Ressonância da Câmara de Incubação (lx, lz): precisam ser destruídos para abrir o portão. */
+    static final int[][] LAIR_CATALYSTS = {{-5, 32}, {5, 32}, {0, 40}};
+    /** Trechos da Galeria dos Sensores (lz inicial, lz final) em que o piso é uma ponte sobre um fosso. */
+    static final int[][] LAIR_BRIDGES = {{50, 57}, {61, 68}};
+    /** Comprimento até a boca do covil (onde a estrutura encontra a caverna natural). */
+    static final int LAIR_MOUTH = 76;
+    static final int LAIR_GALLERY_FROM = 46;
+    static final int LAIR_GALLERY_TO = 73;
+
+    private static Material deep(Random random) {
+        int r = random.nextInt(20);
+        return r < 8 ? Material.DEEPSLATE : r < 12 ? Material.COBBLED_DEEPSLATE : r < 15 ? Material.DEEPSLATE_BRICKS
+                : r < 17 ? Material.POLISHED_DEEPSLATE : r < 19 ? Material.SCULK : Material.TUFF;
+    }
+
+    /** Centros (x, z no mundo) dos seis pilares do Abismo do Coração de Alma. */
+    static int[][] lairPillarCenters(int cx, int cz, int fx, int fz) {
+        int[][] out = new int[6][];
+        for (int k = 0; k < 6; k++) {
+            double a = Math.toRadians(20 + 60 * k);
+            int lx = (int) Math.round(Math.cos(a) * 10.5);
+            int lz = (int) Math.round(Math.sin(a) * 10.5);
+            out[k] = new int[] {cx + fx * lz + fz * lx, cz + fz * lz - fx * lx};
+        }
+        return out;
+    }
+
+    /**
+     * Covil Ressonante: Abismo do Coração de Alma (38 de diâmetro, 20 de pé-direito, pilares de Reinforced Deepslate e
+     * Obsidian, plataformas nas bordas, sem nenhuma luz), a Câmara de Incubação Sculk (3 Catalisadores), a Galeria dos
+     * Sensores e Alçapões (28 blocos, pontes de 3 blocos sobre fossos) e a boca que se abre numa caverna do Deep Dark.
+     * A entrada fica em +lz.
+     *
+     * @param gateOut recebe as posições do portão da câmara de incubação
+     * @return posições do selo da porta do abismo
+     */
+    static List<int[]> gloomLair(BlockQueue q, int cx, int cz, int fy, int fx, int fz, List<int[]> gateOut) {
+        Frame f = new Frame(q, cx, cz, fx, fz);
+        Random random = new Random(cx * 37L + cz * 11L);
+        List<int[]> seals = new ArrayList<>();
+
+        // 1) massa de deepslate e sculk
+        for (int dy = -4; dy <= 21; dy++) {
+            for (int lx = -22; lx <= 22; lx++) {
+                for (int lz = -22; lz <= 22; lz++) {
+                    if (Math.hypot(lx, lz) <= 21) {
+                        f.put(lx, fy + dy, lz, deep(random));
+                    }
+                }
+            }
+        }
+        for (int lx = -10; lx <= 10; lx++) {
+            for (int lz = 19; lz <= LAIR_MOUTH; lz++) {
+                for (int y = fy - 10; y <= fy + 9; y++) {
+                    f.put(lx, y, lz, deep(random));
+                }
+            }
+        }
+
+        // 2) o abismo: interior livre, piso, pilares, plataformas
+        for (int dy = 0; dy <= 19; dy++) {
+            q.disk(cx, cz, fy + dy, 19, Material.AIR);
+        }
+        for (int lx = -19; lx <= 19; lx++) {
+            for (int lz = -19; lz <= 19; lz++) {
+                double d = Math.hypot(lx, lz);
+                if (d <= 19) {
+                    f.put(lx, fy - 1, lz, d < 4 ? Material.REINFORCED_DEEPSLATE : random.nextInt(3) == 0 ? Material.SCULK
+                            : random.nextInt(3) == 0 ? Material.DEEPSLATE_TILES : Material.DEEPSLATE_BRICKS);
+                    if (d < 17 && random.nextInt(14) == 0) {
+                        f.put(lx, fy, lz, Material.SCULK_VEIN.createBlockData("[down=true]"));
+                    }
+                }
+            }
+        }
+        for (int k = 0; k < 6; k++) {                                       // pilares grossos
+            double a = Math.toRadians(20 + 60 * k);
+            int px = (int) Math.round(Math.cos(a) * 10.5);
+            int pz = (int) Math.round(Math.sin(a) * 10.5);
+            for (int dy = 0; dy <= 19; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        boolean core = dx == 0 && dz == 0;
+                        f.put(px + dx, fy + dy, pz + dz, core ? Material.OBSIDIAN : dy % 5 == 4 ? Material.OBSIDIAN
+                                : Material.REINFORCED_DEEPSLATE);
+                    }
+                }
+            }
+        }
+        for (int k = 0; k < 6; k++) {                                       // plataformas elevadas nas bordas
+            double a = Math.toRadians(50 + 60 * k);
+            int px = (int) Math.round(Math.cos(a) * 16);
+            int pz = (int) Math.round(Math.sin(a) * 16);
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (Math.hypot(px + dx, pz + dz) < 18.6) {
+                        for (int y = fy; y <= fy + 3; y++) {
+                            f.put(px + dx, y, pz + dz, y == fy + 3 ? Material.POLISHED_DEEPSLATE : Material.DEEPSLATE_BRICKS);
+                        }
+                    }
+                }
+            }
+            int sx = (int) Math.round(Math.cos(a) * 12.6);
+            int sz = (int) Math.round(Math.sin(a) * 12.6);
+            f.put(sx, fy, sz, Material.DEEPSLATE_BRICK_SLAB);
+            f.put((sx + px) / 2, fy + 1, (sz + pz) / 2, Material.DEEPSLATE_BRICK_SLAB);
+        }
+        for (int lx = -19; lx <= 19; lx++) {                                // teto de sculk e gotejamento de veias
+            for (int lz = -19; lz <= 19; lz++) {
+                if (Math.hypot(lx, lz) <= 18.5 && random.nextInt(5) == 0) {
+                    f.put(lx, fy + 19, lz, random.nextBoolean() ? Material.SCULK.createBlockData() : Material.SCULK_VEIN.createBlockData("[up=true]"));
+                }
+            }
+        }
+        for (int k = 0; k < 8; k++) {                                       // sensores de sculk ao pé das paredes
+            double a = Math.toRadians(45 * k + 12);
+            f.put((int) Math.round(Math.cos(a) * 17.5), fy, (int) Math.round(Math.sin(a) * 17.5), Material.SCULK_SENSOR);
+        }
+
+        // 3) porta do abismo e túnel até a câmara de incubação; selos em lz 20 e portão em lz 23
+        carve(f, -2, 19, 2, 24, fy, fy + 4);
+        f.box(-2, 19, 2, 24, fy - 1, fy - 1, Material.DEEPSLATE_TILES);
+        for (int lx = -2; lx <= 2; lx++) {
+            for (int y = fy; y <= fy + 4; y++) {
+                f.put(lx, y, 20, Material.REINFORCED_DEEPSLATE);
+                seals.add(f.world(lx, y, 20));
+                f.put(lx, y, 23, Material.REINFORCED_DEEPSLATE);
+                gateOut.add(f.world(lx, y, 23));
+            }
+        }
+
+        // 4) Câmara de Incubação Sculk: salão com os três Catalisadores de Ressonância
+        carve(f, -8, 25, 8, 45, fy, fy + 7);
+        for (int lx = -8; lx <= 8; lx++) {
+            for (int lz = 25; lz <= 45; lz++) {
+                f.put(lx, fy - 1, lz, random.nextInt(3) == 0 ? Material.SCULK : Material.DEEPSLATE_BRICKS);
+                if (random.nextInt(9) == 0) {
+                    f.put(lx, fy, lz, Material.SCULK_VEIN.createBlockData("[down=true]"));
+                }
+                if (random.nextInt(14) == 0) {
+                    f.put(lx, fy + 7, lz, Material.SCULK_VEIN.createBlockData("[up=true]"));
+                }
+            }
+        }
+        for (int[] spot : LAIR_CATALYSTS) {
+            f.put(spot[0], fy - 1, spot[1], Material.SCULK);
+            f.put(spot[0], fy, spot[1], Material.SCULK_CATALYST);
+        }
+        for (int[] spot : new int[][] {{-4, 28}, {4, 28}, {-4, 37}, {4, 37}, {-4, 43}, {4, 43}}) {
+            for (int y = fy; y <= fy + 7; y++) {
+                f.put(spot[0], y, spot[1], y % 4 == 3 ? Material.POLISHED_DEEPSLATE : Material.DEEPSLATE_TILES);
+            }
+        }
+        carve(f, -2, 46, 2, 47, fy, fy + 4);                                // passagem para a galeria
+        f.box(-2, 46, 2, 47, fy - 1, fy - 1, Material.DEEPSLATE_TILES);
+
+        // 5) Galeria dos Sensores e Alçapões: túnel escuro de 28 blocos, fossos e pontes estreitas
+        carve(f, -2, LAIR_GALLERY_FROM, 2, LAIR_GALLERY_TO + 2, fy, fy + 4);
+        f.box(-2, LAIR_GALLERY_FROM, 2, LAIR_GALLERY_TO + 2, fy - 1, fy - 1, Material.DEEPSLATE_TILES);
+        for (int lz = LAIR_GALLERY_FROM + 2; lz <= LAIR_GALLERY_TO; lz++) {
+            for (int side : new int[] {-3, 3}) {
+                for (int y = fy; y <= fy + 4; y++) {
+                    if (random.nextInt(3) == 0) {
+                        f.put(side, y, lz, Material.SCULK);
+                    }
+                }
+                if (lz % 4 == 0) {
+                    f.put(side, fy + 1, lz, Material.SCULK_SENSOR);
+                }
+            }
+        }
+        for (int[] bridge : LAIR_BRIDGES) {                                 // fosso de 7 blocos de profundidade, ponte de 3 de largura
+            for (int lz = bridge[0]; lz <= bridge[1]; lz++) {
+                for (int lx = -2; lx <= 2; lx++) {
+                    for (int y = fy - 8; y <= fy - 1; y++) {
+                        f.put(lx, y, lz, y == fy - 8 ? Material.SCULK : Material.AIR);
+                    }
+                    if (Math.abs(lx) <= 1) {
+                        f.put(lx, fy - 1, lz, Material.DEEPSLATE_BRICKS);
+                    }
+                }
+            }
+        }
+        // boca do covil, aberta para a caverna natural
+        carve(f, -2, LAIR_GALLERY_TO + 1, 2, LAIR_MOUTH + 2, fy, fy + 4);
+        return seals;
+    }
 }

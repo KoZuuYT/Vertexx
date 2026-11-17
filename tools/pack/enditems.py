@@ -146,6 +146,31 @@ def sovereign_staff():
     return img
 
 
+def gloom_heart():
+    """Coração da Penumbra: o coração do mar vanilla recolorido em ardósia profunda com um núcleo ciano."""
+    return ramp_recolor(vanilla("heart_of_the_sea"), ["#0a1620", "#12384a", "#1f7a96", "#5ad2ec", "#d8fbff"])
+
+
+def stalker_claw():
+    return ramp_recolor(vanilla("bone"), ["#0c1218", "#26323c", "#4a5a68", "#7c93a6", "#9ee8f8"])
+
+
+def sculk_carapace():
+    return ramp_recolor(vanilla("armadillo_scute"), ["#06141a", "#0e3442", "#17627a", "#2aa6c4", "#a8f0ff"])
+
+
+def sonic_claws():
+    """Garras de Ardósia Sônica, 32x32: a espada de diamante vanilla ampliada em ardósia escura com fios ciano."""
+    base = vanilla("diamond_sword").resize((32, 32), Image.NEAREST)
+    img = ramp_recolor(base, ["#0a1218", "#26323c", "#4a5a68", "#2aa6c4", "#b8f6ff"])
+    px = img.load()
+    for y in range(img.height):
+        for x in range(img.width):
+            if px[x, y][3] > 0 and (x * 5 + y * 11) % 19 == 0:
+                px[x, y] = _hex("#5ad2ec")
+    return img
+
+
 def warp_stone():
     return ramp_recolor(vanilla("ender_eye"), ["#1e0d36", "#4b2a8a", "#8a58d0", "#c9a0ff", "#ffffff"])
 
@@ -237,7 +262,7 @@ def backpack_worn(tier: str):
     return img
 
 
-HANDHELD = {"parched_greatsword"}
+HANDHELD = {"parched_greatsword", "sonic_claws"}
 HANDHELD_ROD = {"sovereign_staff"}
 
 
@@ -261,6 +286,10 @@ def build(ns, save, write_json):
         "ostrich_egg": ostrich_egg(),
         "parched_greatsword": parched_greatsword(),
         "sovereign_staff": sovereign_staff(),
+        "gloom_heart": gloom_heart(),
+        "stalker_claw": stalker_claw(),
+        "sculk_carapace": sculk_carapace(),
+        "sonic_claws": sonic_claws(),
     }
     for tier in TIERS:
         items[tier] = backpack(tier)

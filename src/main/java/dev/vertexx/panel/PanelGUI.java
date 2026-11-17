@@ -705,7 +705,9 @@ public final class PanelGUI implements InventoryHolder {
                 c -> bossAdminClick(BossKind.PARCHED_TITAN, c));
         set(23, Items.of(Material.MOSS_BLOCK, "<green><bold>Root Sovereign", bossAdminLore(BossKind.ROOT_SOVEREIGN), true),
                 c -> bossAdminClick(BossKind.ROOT_SOVEREIGN, c));
-        set(24, Items.of(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Void-Scarab", bossAdminLore(BossKind.VOID_SCARAB), true),
+        set(24, Items.of(Material.SCULK_CATALYST, "<dark_aqua><bold>Gloom Stalker", bossAdminLore(BossKind.GLOOM_STALKER), true),
+                c -> bossAdminClick(BossKind.GLOOM_STALKER, c));
+        set(25, Items.of(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Void-Scarab", bossAdminLore(BossKind.VOID_SCARAB), true),
                 c -> bossAdminClick(BossKind.VOID_SCARAB, c));
         List<String> info = new ArrayList<>();
         info.add("<gray>Salas registradas: <white>" + bosses.arenaCount());
@@ -761,7 +763,7 @@ public final class PanelGUI implements InventoryHolder {
         }
         cats.add(2, new Object[]{Material.NETHER_STAR, "Traits dos mobs", "Comuns e de Elite.", "traits"});
         cats.add(3, new Object[]{Material.GOLDEN_APPLE, "Mobs Elite", "Chances, drops e níveis.", "elites"});
-        cats.add(4, new Object[]{Material.WITHER_SKELETON_SKULL, "Bosses", "Wildfire, Iceologer, Parched Titan, Root Sovereign e Void-Scarab.", "bosses"});
+        cats.add(4, new Object[]{Material.WITHER_SKELETON_SKULL, "Bosses", "Wildfire, Iceologer, Parched Titan, Root Sovereign, Gloom Stalker e Void-Scarab.", "bosses"});
         for (int i = 0; i < cats.size() && i < slots.length; i++) {
             Object[] c = cats.get(i);
             String id = (String) c[3];
@@ -854,7 +856,7 @@ public final class PanelGUI implements InventoryHolder {
 
     private void wikiBosses() {
         var c = plugin.getConfig();
-        set(20, Items.of(Material.MAGMA_CREAM, "<gold><bold>Wildfire",
+        set(19, Items.of(Material.MAGMA_CREAM, "<gold><bold>Wildfire",
                 List.of("<gray>O Blaze chefe removido da Mojang.", "",
                         "<white>Onde: <gray>Câmara do Wildfire, uma ala", "<gray>especial anexa às fortalezas do Nether.",
                         "<white>Vida: <red>" + c.getInt("bosses.wildfire.health", 450) + " ❤", "",
@@ -864,14 +866,14 @@ public final class PanelGUI implements InventoryHolder {
                         "<gold>☄ Investida Aérea <gray>— se errar, ele fica",
                         "<gray>exposto (+50% de dano); se agarrar, queima",
                         "<gray>e arremessa você."), true), null);
-        set(21, Items.of(Material.HEART_OF_THE_SEA, "<aqua><bold>Iceologer",
+        set(20, Items.of(Material.HEART_OF_THE_SEA, "<aqua><bold>Iceologer",
                 List.of("<gray>O saqueador do gelo removido da Mojang.", "",
                         "<white>Onde: <gray>Castelo de Gelo, em terras geladas.",
                         "<white>Vida: <red>" + c.getInt("bosses.iceologer.health", 380) + " ❤", "",
                         "<aqua>❄ Espinhos de Gelo <gray>— cinco espinhos", "<gray>lançados um a um (mais na fúria).",
                         "<aqua>❄ Iceberg <gray>— arranca o chão, carrega e", "<gray>arremessa na marca vermelha: saia dela!"),
                 true), null);
-        set(22, Items.of(Material.CHISELED_SANDSTONE, "<gold><bold>Parched Titan",
+        set(21, Items.of(Material.CHISELED_SANDSTONE, "<gold><bold>Parched Titan",
                 List.of("<gray>O colosso de arenito do Deserto.", "",
                         "<white>Onde: <gray>Cidadela Soterrada, rara sob as", "<gray>dunas. Átrio com armadilhas e Salão dos",
                         "<gray>Guardiões (derrote todos p/ abrir o portão).",
@@ -885,7 +887,7 @@ public final class PanelGUI implements InventoryHolder {
                         "<gold>☄ Salto Sísmico <gray>— quebra pilares",
                         "<gold>☄ Investida <gray>— rastro de fogo",
                         "<gold>☄ Tornados <gray>— puxam e erguem."), true), null);
-        set(23, Items.of(Material.MOSS_BLOCK, "<green><bold>Root Sovereign",
+        set(22, Items.of(Material.MOSS_BLOCK, "<green><bold>Root Sovereign",
                 List.of("<gray>O guardião musgoso das Lush Caves.", "",
                         "<white>Onde: <gray>Gruta dos Esporos Ancestrais, rara", "<gray>no subsolo ao lado de lush caves. Corredor", "<gray>de vinhas, tripwire e Salão dos Protetores.",
                         "<white>Vida: <red>" + c.getInt("bosses.root-sovereign.health", 380) + " ❤", "",
@@ -897,6 +899,17 @@ public final class PanelGUI implements InventoryHolder {
                         "<green>☄ Investida de Raízes <gray>— knockback",
                         "<green>☄ Explosão de Esporos <gray>— Cegueira",
                         "<green>☄ Chuva de Vinhas <gray>— arena inteira"), true), null);
+        set(23, Items.of(Material.SCULK_CATALYST, "<dark_aqua><bold>Gloom Stalker",
+                List.of("<gray>O predador cego do Deep Dark.", "",
+                        "<white>Onde: <gray>Covil Ressonante, raro no Deep Dark.", "<gray>Galeria de sensores (agache-se!) e Câmara", "<gray>de Incubação (3 Catalisadores + guardiões).",
+                        "<white>Vida: <red>" + c.getInt("bosses.gloom-stalker.health", 420) + " ❤", "",
+                        "<dark_aqua>Fase 1: <gray>no escuro (luz < 7) recebe 60% menos", "<gray>dano e bloqueia projéteis. Tochas, lanternas", "<gray>ou flechas espectrais dissipam o manto 6 s.",
+                        "<dark_aqua>☄ Emboscada das Sombras <gray>— ataca pelas costas",
+                        "<dark_aqua>☄ Rugido Sônico <gray>— cone que atravessa escudos",
+                        "<dark_aqua>☄ Pulso de Sensores <gray>— fique parado", "",
+                        "<red>Fase 2 (<50%): <gray>+40% de velocidade, sem manto.",
+                        "<dark_aqua>☄ Salto Duplo <gray>— <dark_aqua>☄ Frenesi de Garras",
+                        "<dark_aqua>☄ Detonação do Núcleo <gray>— suba numa plataforma"), true), null);
         set(24, Items.of(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Void-Scarab",
                 List.of("<gray>A Matriarca de Quitina, escaravelho", "<gray>colossal do fim de jogo.", "",
                         "<white>Onde: <gray>Pináculo de Quitina, nos Abismos", "<gray>de Enderita (longe do centro do End).",
@@ -915,7 +928,7 @@ public final class PanelGUI implements InventoryHolder {
                 List.of("<gray>A vida cresce <white>60%</white> por jogador extra", "<gray>(até 4 jogadores).")), null);
         set(33, Items.of(Material.CHEST, "<white>Recompensas",
                 List.of("<gray>Essência Elite, recursos raros e um", "<gray>troféu, além de XP de Luta.",
-                        "<gray>Void-Scarab: Coração de Cristal, Placas e", "<gray>Mandíbula. Parched Titan: Grande Espada", "<gray>do Deserto. Root Sovereign: Cajado do", "<gray>Soberano Silvestre. Mais recursos e diamantes.", "",
+                        "<gray>Void-Scarab: Coração de Cristal, Placas e", "<gray>Mandíbula. Parched Titan: Grande Espada", "<gray>do Deserto. Root Sovereign: Cajado do", "<gray>Soberano Silvestre. Gloom Stalker: Coração da", "<gray>Penumbra, Garras e Carapaça. Mais recursos.", "",
                         "<gray>Renasce em <white>" + c.getInt("bosses.respawn-minutes", 90) + " min</white>",
                         "<gray>(Void-Scarab: <white>" + c.getInt("bosses.void-scarab.respawn-minutes", 30) + " min</white>).")), null);
     }

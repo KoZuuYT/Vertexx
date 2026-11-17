@@ -52,6 +52,7 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.end.Backpacks backpacks;
     private dev.vertexx.end.EndGear endGear;
     private dev.vertexx.end.ScarabGear scarabGear;
+    private dev.vertexx.end.GloomGear gloomGear;
     private dev.vertexx.end.EndWorld endWorld;
     private dev.vertexx.end.PortalLock portalLock;
     private dev.vertexx.block.CustomBlocks customBlocks;
@@ -89,6 +90,7 @@ public final class PluginMain extends JavaPlugin {
         backpacks = new dev.vertexx.end.Backpacks(this);
         endGear = new dev.vertexx.end.EndGear(this);
         scarabGear = new dev.vertexx.end.ScarabGear(this);
+        gloomGear = new dev.vertexx.end.GloomGear(this);
         endWorld = new dev.vertexx.end.EndWorld(this);
         portalLock = new dev.vertexx.end.PortalLock(this);
         customBlocks = new dev.vertexx.block.CustomBlocks(this);
@@ -118,6 +120,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(backpacks, this);
         plugins.registerEvents(endGear, this);
         plugins.registerEvents(scarabGear, this);
+        plugins.registerEvents(gloomGear, this);
         plugins.registerEvents(new dev.vertexx.boss.ParchedGreatsword(this), this);
         plugins.registerEvents(new dev.vertexx.boss.SovereignStaff(this), this);
         plugins.registerEvents(endWorld, this);
@@ -159,6 +162,7 @@ public final class PluginMain extends JavaPlugin {
         backpacks.start();
         endGear.start();
         scarabGear.start();
+        gloomGear.start();
         endWorld.start();
         customBlocks.start();
         curses.start();
@@ -324,6 +328,10 @@ public final class PluginMain extends JavaPlugin {
     /** Modelos de entidade (bbmodel compilado) usados por bosses e criaturas. */
     public dev.vertexx.model.Models entityModels() {
         return entityModels;
+    }
+
+    public dev.vertexx.end.GloomGear gloomGear() {
+        return gloomGear;
     }
 
     public BossManager bosses() {

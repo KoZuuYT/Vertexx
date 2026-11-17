@@ -149,6 +149,7 @@ final class WikiData {
         }
         list.add(dev.vertexx.boss.ParchedGreatsword.create(plugin));
         list.add(dev.vertexx.boss.SovereignStaff.create(plugin));
+        list.add(plugin.gloomGear().sonicClaws());
         list.add(plugin.climates().goggles());
         list.add(e(Material.TRIPWIRE_HOOK, "<white><bold>Chave de Túmulo", "<gray>Abre um túmulo protegido.", "<dark_gray>Só administradores entregam."));
         list.add(e(Material.IRON_PICKAXE, "<aqua><bold>Picareta do Rascal", "<gray>Recompensa por achar o Rascal 3 vezes."));
@@ -240,7 +241,9 @@ final class WikiData {
                 e(Material.CHISELED_SANDSTONE, "<gold><bold>Deserto: Cidadela Soterrada",
                         "<gray>Complexo subterrâneo raro sob as dunas;", "<gray>guarda o Parched Titan. Veja Bosses."),
                 e(Material.MOSS_BLOCK, "<green><bold>Lush Caves: Gruta dos Esporos",
-                        "<gray>Complexo raro enterrado ao lado das lush", "<gray>caves (Y -10 a -45); guarda o Root", "<gray>Sovereign. Veja Bosses."));
+                        "<gray>Complexo raro enterrado ao lado das lush", "<gray>caves (Y -10 a -45); guarda o Root", "<gray>Sovereign. Veja Bosses."),
+                e(Material.SCULK_CATALYST, "<dark_aqua><bold>Deep Dark: Covil Ressonante",
+                        "<gray>Complexo raro no Deep Dark (Y -35 a -52),", "<gray>longe de Cidades Antigas; guarda o Gloom", "<gray>Stalker. Veja Bosses."));
     }
 
     // ── Estruturas ──────────────────────────────────────────────
@@ -267,6 +270,11 @@ final class WikiData {
                         "<gray>1) Labirinto de Vinhas: cipós (-45% de", "<gray>velocidade e veneno leve) e tripwire com", "<gray>dispensers de dardos de lentidão.",
                         "<gray>2) Salão dos Protetores: 4 Sentinelas de", "<gray>Vinhas e teias de musgo; o portão só abre", "<gray>quando todas caem.",
                         "<gray>3) Câmara dos Esporos: 36 blocos, lagos", "<gray>rasos, pilares de raízes e teto de Spore", "<gray>Blossoms.", "<gray>Veja Bosses."),
+                e(Material.SCULK_CATALYST, "<dark_aqua><bold>Covil Ressonante",
+                        "<gray>Raro, no Deep Dark, sem nenhuma luz:",
+                        "<gray>1) Galeria dos Sensores: 28 blocos, pontes", "<gray>sobre fossos. Correr sem agachar dispara", "<gray>dardos de Darkness e recua o piso.",
+                        "<gray>2) Câmara de Incubação: destrua os 3", "<gray>Catalisadores e vença 5 Rastejadores e 2", "<gray>Sentinelas para abrir o portão.",
+                        "<gray>3) Abismo do Coração de Alma: 38 blocos,", "<gray>pilares de Reinforced Deepslate, plataformas.", "<gray>Veja Bosses."),
                 e(Material.WATER_BUCKET, "<aqua><bold>Oásis",
                         "<gray>Lago com palmeiras no deserto."),
                 e(Material.JUNGLE_LOG, "<yellow><bold>Baobá",

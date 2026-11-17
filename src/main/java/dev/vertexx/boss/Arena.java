@@ -54,8 +54,8 @@ public final class Arena {
     }
 
     static Arena create(BossKind kind, World world, int cx, int fy, int cz, int fx, int fz, boolean temp) {
-        int half = kind == BossKind.VOID_SCARAB ? 25 : kind == BossKind.PARCHED_TITAN ? 17 : kind == BossKind.ROOT_SOVEREIGN ? 18 : kind == BossKind.WILDFIRE ? 13 : 9;
-        int height = kind == BossKind.VOID_SCARAB ? 38 : kind == BossKind.PARCHED_TITAN ? 16 : kind == BossKind.ROOT_SOVEREIGN ? 18 : kind == BossKind.WILDFIRE ? 20 : 16;
+        int half = kind == BossKind.VOID_SCARAB ? 25 : kind == BossKind.PARCHED_TITAN ? 17 : kind == BossKind.ROOT_SOVEREIGN ? 18 : kind == BossKind.GLOOM_STALKER ? 19 : kind == BossKind.WILDFIRE ? 13 : 9;
+        int height = kind == BossKind.VOID_SCARAB ? 38 : kind == BossKind.PARCHED_TITAN ? 16 : kind == BossKind.ROOT_SOVEREIGN ? 18 : kind == BossKind.GLOOM_STALKER ? 20 : kind == BossKind.WILDFIRE ? 20 : 16;
         return new Arena(UUID.randomUUID().toString().substring(0, 8), kind, world.getName(), cx, fy, cz, fx, fz,
                 half, height, temp);
     }
