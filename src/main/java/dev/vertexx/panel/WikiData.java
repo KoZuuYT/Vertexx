@@ -148,6 +148,7 @@ final class WikiData {
             list.add(plugin.curses().book(curse));
         }
         list.add(dev.vertexx.boss.ParchedGreatsword.create(plugin));
+        list.add(dev.vertexx.boss.SovereignStaff.create(plugin));
         list.add(plugin.climates().goggles());
         list.add(e(Material.TRIPWIRE_HOOK, "<white><bold>Chave de Túmulo", "<gray>Abre um túmulo protegido.", "<dark_gray>Só administradores entregam."));
         list.add(e(Material.IRON_PICKAXE, "<aqua><bold>Picareta do Rascal", "<gray>Recompensa por achar o Rascal 3 vezes."));
@@ -237,7 +238,9 @@ final class WikiData {
                         "<gray>Torre-colmeia rara nas ilhas grandes dos", "<gray>Abismos de Enderita, longe do centro do End.",
                         "<gray>Veja Bosses."),
                 e(Material.CHISELED_SANDSTONE, "<gold><bold>Deserto: Cidadela Soterrada",
-                        "<gray>Complexo subterrâneo raro sob as dunas;", "<gray>guarda o Parched Titan. Veja Bosses."));
+                        "<gray>Complexo subterrâneo raro sob as dunas;", "<gray>guarda o Parched Titan. Veja Bosses."),
+                e(Material.MOSS_BLOCK, "<green><bold>Lush Caves: Gruta dos Esporos",
+                        "<gray>Complexo raro enterrado ao lado das lush", "<gray>caves (Y -10 a -45); guarda o Root", "<gray>Sovereign. Veja Bosses."));
     }
 
     // ── Estruturas ──────────────────────────────────────────────
@@ -259,6 +262,11 @@ final class WikiData {
                         "<gray>1) Átrio dos Ventos Cortantes: 24 blocos com", "<gray>areia movediça, fossos de espinhos, dardos e", "<gray>rajadas de areia.",
                         "<gray>2) Salão dos Guardiões: 6 Husks blindados e", "<gray>2 Parched nas varandas; o portão só abre", "<gray>quando todos caem.",
                         "<gray>3) Santuário da Fornalha Seca: arena de 34", "<gray>blocos, 6 pilares quebráveis e clarabóias.", "<gray>Veja Bosses."),
+                e(Material.MOSS_BLOCK, "<green><bold>Gruta dos Esporos Ancestrais",
+                        "<gray>Rara, ao lado de lush caves, no subsolo:",
+                        "<gray>1) Labirinto de Vinhas: cipós (-45% de", "<gray>velocidade e veneno leve) e tripwire com", "<gray>dispensers de dardos de lentidão.",
+                        "<gray>2) Salão dos Protetores: 4 Sentinelas de", "<gray>Vinhas e teias de musgo; o portão só abre", "<gray>quando todas caem.",
+                        "<gray>3) Câmara dos Esporos: 36 blocos, lagos", "<gray>rasos, pilares de raízes e teto de Spore", "<gray>Blossoms.", "<gray>Veja Bosses."),
                 e(Material.WATER_BUCKET, "<aqua><bold>Oásis",
                         "<gray>Lago com palmeiras no deserto."),
                 e(Material.JUNGLE_LOG, "<yellow><bold>Baobá",

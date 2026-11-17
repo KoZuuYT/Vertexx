@@ -127,6 +127,25 @@ def parched_greatsword():
     return img
 
 
+def sovereign_staff():
+    """Cajado do Soberano Silvestre, 32x32: a pá de diamante vanilla ampliada e recolorida em madeira de raiz, com um orbe de esporos e flores."""
+    base = vanilla("diamond_shovel").resize((32, 32), Image.NEAREST)
+    img = ramp_recolor(base, ["#2a1a0c", "#5a3c1e", "#7e5830", "#a07a46", "#c8a468"])
+    px = img.load()
+    # orbe de esporos e flores no topo (canto superior direito da pá)
+    orb = [("#1c5a0c", 0), ("#3ca020", 1), ("#7ee048", 2), ("#c4ff88", 3)]
+    for dy in range(-3, 4):
+        for dx in range(-3, 4):
+            d = dx * dx + dy * dy
+            if d <= 10:
+                x, y = 24 + dx, 7 + dy
+                if 0 <= x < 32 and 0 <= y < 32:
+                    px[x, y] = _hex(orb[3 if d <= 1 else 2 if d <= 4 else 1 if d <= 8 else 0][0])
+    for x, y, c in ((19, 11, "#e878ac"), (20, 12, "#f8a8c8"), (28, 12, "#e878ac"), (21, 4, "#f8a8c8"), (14, 17, "#c04884")):
+        px[x, y] = _hex(c)
+    return img
+
+
 def warp_stone():
     return ramp_recolor(vanilla("ender_eye"), ["#1e0d36", "#4b2a8a", "#8a58d0", "#c9a0ff", "#ffffff"])
 
@@ -219,6 +238,7 @@ def backpack_worn(tier: str):
 
 
 HANDHELD = {"parched_greatsword"}
+HANDHELD_ROD = {"sovereign_staff"}
 
 
 def build(ns, save, write_json):
@@ -240,13 +260,14 @@ def build(ns, save, write_json):
         "coconut": coconut(),
         "ostrich_egg": ostrich_egg(),
         "parched_greatsword": parched_greatsword(),
+        "sovereign_staff": sovereign_staff(),
     }
     for tier in TIERS:
         items[tier] = backpack(tier)
     for key, image in items.items():
         save(image, tex / "item" / f"{key}.png")
         write_json(ns / "models" / "item" / f"{key}.json",
-                   {"parent": "minecraft:item/handheld" if key in HANDHELD else "minecraft:item/generated",
+                   {"parent": "minecraft:item/handheld" if key in HANDHELD else "minecraft:item/handheld_rod" if key in HANDHELD_ROD else "minecraft:item/generated",
                     "textures": {"layer0": f"vertexx:item/{key}"}})
         write_json(ns / "items" / f"{key}.json", {"model": {"type": "minecraft:model", "model": f"vertexx:item/{key}"}})
     for tier in TIERS:

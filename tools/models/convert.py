@@ -22,7 +22,7 @@ ROOT = HERE.parents[1]
 SRC = ROOT / "models" / "src"
 RUNTIME = ROOT / "src" / "main" / "resources" / "models"
 # escala padrão (blocos por modelo de 16 px) de cada modelo; o plugin ainda pode sobrescrever
-SCALES = {"wildfire": 2.6, "void_scarab": 3.4, "parched_titan": 0.55, "iceologer": 1.45, "rascal": 0.75, "tuff_golem": 1.0, "moobloom": 1.0, "glare": 0.8,
+SCALES = {"wildfire": 2.6, "void_scarab": 3.4, "parched_titan": 0.55, "root_sovereign": 0.5, "iceologer": 1.45, "rascal": 0.75, "tuff_golem": 1.0, "moobloom": 1.0, "glare": 0.8,
           "crab": 0.8, "penguin": 0.85, "barnacle": 1.5,
           **{f"great_hunger_{v}": 0.9 for v in ("dirt", "sand", "wood", "stone", "amethyst", "grass")}}
 

@@ -852,4 +852,256 @@ final class Structures {
         }
         return seals;
     }
+
+    // ── Gruta dos Esporos Ancestrais (Root Sovereign) ──────────
+
+    /** Pontos (lx, lz) do caminho do Labirinto de Vinhas: segmentos retos de 3 blocos de largura. */
+    static final int[][] GROVE_PATH = {{0, 44}, {0, 60}, {5, 60}, {5, 74}, {0, 74}, {0, 88}};
+    /** Trechos de cipós densos (lx, lz) com raio de 2 blocos: lentidão e veneno. */
+    static final int[][] GROVE_VINES = {{0, 50}, {5, 66}, {0, 82}};
+    /** Armadilhas de tripwire (lx central, lz): cada uma dispara os dispensers das paredes. */
+    static final int[][] GROVE_TRAPS = {{0, 56}, {5, 70}};
+    /** Comprimento até a boca da gruta (onde a estrutura encontra a caverna natural). */
+    static final int GROVE_MOUTH = 90;
+
+    private static Material grove(Random random) {
+        int r = random.nextInt(20);
+        return r < 5 ? Material.MOSSY_COBBLESTONE : r < 9 ? Material.STONE : r < 13 ? Material.MOSS_BLOCK
+                : r < 16 ? Material.CLAY : r < 18 ? Material.ROOTED_DIRT : Material.MOSSY_STONE_BRICKS;
+    }
+
+    /** Centros (x, z no mundo) dos seis pilares de raízes da Câmara dos Esporos. */
+    static int[][] rootPillarCenters(int cx, int cz, int fx, int fz) {
+        int[][] out = new int[6][];
+        for (int k = 0; k < 6; k++) {
+            double a = Math.toRadians(30 + 60 * k);
+            int lx = (int) Math.round(Math.cos(a) * 13);
+            int lz = (int) Math.round(Math.sin(a) * 13);
+            out[k] = new int[] {cx + fx * lz + fz * lx, cz + fz * lz - fx * lx};
+        }
+        return out;
+    }
+
+    private static void carve(Frame f, int lx1, int lz1, int lx2, int lz2, int y1, int y2) {
+        f.box(lx1, lz1, lx2, lz2, y1, y2, Material.AIR);
+    }
+
+    /**
+     * Gruta dos Esporos Ancestrais: Câmara dos Esporos (arena redonda de 36 de diâmetro e 18 de pé-direito, lagos rasos,
+     * pilares de raízes e teto de Spore Blossoms), o Salão dos Protetores Botânicos, o Labirinto de Vinhas Espinhosas e a
+     * boca que se abre numa lush cave. A entrada fica em +lz.
+     *
+     * @param gateOut recebe as posições do portão do salão
+     * @return posições do selo da porta da câmara
+     */
+    static List<int[]> rootGrove(BlockQueue q, int cx, int cz, int fy, int fx, int fz, List<int[]> gateOut) {
+        Frame f = new Frame(q, cx, cz, fx, fz);
+        Random random = new Random(cx * 29L + cz * 13L);
+        List<int[]> seals = new ArrayList<>();
+
+        // 1) massa de rocha musgosa e argila
+        for (int dy = -3; dy <= 19; dy++) {
+            for (int lx = -22; lx <= 22; lx++) {
+                for (int lz = -22; lz <= 22; lz++) {
+                    if (Math.hypot(lx, lz) <= 21) {
+                        f.put(lx, fy + dy, lz, grove(random));
+                    }
+                }
+            }
+        }
+        for (int lx = -9; lx <= 9; lx++) {
+            for (int lz = 19; lz <= 46; lz++) {
+                for (int y = fy - 3; y <= fy + 9; y++) {
+                    f.put(lx, y, lz, grove(random));
+                }
+            }
+        }
+        for (int s = 0; s + 1 < GROVE_PATH.length; s++) {
+            int[] a = GROVE_PATH[s];
+            int[] b = GROVE_PATH[s + 1];
+            for (int lx = Math.min(a[0], b[0]) - 4; lx <= Math.max(a[0], b[0]) + 4; lx++) {
+                for (int lz = Math.min(a[1], b[1]) - 1; lz <= Math.max(a[1], b[1]) + 1; lz++) {
+                    for (int y = fy - 3; y <= fy + 8; y++) {
+                        f.put(lx, y, lz, grove(random));
+                    }
+                }
+            }
+        }
+
+        // 2) a câmara: interior livre, piso, lagos, pilares e teto
+        for (int dy = 0; dy <= 17; dy++) {
+            q.disk(cx, cz, fy + dy, 18, Material.AIR);
+        }
+        for (int lx = -18; lx <= 18; lx++) {
+            for (int lz = -18; lz <= 18; lz++) {
+                if (Math.hypot(lx, lz) <= 18) {
+                    f.put(lx, fy - 1, lz, random.nextInt(4) == 0 ? Material.CLAY : random.nextInt(3) == 0 ? Material.MOSS_BLOCK
+                            : Material.GRASS_BLOCK);
+                    f.put(lx, fy - 2, lz, Material.CLAY);
+                    if (random.nextInt(4) == 0) {
+                        f.put(lx, fy, lz, Material.MOSS_CARPET);
+                    } else if (random.nextInt(40) == 0) {
+                        f.put(lx, fy, lz, random.nextBoolean() ? Material.FLOWERING_AZALEA : Material.AZALEA);
+                    } else if (random.nextInt(30) == 0) {
+                        f.put(lx, fy, lz, Material.SHORT_GRASS);
+                    }
+                }
+            }
+        }
+        for (int k = 0; k < 4; k++) {                                       // quatro lagos rasos
+            double a = Math.toRadians(45 + 90 * k);
+            int px = (int) Math.round(Math.cos(a) * 7.5);
+            int pz = (int) Math.round(Math.sin(a) * 7.5);
+            for (int dx = -4; dx <= 4; dx++) {
+                for (int dz = -4; dz <= 4; dz++) {
+                    if (Math.hypot(dx, dz) <= 3.2) {
+                        f.put(px + dx, fy - 2, pz + dz, Material.CLAY);
+                        f.put(px + dx, fy - 1, pz + dz, Material.WATER);
+                        f.put(px + dx, fy, pz + dz, Material.AIR);
+                    } else if (Math.hypot(dx, dz) <= 4.1) {
+                        f.put(px + dx, fy - 1, pz + dz, Material.CLAY);
+                        f.put(px + dx, fy, pz + dz, random.nextInt(3) == 0 ? Material.MOSS_CARPET : Material.AIR);
+                    }
+                }
+            }
+        }
+        // pilares de raízes gigantes
+        for (int k = 0; k < 6; k++) {
+            double a = Math.toRadians(30 + 60 * k);
+            int px = (int) Math.round(Math.cos(a) * 13);
+            int pz = (int) Math.round(Math.sin(a) * 13);
+            for (int dy = 0; dy <= 17; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dz = -1; dz <= 1; dz++) {
+                        boolean core = dx == 0 && dz == 0;
+                        boolean corner = Math.abs(dx) == 1 && Math.abs(dz) == 1;
+                        Material m = core ? Material.MANGROVE_LOG : corner ? (dy % 3 == 0 ? Material.MUDDY_MANGROVE_ROOTS
+                                : Material.MANGROVE_ROOTS) : Material.MUDDY_MANGROVE_ROOTS;
+                        if (dy > 12 && corner) {
+                            m = Material.AIR;
+                        }
+                        f.put(px + dx, fy + dy, pz + dz, m);
+                    }
+                }
+            }
+            for (int dx = -2; dx <= 2; dx++) {                              // raízes que se espalham pelo chão
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (Math.abs(dx) == 2 || Math.abs(dz) == 2) {
+                        if (random.nextInt(3) == 0) {
+                            f.put(px + dx, fy, pz + dz, Material.MANGROVE_ROOTS);
+                        }
+                    }
+                }
+            }
+        }
+        // teto: musgo, Spore Blossoms bioluminescentes, luzes de cogumelo e raízes pendentes
+        for (int lx = -18; lx <= 18; lx++) {
+            for (int lz = -18; lz <= 18; lz++) {
+                double d = Math.hypot(lx, lz);
+                if (d > 17.5) {
+                    continue;
+                }
+                f.put(lx, fy + 18, lz, Material.MOSS_BLOCK);
+                int roll = random.nextInt(100);
+                if (roll < 18) {
+                    f.put(lx, fy + 17, lz, Material.SPORE_BLOSSOM);
+                } else if (roll < 26) {
+                    f.put(lx, fy + 17, lz, Material.HANGING_ROOTS);
+                } else if (roll < 30) {
+                    f.put(lx, fy + 17, lz, Material.CAVE_VINES_PLANT);
+                    f.put(lx, fy + 16, lz, Material.CAVE_VINES);
+                }
+            }
+        }
+        for (int k = 0; k < 12; k++) {
+            double a = Math.toRadians(30 * k + 10);
+            double r = k % 2 == 0 ? 9 : 15;
+            f.put((int) Math.round(Math.cos(a) * r), fy + 18, (int) Math.round(Math.sin(a) * r), Material.SHROOMLIGHT);
+        }
+        f.put(0, fy + 18, 0, Material.SHROOMLIGHT);
+
+        // 3) porta da câmara e túnel até o salão; selos em lz 19 e portão em lz 22
+        carve(f, -2, 18, 2, 23, fy, fy + 4);
+        f.box(-2, 18, 2, 23, fy - 1, fy - 1, Material.MOSSY_STONE_BRICKS);
+        for (int lx = -2; lx <= 2; lx++) {
+            for (int y = fy; y <= fy + 4; y++) {
+                f.put(lx, y, 19, Material.MOSSY_STONE_BRICKS);
+                seals.add(f.world(lx, y, 19));
+                f.put(lx, y, 22, Material.MOSSY_STONE_BRICKS);
+                gateOut.add(f.world(lx, y, 22));
+            }
+        }
+        for (int y = fy + 1; y <= fy + 3; y += 2) {
+            f.put(-3, y, 20, Material.SHROOMLIGHT);
+            f.put(3, y, 20, Material.SHROOMLIGHT);
+        }
+
+        // 4) Salão dos Protetores Botânicos
+        carve(f, -6, 24, 6, 42, fy, fy + 7);
+        for (int lx = -6; lx <= 6; lx++) {
+            for (int lz = 24; lz <= 42; lz++) {
+                f.put(lx, fy - 1, lz, random.nextInt(3) == 0 ? Material.CLAY : random.nextBoolean() ? Material.MOSS_BLOCK
+                        : Material.GRASS_BLOCK);
+                f.put(lx, fy + 8, lz, Material.MOSS_BLOCK);
+                int roll = random.nextInt(100);
+                if (roll < 12) {
+                    f.put(lx, fy + 7, lz, Material.SPORE_BLOSSOM);
+                } else if (roll < 22) {
+                    f.put(lx, fy + 7, lz, Material.HANGING_ROOTS);
+                } else if (roll < 40) {
+                    f.put(lx, fy, lz, Material.MOSS_CARPET);
+                }
+            }
+        }
+        for (int[] spot : new int[][] {{-3, 28}, {3, 28}, {-3, 38}, {3, 38}}) {
+            for (int y = fy; y <= fy + 7; y++) {
+                f.put(spot[0], y, spot[1], y % 4 == 3 ? Material.MUDDY_MANGROVE_ROOTS : Material.MANGROVE_LOG);
+            }
+        }
+        for (int lz = 26; lz <= 40; lz += 7) {
+            f.put(-5, fy + 7, lz, Material.SHROOMLIGHT);
+            f.put(5, fy + 7, lz, Material.SHROOMLIGHT);
+        }
+        carve(f, -1, 43, 1, 45, fy, fy + 3);                                // passagem do salão para o labirinto
+        f.box(-1, 43, 1, 45, fy - 1, fy - 1, Material.MOSS_BLOCK);
+
+        // 5) Labirinto de Vinhas Espinhosas: corredor de 3 de largura em zigue-zague
+        for (int s = 0; s + 1 < GROVE_PATH.length; s++) {
+            int[] a = GROVE_PATH[s];
+            int[] b = GROVE_PATH[s + 1];
+            int x1 = Math.min(a[0], b[0]) - 1;
+            int x2 = Math.max(a[0], b[0]) + 1;
+            int z1 = Math.min(a[1], b[1]) - 1;
+            int z2 = Math.max(a[1], b[1]) + 1;
+            carve(f, x1, z1, x2, z2, fy, fy + 3);
+            f.box(x1, z1, x2, z2, fy - 1, fy - 1, Material.MOSS_BLOCK);
+            for (int lz = z1 + 1; lz <= z2 - 1; lz += 6) {
+                f.put((x1 + x2) / 2, fy + 4, lz, Material.SHROOMLIGHT);
+            }
+        }
+        for (int[] spot : GROVE_VINES) {                                    // cipós densos pendendo do teto
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    int lx = spot[0] + dx;
+                    int lz = spot[1] + dz;
+                    f.put(lx, fy + 3, lz, Material.CAVE_VINES_PLANT);
+                    f.put(lx, fy + 2, lz, Material.CAVE_VINES_PLANT);
+                    f.put(lx, fy + 1, lz, Material.CAVE_VINES);
+                    f.put(lx, fy, lz, Material.MOSS_CARPET);
+                }
+            }
+        }
+        for (int[] trap : GROVE_TRAPS) {                                    // tripwire e dispensers escondidos nas paredes
+            for (int dx = -1; dx <= 1; dx++) {
+                f.put(trap[0] + dx, fy, trap[1], Material.TRIPWIRE);
+            }
+            f.put(trap[0] - 2, fy + 1, trap[1], dispenserFacing(f, 1));
+            f.put(trap[0] + 2, fy + 1, trap[1], dispenserFacing(f, -1));
+            f.put(trap[0] - 2, fy, trap[1], Material.MOSSY_COBBLESTONE);
+            f.put(trap[0] + 2, fy, trap[1], Material.MOSSY_COBBLESTONE);
+        }
+        // boca da gruta, aberta para a caverna natural
+        carve(f, -1, 87, 1, GROVE_MOUTH + 2, fy, fy + 3);
+        return seals;
+    }
 }

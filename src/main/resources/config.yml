@@ -200,6 +200,15 @@ bosses:
     min-spacing: 700
     respawn-minutes: 90
 
+  root-sovereign:
+    # Guardiao das Lush Caves: chefe da Gruta dos Esporos Ancestrais (subsolo, Y -10 a -45).
+    health: 380
+    # Chance (1 em N) por chunk de lush caves de gerar uma Gruta, distancia minima do spawn e entre grutas.
+    chunk-odds: 60
+    min-spawn-distance: 200
+    min-spacing: 500
+    respawn-minutes: 90
+
 fauna:
   # Criaturas rejeitadas da votacao de mobs: Rascal, Golem de Tufo, Moobloom, Glare, Caranguejo, Pinguim,
   # Great Hunger e Barnacle (monstro das profundezas).

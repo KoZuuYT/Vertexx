@@ -8,7 +8,8 @@ public enum BossKind {
     WILDFIRE("Wildfire", "<gold>", BossBar.Color.RED, "Câmara do Wildfire"),
     ICEOLOGER("Iceologer", "<aqua>", BossBar.Color.BLUE, "Castelo de Gelo"),
     VOID_SCARAB("Void-Scarab", "<dark_purple>", BossBar.Color.PURPLE, "Pináculo de Quitina"),
-    PARCHED_TITAN("Parched Titan", "<gold>", BossBar.Color.YELLOW, "Cidadela Soterrada");
+    PARCHED_TITAN("Parched Titan", "<gold>", BossBar.Color.YELLOW, "Cidadela Soterrada"),
+    ROOT_SOVEREIGN("Root Sovereign", "<green>", BossBar.Color.GREEN, "Gruta dos Esporos Ancestrais");
 
     private final String display;
     private final String color;
@@ -55,7 +56,8 @@ public enum BossKind {
         for (BossKind kind : values()) {
             if (kind.key().equalsIgnoreCase(text) || kind.key().replace("_", "").equalsIgnoreCase(text)
                     || kind == VOID_SCARAB && text.equalsIgnoreCase("scarab")
-                    || kind == PARCHED_TITAN && (text.equalsIgnoreCase("titan") || text.equalsIgnoreCase("parched"))) {
+                    || kind == PARCHED_TITAN && (text.equalsIgnoreCase("titan") || text.equalsIgnoreCase("parched"))
+                    || kind == ROOT_SOVEREIGN && (text.equalsIgnoreCase("sovereign") || text.equalsIgnoreCase("root"))) {
                 return kind;
             }
         }

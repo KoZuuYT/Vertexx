@@ -265,13 +265,12 @@ public final class BossManager implements Listener {
             case WILDFIRE -> new Wildfire(this, arena);
             case VOID_SCARAB -> new VoidScarab(this, arena);
             case PARCHED_TITAN -> new ParchedTitan(this, arena);
+            case ROOT_SOVEREIGN -> new RootSovereign(this, arena);
             default -> new Iceologer(this, arena);
         };
         fights.put(arena.id, fight);
         setAltar(arena, false);
-        if (arena.kind == BossKind.PARCHED_TITAN) {
-            setGate(arena, true);
-        }
+        setGate(arena, true);
         fight.spawn();
         return fight;
     }
@@ -341,6 +340,7 @@ public final class BossManager implements Listener {
         World world = at.getWorld();
         long minutes = arena.kind == BossKind.VOID_SCARAB ? plugin.getConfig().getLong("bosses.void-scarab.respawn-minutes", 30)
                 : arena.kind == BossKind.PARCHED_TITAN ? plugin.getConfig().getLong("bosses.parched-titan.respawn-minutes", 90)
+                : arena.kind == BossKind.ROOT_SOVEREIGN ? plugin.getConfig().getLong("bosses.root-sovereign.respawn-minutes", 90)
                 : plugin.getConfig().getLong("bosses.respawn-minutes", 90);
         if (!arena.temp) {
             arena.readyAt = minutes <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + minutes * 60_000L;
@@ -367,6 +367,11 @@ public final class BossManager implements Listener {
             loot.add(dev.vertexx.end.EndItem.SCARAB_MANDIBLE.create(plugin));
             loot.add(new ItemStack(Material.AMETHYST_SHARD, 16 + random.nextInt(17)));
             loot.add(new ItemStack(Material.ENDER_PEARL, 4 + random.nextInt(5)));
+        } else if (arena.kind == BossKind.ROOT_SOVEREIGN) {
+            loot.add(SovereignStaff.create(plugin));
+            loot.add(new ItemStack(Material.MOSS_BLOCK, 16 + random.nextInt(9)));
+            loot.add(new ItemStack(Material.SPORE_BLOSSOM, 4 + random.nextInt(5)));
+            loot.add(new ItemStack(Material.DIAMOND, 2 + random.nextInt(3)));
         } else if (arena.kind == BossKind.PARCHED_TITAN) {
             loot.add(ParchedGreatsword.create(plugin));
             loot.add(new ItemStack(Material.CHISELED_RED_SANDSTONE, 6 + random.nextInt(5)));
@@ -482,6 +487,9 @@ public final class BossManager implements Listener {
         Location at = fight.pos.clone().add(0, 1.8, 0);
         if (fight.kind == BossKind.VOID_SCARAB) {
             fight.world.spawnParticle(Particle.PORTAL, at, 10, 0.8, 0.8, 0.8, 0.3);
+        } else if (fight.kind == BossKind.ROOT_SOVEREIGN) {
+            fight.world.spawnParticle(Particle.BLOCK, at, 12, 0.8, 1.0, 0.8, 0.1, Material.MANGROVE_LOG.createBlockData());
+            fight.world.spawnParticle(Particle.SPORE_BLOSSOM_AIR, at, 6, 0.8, 1.0, 0.8, 0);
         } else if (fight.kind == BossKind.PARCHED_TITAN) {
             fight.world.spawnParticle(Particle.BLOCK, at, 14, 0.8, 1.0, 0.8, 0.1, Material.SANDSTONE.createBlockData());
         } else if (fight.kind == BossKind.WILDFIRE) {
@@ -745,6 +753,9 @@ public final class BossManager implements Listener {
                 scanCastle(player);
                 if (!building) {
                     scanCitadel(player);
+                }
+                if (!building) {
+                    scanGrove(player);
                 }
             } else if (world.getEnvironment() == World.Environment.THE_END) {
                 scanSpire(player);
@@ -1101,7 +1112,7 @@ public final class BossManager implements Listener {
         if (world == null || !world.isChunkLoaded(arena.cx >> 4, arena.cz >> 4)) {
             return;
         }
-        Material wanted = closed ? Material.CHISELED_SANDSTONE : Material.AIR;
+        Material wanted = closed ? arena.sealMaterial : Material.AIR;
         for (int[] pos : arena.gate) {
             long key = blockKey(pos[0], pos[1], pos[2]);
             if (closed) {
@@ -1148,6 +1159,130 @@ public final class BossManager implements Listener {
             arrow.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HUNGER, 100, 1), true);
             arrow.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 60, 0), true);
         }
+    }
+
+    // ── Gruta dos Esporos Ancestrais (Root Sovereign, lush caves) ─
+
+    private void scanGrove(Player player) {
+        World world = player.getWorld();
+        int pcx = player.getLocation().getBlockX() >> 4;
+        int pcz = player.getLocation().getBlockZ() >> 4;
+        double chance = 1.0 / Math.max(1, plugin.getConfig().getInt("bosses.root-sovereign.chunk-odds", 60));
+        double minSpawn = plugin.getConfig().getDouble("bosses.root-sovereign.min-spawn-distance", 200);
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dz = -4; dz <= 4; dz++) {
+                int chx = pcx + dx;
+                int chz = pcz + dz;
+                int x = chx * 16 + 8;
+                int z = chz * 16 + 8;
+                String key = "grove:" + world.getName() + ":" + chx + ":" + chz;
+                if (decided.contains(key) || !world.isChunkLoaded(chx, chz)) {
+                    continue;
+                }
+                if (!"lush_caves".equals(world.getBiome(x, -25, z).getKey().getKey())) {
+                    continue;
+                }
+                decided.add(key);
+                Random random = new Random(world.getSeed() * 19 + chx * 341873128712L + chz * 132897987541L);
+                if (random.nextDouble() >= chance
+                        || Math.hypot(x - world.getSpawnLocation().getX(), z - world.getSpawnLocation().getZ()) < minSpawn
+                        || !farFromOthers(BossKind.ROOT_SOVEREIGN, world, x, z,
+                        plugin.getConfig().getDouble("bosses.root-sovereign.min-spacing", 500))) {
+                    continue;
+                }
+                int[] mouth = findGroveMouth(world, chx, chz, random);
+                if (mouth == null) {
+                    continue;
+                }
+                save();
+                building = true;
+                loadAround(world, mouth[0], mouth[2], 6).whenComplete((ignored, error) ->
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (error != null || !evaluateGrove(world, mouth[0], mouth[1], mouth[2])) {
+                                building = false;
+                            }
+                        }));
+                return;
+            }
+        }
+        save();
+    }
+
+    /** Procura, no chunk, um piso de caverna (Y entre -10 e -45) dentro do bioma lush caves. */
+    private int[] findGroveMouth(World world, int chx, int chz, Random random) {
+        for (int attempt = 0; attempt < 40; attempt++) {
+            int x = chx * 16 + random.nextInt(16);
+            int z = chz * 16 + random.nextInt(16);
+            for (int y = -12; y >= -44; y--) {
+                org.bukkit.block.Block block = world.getBlockAt(x, y, z);
+                if (block.getType().isAir() && world.getBlockAt(x, y + 1, z).getType().isAir()
+                        && world.getBlockAt(x, y + 2, z).getType().isAir()
+                        && world.getBlockAt(x, y - 1, z).getType().isSolid()
+                        && "lush_caves".equals(world.getBiome(x, y, z).getKey().getKey())) {
+                    return new int[] {x, y, z};
+                }
+            }
+        }
+        return null;
+    }
+
+    /** Escolhe o lado em que a estrutura se enterra na rocha (o mais maciço) e a constrói. */
+    private boolean evaluateGrove(World world, int mx, int my, int mz) {
+        if (my - 6 < world.getMinHeight()) {
+            return false;
+        }
+        int[] best = null;
+        double bestScore = -1;
+        for (int[] d : new int[][] {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}) {
+            int solid = 0;
+            int total = 0;
+            boolean wet = false;
+            for (int dist = 12; dist <= 84; dist += 12) {
+                for (int off = -6; off <= 6; off += 6) {
+                    int x = mx + d[0] * dist + d[1] * off;
+                    int z = mz + d[1] * dist + d[0] * off;
+                    if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+                        continue;
+                    }
+                    total++;
+                    org.bukkit.block.Block block = world.getBlockAt(x, my + 2, z);
+                    if (block.isLiquid()) {
+                        wet = true;
+                    }
+                    if (block.getType().isSolid()) {
+                        solid++;
+                    }
+                }
+            }
+            double score = total == 0 || wet ? -1 : solid / (double) total;
+            if (score > bestScore) {
+                bestScore = score;
+                best = d;
+            }
+        }
+        if (best == null || bestScore < 0.35) {
+            return false;
+        }
+        plugin.getLogger().info("Construindo a Gruta dos Esporos Ancestrais em " + world.getName() + " " + mx + " " + my + " " + mz);
+        buildGrove(world, mx + best[0] * Structures.GROVE_MOUTH, my, mz + best[1] * Structures.GROVE_MOUTH, -best[0], -best[1]);
+        return true;
+    }
+
+    private void buildGrove(World world, int cx, int fy, int cz, int fx, int fz) {
+        building = true;
+        BlockQueue queue = new BlockQueue(world);
+        List<int[]> gate = new ArrayList<>();
+        List<int[]> seals = Structures.rootGrove(queue, cx, cz, fy, fx, fz, gate);
+        queue.run(plugin, 6000, () -> {
+            Arena arena = Arena.create(BossKind.ROOT_SOVEREIGN, world, cx, fy, cz, fx, fz, false);
+            arena.seals.addAll(seals);
+            arena.gate.addAll(gate);
+            arena.sealMaterial = Material.MOSSY_STONE_BRICKS;
+            arenas.put(arena.id, arena);
+            building = false;
+            save();
+            plugin.getLogger().info("Gruta dos Esporos Ancestrais pronta em " + cx + " " + fy + " " + cz + ".");
+        });
     }
 
     private void scanCitadel(Player player) {
@@ -1348,7 +1483,9 @@ public final class BossManager implements Listener {
         if (building) {
             return "Já há uma construção em andamento.";
         }
-        if (kind == BossKind.PARCHED_TITAN) {
+        if (kind == BossKind.ROOT_SOVEREIGN) {
+            buildGrove(world, x + fx * Structures.GROVE_MOUTH, y, z + fz * Structures.GROVE_MOUTH, -fx, -fz);
+        } else if (kind == BossKind.PARCHED_TITAN) {
             buildCitadel(world, x + fx * 120, y - 20, z + fz * 120, -fx, -fz);
         } else if (kind == BossKind.VOID_SCARAB) {
             buildSpire(world, x + fx * 42, y, z + fz * 42, -fx, -fz);
@@ -1376,7 +1513,7 @@ public final class BossManager implements Listener {
             case "spawn" -> {
                 BossKind kind = args.length > 2 ? BossKind.parse(args[2]) : null;
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer|void_scarab|parched_titan> [mundo x y z]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer|void_scarab|parched_titan|root_sovereign> [mundo x y z]");
                     return;
                 }
                 Location at = null;
@@ -1420,7 +1557,7 @@ public final class BossManager implements Listener {
                 } else if (sender instanceof Player player && kind != null) {
                     error = buildHere(player, kind);
                 } else {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer|void_scarab|parched_titan> [mundo x y z [n|s|e|w]]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer|void_scarab|parched_titan|root_sovereign> [mundo x y z [n|s|e|w]]");
                     return;
                 }
                 Msg.send(sender, error == null ? "<green>Construindo " + kind.place() + " à sua frente…" : "<red>" + error);
@@ -1503,14 +1640,15 @@ public final class BossManager implements Listener {
         }
         String sub = args[1].toLowerCase(Locale.ROOT);
         if (args.length == 3 && List.of("spawn", "build", "attack", "tp").contains(sub)) {
-            return Tab.of(args[2], "wildfire", "iceologer", "void_scarab", "parched_titan");
+            return Tab.of(args[2], "wildfire", "iceologer", "void_scarab", "parched_titan", "root_sovereign");
         }
         if (args.length == 4 && sub.equals("attack")) {
             BossKind kind = BossKind.parse(args[2]);
             return kind == null ? List.of() : Tab.of(args[3], kind == BossKind.WILDFIRE
                     ? List.of("shockwave", "rush", "lunge") : kind == BossKind.VOID_SCARAB
                     ? List.of("clamp", "volley", "stinger", "swarm") : kind == BossKind.PARCHED_TITAN
-                    ? List.of("parry", "cleave", "quicksand", "leap", "rush", "spin") : List.of("spikes", "iceberg"));
+                    ? List.of("parry", "cleave", "quicksand", "leap", "rush", "spin") : kind == BossKind.ROOT_SOVEREIGN
+                    ? List.of("spore", "snare", "vortex", "dash", "frenzy", "thorns") : List.of("spikes", "iceberg"));
         }
         if (args.length == 4 && (sub.equals("spawn") || sub.equals("build"))) {
             return Tab.of(args[3], Bukkit.getWorlds().stream().map(World::getName).toList());
