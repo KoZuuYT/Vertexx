@@ -191,6 +191,15 @@ bosses:
     # Minutos ate o altar resetar apos a vitoria.
     respawn-minutes: 30
 
+  parched-titan:
+    # Colosso de arenito do Deserto: chefe da Cidadela Soterrada (subsolo das dunas).
+    health: 360
+    # Chance (1 em N) por chunk de deserto de gerar uma Cidadela, distancia minima do spawn e entre cidadelas.
+    chunk-odds: 800
+    min-spawn-distance: 300
+    min-spacing: 700
+    respawn-minutes: 90
+
 fauna:
   # Criaturas rejeitadas da votacao de mobs: Rascal, Golem de Tufo, Moobloom, Glare, Caranguejo, Pinguim,
   # Great Hunger e Barnacle (monstro das profundezas).

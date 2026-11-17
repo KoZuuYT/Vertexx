@@ -35,6 +35,8 @@ public final class Arena {
     boolean sealed;
     /** Altar de ativação (blocos), quando a sala tem um. */
     int[] altar;
+    /** Portão do salão dos guardiões (Cidadela Soterrada): fecha enquanto os guardiões vivem. */
+    final List<int[]> gate = new ArrayList<>();
 
     Arena(String id, BossKind kind, String world, int cx, int fy, int cz, int fx, int fz, int half, int height,
           boolean temp) {
@@ -52,8 +54,8 @@ public final class Arena {
     }
 
     static Arena create(BossKind kind, World world, int cx, int fy, int cz, int fx, int fz, boolean temp) {
-        int half = kind == BossKind.VOID_SCARAB ? 25 : kind == BossKind.WILDFIRE ? 13 : 9;
-        int height = kind == BossKind.VOID_SCARAB ? 38 : kind == BossKind.WILDFIRE ? 20 : 16;
+        int half = kind == BossKind.VOID_SCARAB ? 25 : kind == BossKind.PARCHED_TITAN ? 17 : kind == BossKind.WILDFIRE ? 13 : 9;
+        int height = kind == BossKind.VOID_SCARAB ? 38 : kind == BossKind.PARCHED_TITAN ? 16 : kind == BossKind.WILDFIRE ? 20 : 16;
         return new Arena(UUID.randomUUID().toString().substring(0, 8), kind, world.getName(), cx, fy, cz, fx, fz,
                 half, height, temp);
     }
@@ -113,6 +115,11 @@ public final class Arena {
             list.add(pos[0] + "," + pos[1] + "," + pos[2]);
         }
         yaml.set(path + ".seals", list);
+        List<String> gates = new ArrayList<>();
+        for (int[] pos : gate) {
+            gates.add(pos[0] + "," + pos[1] + "," + pos[2]);
+        }
+        yaml.set(path + ".gate", gates);
         if (altar != null) {
             yaml.set(path + ".altar", altar[0] + "," + altar[1] + "," + altar[2]);
         }
@@ -145,6 +152,17 @@ public final class Arena {
             if (parts.length == 3) {
                 try {
                     arena.seals.add(new int[] {Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),
+                            Integer.parseInt(parts[2])});
+                } catch (NumberFormatException ignored) {
+                    // posição inválida: ignora
+                }
+            }
+        }
+        for (String text : section.getStringList("gate")) {
+            String[] parts = text.split(",");
+            if (parts.length == 3) {
+                try {
+                    arena.gate.add(new int[] {Integer.parseInt(parts[0]), Integer.parseInt(parts[1]),
                             Integer.parseInt(parts[2])});
                 } catch (NumberFormatException ignored) {
                     // posição inválida: ignora

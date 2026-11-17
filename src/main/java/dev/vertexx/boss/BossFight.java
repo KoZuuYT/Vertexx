@@ -211,6 +211,7 @@ abstract class BossFight {
         switch (state) {
             case DORMANT -> {
                 idlePose();
+                dormantTick();
                 if (age % 10 == 0) {
                     checkAwaken();
                 }
@@ -245,6 +246,10 @@ abstract class BossFight {
         if (age % 5 == 0) {
             updateBar();
         }
+    }
+
+    /** Chamado a cada tick enquanto o boss dorme (armadilhas e guardiões da Cidadela Soterrada). */
+    protected void dormantTick() {
     }
 
     protected void checkAwaken() {
@@ -334,6 +339,11 @@ abstract class BossFight {
         stateTicks = 0;
         hitbox.setInvulnerable(true);
         manager.victory(this);
+    }
+
+    /** Versão com o evento (para saber quem atacou); por padrão usa só o valor. */
+    double damageTaken(org.bukkit.event.entity.EntityDamageEvent event, double base) {
+        return damageTaken(base);
     }
 
     /** Dano recebido pelo corpo; devolve o multiplicador (exposto = mais dano). */
@@ -489,7 +499,8 @@ abstract class BossFight {
 
     protected boolean blocked(double x, double y, double z) {
         double r = bodyRadius();
-        return world.hasCollisionsIn(new org.bukkit.util.BoundingBox(x - r, y + 0.05, z - r, x + r,
+        // degraus baixos (tapetes, lajes, neve, 0,6) não travam o corpo
+        return world.hasCollisionsIn(new org.bukkit.util.BoundingBox(x - r, y + 0.6, z - r, x + r,
                 y + bodyHeight(), z + r));
     }
 

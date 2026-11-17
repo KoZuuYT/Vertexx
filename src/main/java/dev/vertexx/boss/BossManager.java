@@ -226,12 +226,14 @@ public final class BossManager implements Listener {
             }
             if (arena.kind == BossKind.VOID_SCARAB) {
                 purgeEndermen(arena, world);
+                clearNest(arena, world);
             }
             BossFight fight = fights.get(arena.id);
             if (fight == null) {
                 if (arena.sealed) {
                     seal(arena, false);
                 }
+                setGate(arena, false);
                 if (arena.ready(now) && playerNear(arena, 80)) {
                     spawnFight(arena);
                 }
@@ -262,10 +264,14 @@ public final class BossManager implements Listener {
         BossFight fight = switch (arena.kind) {
             case WILDFIRE -> new Wildfire(this, arena);
             case VOID_SCARAB -> new VoidScarab(this, arena);
+            case PARCHED_TITAN -> new ParchedTitan(this, arena);
             default -> new Iceologer(this, arena);
         };
         fights.put(arena.id, fight);
         setAltar(arena, false);
+        if (arena.kind == BossKind.PARCHED_TITAN) {
+            setGate(arena, true);
+        }
         fight.spawn();
         return fight;
     }
@@ -273,6 +279,7 @@ public final class BossManager implements Listener {
     void endFight(BossFight fight, boolean defeated) {
         fights.remove(fight.arena.id);
         setAltar(fight.arena, false);
+        setGate(fight.arena, false);
         fight.remove();
         if (fight.arena.sealed) {
             seal(fight.arena, false);
@@ -333,6 +340,7 @@ public final class BossManager implements Listener {
         Location at = fight.pos.clone().add(0, 1.5, 0);
         World world = at.getWorld();
         long minutes = arena.kind == BossKind.VOID_SCARAB ? plugin.getConfig().getLong("bosses.void-scarab.respawn-minutes", 30)
+                : arena.kind == BossKind.PARCHED_TITAN ? plugin.getConfig().getLong("bosses.parched-titan.respawn-minutes", 90)
                 : plugin.getConfig().getLong("bosses.respawn-minutes", 90);
         if (!arena.temp) {
             arena.readyAt = minutes <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + minutes * 60_000L;
@@ -359,6 +367,11 @@ public final class BossManager implements Listener {
             loot.add(dev.vertexx.end.EndItem.SCARAB_MANDIBLE.create(plugin));
             loot.add(new ItemStack(Material.AMETHYST_SHARD, 16 + random.nextInt(17)));
             loot.add(new ItemStack(Material.ENDER_PEARL, 4 + random.nextInt(5)));
+        } else if (arena.kind == BossKind.PARCHED_TITAN) {
+            loot.add(ParchedGreatsword.create(plugin));
+            loot.add(new ItemStack(Material.CHISELED_RED_SANDSTONE, 6 + random.nextInt(5)));
+            loot.add(new ItemStack(Material.TERRACOTTA, 6 + random.nextInt(5)));
+            loot.add(new ItemStack(Material.DIAMOND, 2 + random.nextInt(3)));
         } else if (arena.kind == BossKind.WILDFIRE) {
             loot.add(new ItemStack(Material.NETHERITE_SCRAP, 3 + random.nextInt(3)));
             loot.add(new ItemStack(Material.GOLD_INGOT, 16 + random.nextInt(17)));
@@ -462,13 +475,15 @@ public final class BossManager implements Listener {
                 return;
             }
         }
-        event.setDamage(fight.damageTaken(event.getDamage()));
+        event.setDamage(fight.damageTaken(event, event.getDamage()));
         if (fight.model != null && event.getDamage() > 0) {
             fight.model.hurtFlash(10);
         }
         Location at = fight.pos.clone().add(0, 1.8, 0);
         if (fight.kind == BossKind.VOID_SCARAB) {
             fight.world.spawnParticle(Particle.PORTAL, at, 10, 0.8, 0.8, 0.8, 0.3);
+        } else if (fight.kind == BossKind.PARCHED_TITAN) {
+            fight.world.spawnParticle(Particle.BLOCK, at, 14, 0.8, 1.0, 0.8, 0.1, Material.SANDSTONE.createBlockData());
         } else if (fight.kind == BossKind.WILDFIRE) {
             fight.world.spawnParticle(Particle.FLAME, at, 8, 0.4, 0.5, 0.4, 0.05);
             Fx.worldSound(at, Sound.ENTITY_BLAZE_HURT, 1f, 0.6f);
@@ -728,6 +743,9 @@ public final class BossManager implements Listener {
                 scanFortress(player);
             } else if (world.getEnvironment() == World.Environment.NORMAL) {
                 scanCastle(player);
+                if (!building) {
+                    scanCitadel(player);
+                }
             } else if (world.getEnvironment() == World.Environment.THE_END) {
                 scanSpire(player);
             }
@@ -1063,11 +1081,182 @@ public final class BossManager implements Listener {
             Arena arena = Arena.create(BossKind.VOID_SCARAB, world, cx, fy, cz, fx, fz, false);
             arena.seals.addAll(seals);
             arena.sealMaterial = Material.AMETHYST_BLOCK;
-            arena.altar = new int[] {cx, fy + 1, cz};
             arenas.put(arena.id, arena);
             building = false;
             save();
             plugin.getLogger().info("Pináculo de Quitina pronto em " + cx + " " + fy + " " + cz + ".");
+        });
+    }
+
+    // ── Cidadela Soterrada (Parched Titan, deserto) ────────────
+
+    private static final Set<String> DESERT_BIOMES = Set.of("desert");
+
+    /** Portão do salão dos guardiões: fecha com a luta dormente e abre quando os guardiões caem ou a luta termina. */
+    void setGate(Arena arena, boolean closed) {
+        if (arena.gate.isEmpty()) {
+            return;
+        }
+        World world = arena.bukkitWorld();
+        if (world == null || !world.isChunkLoaded(arena.cx >> 4, arena.cz >> 4)) {
+            return;
+        }
+        Material wanted = closed ? Material.CHISELED_SANDSTONE : Material.AIR;
+        for (int[] pos : arena.gate) {
+            long key = blockKey(pos[0], pos[1], pos[2]);
+            if (closed) {
+                sealedBlocks.add(key);
+            } else {
+                sealedBlocks.remove(key);
+            }
+            org.bukkit.block.Block block = world.getBlockAt(pos[0], pos[1], pos[2]);
+            if (block.getType() != wanted && world.isChunkLoaded(pos[0] >> 4, pos[2] >> 4)) {
+                block.setType(wanted, false);
+            }
+        }
+    }
+
+    /** Remove o ninho e o altar dos Pináculos antigos: o centro da câmara agora é livre. */
+    private void clearNest(Arena arena, World world) {
+        if (arena.altar == null || !world.isChunkLoaded(arena.cx >> 4, arena.cz >> 4)) {
+            return;
+        }
+        Set<Material> nest = Set.of(Material.PURPUR_BLOCK, Material.END_STONE_BRICKS, Material.END_PORTAL_FRAME,
+                Material.AMETHYST_CLUSTER, Material.END_ROD);
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dz = -5; dz <= 5; dz++) {
+                if (dx * dx + dz * dz > 4.6 * 4.6) {
+                    continue;
+                }
+                for (int y = arena.fy; y <= arena.fy + 3; y++) {
+                    org.bukkit.block.Block block = world.getBlockAt(arena.cx + dx, y, arena.cz + dz);
+                    if (nest.contains(block.getType())) {
+                        block.setType(Material.AIR, false);
+                    }
+                }
+            }
+        }
+        arena.altar = null;
+        save();
+    }
+
+    /** Arqueiros Parched da cidadela: as flechas dão Fome II e Lentidão I. */
+    @EventHandler
+    public void onArcherShoot(org.bukkit.event.entity.EntityShootBowEvent event) {
+        Byte tag = event.getEntity().getPersistentDataContainer().get(partKey, PersistentDataType.BYTE);
+        if (tag != null && tag == 2 && event.getProjectile() instanceof org.bukkit.entity.Arrow arrow) {
+            arrow.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.HUNGER, 100, 1), true);
+            arrow.addCustomEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SLOWNESS, 60, 0), true);
+        }
+    }
+
+    private void scanCitadel(Player player) {
+        World world = player.getWorld();
+        int pcx = player.getLocation().getBlockX() >> 4;
+        int pcz = player.getLocation().getBlockZ() >> 4;
+        double chance = 1.0 / Math.max(1, plugin.getConfig().getInt("bosses.parched-titan.chunk-odds", 800));
+        double minSpawn = plugin.getConfig().getDouble("bosses.parched-titan.min-spawn-distance", 300);
+        for (int dx = -4; dx <= 4; dx++) {
+            for (int dz = -4; dz <= 4; dz++) {
+                int chx = pcx + dx;
+                int chz = pcz + dz;
+                int x = chx * 16 + 8;
+                int z = chz * 16 + 8;
+                String key = "citadel:" + world.getName() + ":" + chx + ":" + chz;
+                if (decided.contains(key) || !world.isChunkLoaded(chx, chz)) {
+                    continue;
+                }
+                String biome = world.getBiome(x, world.getHighestBlockYAt(x, z), z).getKey().getKey();
+                if (!DESERT_BIOMES.contains(biome)) {
+                    continue;
+                }
+                decided.add(key);
+                Random random = new Random(world.getSeed() * 17 + chx * 341873128712L + chz * 132897987541L);
+                if (random.nextDouble() >= chance
+                        || Math.hypot(x - world.getSpawnLocation().getX(), z - world.getSpawnLocation().getZ()) < minSpawn
+                        || !farFromOthers(BossKind.PARCHED_TITAN, world, x, z,
+                        plugin.getConfig().getDouble("bosses.parched-titan.min-spacing", 700))) {
+                    continue;
+                }
+                save();
+                building = true;
+                final int cxw = x;
+                final int czw = z;
+                List<CompletableFuture<?>> loads = new ArrayList<>();
+                loads.add(loadAround(world, cxw, czw, 3));
+                for (int[] side : new int[][] {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}) {
+                    loads.add(loadAround(world, cxw + side[0] * 113, czw + side[1] * 113, 2));
+                }
+                CompletableFuture.allOf(loads.toArray(new CompletableFuture<?>[0])).whenComplete((ignored, error) ->
+                        Bukkit.getScheduler().runTask(plugin, () -> {
+                            if (error != null || !evaluateCitadel(world, cxw, czw)) {
+                                building = false;
+                            }
+                        }));
+                return;
+            }
+        }
+        save();
+    }
+
+    private boolean evaluateCitadel(World world, int cx, int cz) {
+        List<Integer> heights = new ArrayList<>();
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        for (int dx = -12; dx <= 12; dx += 8) {
+            for (int dz = -12; dz <= 12; dz += 8) {
+                int y = world.getHighestBlockYAt(cx + dx, cz + dz, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+                if (world.getBlockAt(cx + dx, y, cz + dz).isLiquid()) {
+                    return false;
+                }
+                heights.add(y);
+                min = Math.min(min, y);
+                max = Math.max(max, y);
+            }
+        }
+        if (max - min > 7) {
+            return false;
+        }
+        heights.sort(Integer::compare);
+        int ground = heights.get(heights.size() / 2);
+        int[] best = null;
+        int bestScore = Integer.MAX_VALUE;
+        for (int[] side : new int[][] {{0, 1}, {1, 0}, {0, -1}, {-1, 0}}) {
+            int ex = cx + side[0] * 113;
+            int ez = cz + side[1] * 113;
+            int y = world.getHighestBlockYAt(ex, ez, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+            if (world.getBlockAt(ex, y, ez).isLiquid() || Math.abs(y - ground) > 5) {
+                continue;
+            }
+            int score = Math.abs(y - ground);
+            if (score < bestScore) {
+                bestScore = score;
+                best = side;
+            }
+        }
+        if (best == null || ground - 24 < world.getMinHeight() + 4) {
+            return false;
+        }
+        plugin.getLogger().info("Construindo a Cidadela Soterrada em " + world.getName() + " " + cx + " " + (ground - 20) + " " + cz);
+        buildCitadel(world, cx, ground - 20, cz, best[0], best[1]);
+        return true;
+    }
+
+    private void buildCitadel(World world, int cx, int fy, int cz, int fx, int fz) {
+        building = true;
+        BlockQueue queue = new BlockQueue(world);
+        List<int[]> gate = new ArrayList<>();
+        List<int[]> seals = Structures.parchedCitadel(queue, cx, cz, fy, fx, fz,
+                (x, z) -> world.getHighestBlockYAt(x, z, HeightMap.MOTION_BLOCKING_NO_LEAVES), gate);
+        queue.run(plugin, 6000, () -> {
+            Arena arena = Arena.create(BossKind.PARCHED_TITAN, world, cx, fy, cz, fx, fz, false);
+            arena.seals.addAll(seals);
+            arena.gate.addAll(gate);
+            arena.sealMaterial = Material.CHISELED_SANDSTONE;
+            arenas.put(arena.id, arena);
+            building = false;
+            save();
+            plugin.getLogger().info("Cidadela Soterrada pronta em " + cx + " " + fy + " " + cz + ".");
         });
     }
 
@@ -1159,7 +1348,9 @@ public final class BossManager implements Listener {
         if (building) {
             return "Já há uma construção em andamento.";
         }
-        if (kind == BossKind.VOID_SCARAB) {
+        if (kind == BossKind.PARCHED_TITAN) {
+            buildCitadel(world, x + fx * 120, y - 20, z + fz * 120, -fx, -fz);
+        } else if (kind == BossKind.VOID_SCARAB) {
             buildSpire(world, x + fx * 42, y, z + fz * 42, -fx, -fz);
         } else if (kind == BossKind.WILDFIRE) {
             buildWildfire(world, x + fx * 30, y, z + fz * 30, -fx, -fz, 33, true);
@@ -1185,7 +1376,7 @@ public final class BossManager implements Listener {
             case "spawn" -> {
                 BossKind kind = args.length > 2 ? BossKind.parse(args[2]) : null;
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer|void_scarab> [mundo x y z]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer|void_scarab|parched_titan> [mundo x y z]");
                     return;
                 }
                 Location at = null;
@@ -1229,7 +1420,7 @@ public final class BossManager implements Listener {
                 } else if (sender instanceof Player player && kind != null) {
                     error = buildHere(player, kind);
                 } else {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer|void_scarab> [mundo x y z [n|s|e|w]]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer|void_scarab|parched_titan> [mundo x y z [n|s|e|w]]");
                     return;
                 }
                 Msg.send(sender, error == null ? "<green>Construindo " + kind.place() + " à sua frente…" : "<red>" + error);
@@ -1312,13 +1503,14 @@ public final class BossManager implements Listener {
         }
         String sub = args[1].toLowerCase(Locale.ROOT);
         if (args.length == 3 && List.of("spawn", "build", "attack", "tp").contains(sub)) {
-            return Tab.of(args[2], "wildfire", "iceologer", "void_scarab");
+            return Tab.of(args[2], "wildfire", "iceologer", "void_scarab", "parched_titan");
         }
         if (args.length == 4 && sub.equals("attack")) {
             BossKind kind = BossKind.parse(args[2]);
             return kind == null ? List.of() : Tab.of(args[3], kind == BossKind.WILDFIRE
                     ? List.of("shockwave", "rush", "lunge") : kind == BossKind.VOID_SCARAB
-                    ? List.of("clamp", "volley", "stinger", "swarm") : List.of("spikes", "iceberg"));
+                    ? List.of("clamp", "volley", "stinger", "swarm") : kind == BossKind.PARCHED_TITAN
+                    ? List.of("parry", "cleave", "quicksand", "leap", "rush", "spin") : List.of("spikes", "iceberg"));
         }
         if (args.length == 4 && (sub.equals("spawn") || sub.equals("build"))) {
             return Tab.of(args[3], Bukkit.getWorlds().stream().map(World::getName).toList());

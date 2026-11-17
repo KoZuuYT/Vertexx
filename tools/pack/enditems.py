@@ -104,6 +104,29 @@ def scarab_mandible():
     return ramp_recolor(vanilla("bone"), ["#1c1230", "#44307a", "#8a7fa8", "#c6bcdc", "#f4f0ff"])
 
 
+def parched_greatsword():
+    """Grande Espada do Deserto, 32x32: a espada de diamante vanilla ampliada, recolorida em arenito e com brasas nas fendas."""
+    base = vanilla("diamond_sword").resize((32, 32), Image.NEAREST)
+    img = ramp_recolor(base, ["#3a2410", "#7a5530", "#b08850", "#d8b878", "#f4e4b0"])
+    px = img.load()
+    ember = [_hex("#7a1a00"), _hex("#d4480a"), _hex("#ff8a1a"), _hex("#ffd060")]
+    for y in range(img.height):
+        for x in range(img.width):
+            r_, g_, b_, a_ = px[x, y]
+            if a_ == 0:
+                continue
+            lum = 0.299 * r_ + 0.587 * g_ + 0.114 * b_
+            if lum > 110 and (x * 7 + y * 13) % 17 == 0:
+                px[x, y] = ember[2]
+                if x + 1 < img.width and px[x + 1, y][3] > 0:
+                    px[x + 1, y] = ember[0]
+                if y + 1 < img.height and px[x, y + 1][3] > 0 and (x + y) % 2 == 0:
+                    px[x, y + 1] = ember[1]
+            elif lum > 150 and (x * 3 + y * 5) % 23 == 0:
+                px[x, y] = ember[3]
+    return img
+
+
 def warp_stone():
     return ramp_recolor(vanilla("ender_eye"), ["#1e0d36", "#4b2a8a", "#8a58d0", "#c9a0ff", "#ffffff"])
 
@@ -195,6 +218,9 @@ def backpack_worn(tier: str):
     return img
 
 
+HANDHELD = {"parched_greatsword"}
+
+
 def build(ns, save, write_json):
     tex = ns / "textures"
     items = {
@@ -213,13 +239,15 @@ def build(ns, save, write_json):
         "termite_larva": termite_larva(),
         "coconut": coconut(),
         "ostrich_egg": ostrich_egg(),
+        "parched_greatsword": parched_greatsword(),
     }
     for tier in TIERS:
         items[tier] = backpack(tier)
     for key, image in items.items():
         save(image, tex / "item" / f"{key}.png")
         write_json(ns / "models" / "item" / f"{key}.json",
-                   {"parent": "minecraft:item/generated", "textures": {"layer0": f"vertexx:item/{key}"}})
+                   {"parent": "minecraft:item/handheld" if key in HANDHELD else "minecraft:item/generated",
+                    "textures": {"layer0": f"vertexx:item/{key}"}})
         write_json(ns / "items" / f"{key}.json", {"model": {"type": "minecraft:model", "model": f"vertexx:item/{key}"}})
     for tier in TIERS:
         save(backpack_worn(tier), tex / "entity" / "equipment" / "humanoid" / f"{tier}.png")

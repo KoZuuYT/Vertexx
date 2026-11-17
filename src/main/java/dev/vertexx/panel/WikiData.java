@@ -147,6 +147,7 @@ final class WikiData {
         for (Curses.Curse curse : Curses.Curse.values()) {
             list.add(plugin.curses().book(curse));
         }
+        list.add(dev.vertexx.boss.ParchedGreatsword.create(plugin));
         list.add(plugin.climates().goggles());
         list.add(e(Material.TRIPWIRE_HOOK, "<white><bold>Chave de Túmulo", "<gray>Abre um túmulo protegido.", "<dark_gray>Só administradores entregam."));
         list.add(e(Material.IRON_PICKAXE, "<aqua><bold>Picareta do Rascal", "<gray>Recompensa por achar o Rascal 3 vezes."));
@@ -234,7 +235,9 @@ final class WikiData {
                         "<gray>Fortaleza do Iceologer em biomas gelados."),
                 e(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Abismos: Pináculo de Quitina",
                         "<gray>Torre-colmeia rara nas ilhas grandes dos", "<gray>Abismos de Enderita, longe do centro do End.",
-                        "<gray>Veja Bosses."));
+                        "<gray>Veja Bosses."),
+                e(Material.CHISELED_SANDSTONE, "<gold><bold>Deserto: Cidadela Soterrada",
+                        "<gray>Complexo subterrâneo raro sob as dunas;", "<gray>guarda o Parched Titan. Veja Bosses."));
     }
 
     // ── Estruturas ──────────────────────────────────────────────
@@ -249,8 +252,13 @@ final class WikiData {
                 e(Material.CRYING_OBSIDIAN, "<dark_purple><bold>Pináculo de Quitina",
                         "<gray>Torre cônica de 52 blocos de ardósia e", "<gray>obsidiana chorosa, com costelas de End Stone,",
                         "<gray>janelas âmbar/verdes e quatro pontes sobre", "<gray>o abismo. Dentro: câmara de 48 blocos de",
-                        "<gray>diâmetro, poças de ácido (Poison I sem botas", "<gray>encantadas) e o Altar no ninho central.",
+                        "<gray>diâmetro e poças de ácido (Poison I sem botas", "<gray>encantadas). O centro é livre.",
                         "<gray>Entre na câmara para acordar o chefe."),
+                e(Material.CHISELED_SANDSTONE, "<gold><bold>Cidadela Soterrada",
+                        "<gray>Rara, em desertos: entrada monumental de", "<gray>arenito e escadaria até o subsolo.",
+                        "<gray>1) Átrio dos Ventos Cortantes: 24 blocos com", "<gray>areia movediça, fossos de espinhos, dardos e", "<gray>rajadas de areia.",
+                        "<gray>2) Salão dos Guardiões: 6 Husks blindados e", "<gray>2 Parched nas varandas; o portão só abre", "<gray>quando todos caem.",
+                        "<gray>3) Santuário da Fornalha Seca: arena de 34", "<gray>blocos, 6 pilares quebráveis e clarabóias.", "<gray>Veja Bosses."),
                 e(Material.WATER_BUCKET, "<aqua><bold>Oásis",
                         "<gray>Lago com palmeiras no deserto."),
                 e(Material.JUNGLE_LOG, "<yellow><bold>Baobá",

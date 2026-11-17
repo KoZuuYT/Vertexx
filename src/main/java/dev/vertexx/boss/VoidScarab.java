@@ -132,7 +132,8 @@ final class VoidScarab extends BossFight {
             parts[i] = world.spawn(at, Interaction.class, interaction -> {
                 interaction.setInteractionWidth((float) offsets[index][3]);
                 interaction.setInteractionHeight((float) offsets[index][4]);
-                interaction.setResponsive(true);
+                // sem resposta ao botão direito: senão o cliente "interage" com a peça e não deixa usar escudo/itens
+                interaction.setResponsive(false);
                 interaction.setPersistent(false);
                 interaction.getPersistentDataContainer().set(manager.partKey(), PersistentDataType.BYTE, (byte) 1);
                 interaction.getPersistentDataContainer().set(manager.hitKey(), PersistentDataType.STRING,

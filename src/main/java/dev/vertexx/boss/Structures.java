@@ -29,6 +29,10 @@ final class Structures {
             q.set(x(lx, lz), y, z(lx, lz), material);
         }
 
+        void put(int lx, int y, int lz, org.bukkit.block.data.BlockData data) {
+            q.set(x(lx, lz), y, z(lx, lz), data);
+        }
+
         void box(int lx1, int lz1, int lx2, int lz2, int y1, int y2, Material material) {
             for (int lx = Math.min(lx1, lx2); lx <= Math.max(lx1, lx2); lx++) {
                 for (int lz = Math.min(lz1, lz2); lz <= Math.max(lz1, lz2); lz++) {
@@ -544,17 +548,7 @@ final class Structures {
                 }
             }
         }
-        // ninho elevado com o altar de cristal
-        q.disk(cx, cz, fy, 4.2, Material.PURPUR_BLOCK);
-        q.disk(cx, cz, fy, 3, Material.END_STONE_BRICKS);
-        q.set(cx, fy + 1, cz, Material.END_PORTAL_FRAME);
-        for (int k = 0; k < 4; k++) {
-            double a = Math.PI / 2 * k + Math.PI / 4;
-            int px = (int) Math.round(cx + Math.cos(a) * 2);
-            int pz = (int) Math.round(cz + Math.sin(a) * 2);
-            q.set(px, fy + 1, pz, Material.AMETHYST_CLUSTER);
-            q.set(px, fy + 2, pz, Material.END_ROD);
-        }
+        // centro livre: sem altar nem ninho, para o chefe se mover por toda a câmara
 
         // costelas arqueadas de End Stone Bricks acompanhando a cúpula
         for (int k = 0; k < 16; k++) {
@@ -622,6 +616,238 @@ final class Structures {
         for (int lx = -3; lx <= 3; lx++) {
             for (int y = fy; y <= fy + 6; y++) {
                 seals.add(f.world(lx, y, 24));
+            }
+        }
+        return seals;
+    }
+
+    // ── Cidadela Soterrada (Parched Titan) ─────────────────────
+
+    /** Centros (x, z no mundo) dos seis pilares de cobertura do Santuário da Fornalha Seca. */
+    static int[][] pillarCenters(int cx, int cz, int fx, int fz) {
+        int[][] out = new int[6][];
+        for (int k = 0; k < 6; k++) {
+            double a = Math.toRadians(15 + 60 * k);
+            int lx = (int) Math.round(Math.cos(a) * 9.5);
+            int lz = (int) Math.round(Math.sin(a) * 9.5);
+            out[k] = new int[] {cx + fx * lz + fz * lx, cz + fz * lz - fx * lx};
+        }
+        return out;
+    }
+
+    private static Material sandstone(Random random) {
+        int r = random.nextInt(10);
+        return r < 5 ? Material.SANDSTONE : r < 8 ? Material.CUT_SANDSTONE : r < 9 ? Material.SMOOTH_SANDSTONE
+                : Material.CHISELED_SANDSTONE;
+    }
+
+    private static org.bukkit.block.data.BlockData dispenserFacing(Frame f, int dlx) {
+        int dx = f.fz() * dlx;
+        int dz = -f.fx() * dlx;
+        org.bukkit.block.BlockFace face = dx > 0 ? org.bukkit.block.BlockFace.EAST : dx < 0 ? org.bukkit.block.BlockFace.WEST
+                : dz > 0 ? org.bukkit.block.BlockFace.SOUTH : org.bukkit.block.BlockFace.NORTH;
+        org.bukkit.block.data.Directional data = (org.bukkit.block.data.Directional) Material.DISPENSER.createBlockData();
+        data.setFacing(face);
+        return data;
+    }
+
+    private static void fillMix(Frame f, Random random, int lx1, int lz1, int lx2, int lz2, int y1, int y2) {
+        for (int lx = Math.min(lx1, lx2); lx <= Math.max(lx1, lx2); lx++) {
+            for (int lz = Math.min(lz1, lz2); lz <= Math.max(lz1, lz2); lz++) {
+                for (int y = Math.min(y1, y2); y <= Math.max(y1, y2); y++) {
+                    f.put(lx, y, lz, sandstone(random));
+                }
+            }
+        }
+    }
+
+    /**
+     * Cidadela Soterrada: Santuario da Fornalha Seca (arena redonda de 34 de diametro e 16 de pe-direito, teto com
+     * claraboias e seis pilares), Salao dos Guardioes (com varandas e o portao), o Atrio dos Ventos Cortantes (24 blocos de
+     * corredor com areia movedica, fossos de espinhos e dispensers) e uma escadaria que sobe ate a entrada monumental na
+     * superficie. A entrada fica em +lz.
+     *
+     * @param groundAt altura do terreno em (x, z), para as claraboias e as dunas
+     * @param gateOut  recebe as posicoes do portao do salao dos guardioes
+     * @return posicoes do selo da porta da arena
+     */
+    static List<int[]> parchedCitadel(BlockQueue q, int cx, int cz, int fy, int fx, int fz,
+                                      java.util.function.IntBinaryOperator groundAt, List<int[]> gateOut) {
+        Frame f = new Frame(q, cx, cz, fx, fz);
+        Random random = new Random(cx * 31L + cz * 17L);
+        final int stairs = 20;
+
+        // 1) volumes solidos
+        for (int dy = -2; dy <= 17; dy++) {
+            for (int lx = -20; lx <= 20; lx++) {
+                for (int lz = -20; lz <= 20; lz++) {
+                    if (Math.hypot(lx, lz) <= 19.5) {
+                        f.put(lx, fy + dy, lz, sandstone(random));
+                    }
+                }
+            }
+        }
+        fillMix(f, random, -9, 23, 9, 47, fy - 1, fy + 11);
+        fillMix(f, random, -6, 46, 6, 72, fy - 5, fy + 9);
+
+        // 2) arena: interior livre, piso, claraboias
+        for (int dy = 0; dy <= 15; dy++) {
+            q.disk(cx, cz, fy + dy, 17, Material.AIR);
+        }
+        q.disk(cx, cz, fy - 1, 17, Material.SMOOTH_SANDSTONE);
+        q.ring(cx, cz, fy - 1, 8, 9.2, Material.CHISELED_SANDSTONE);
+        q.ring(cx, cz, fy - 1, 14, 15.2, Material.CUT_SANDSTONE);
+        q.ring(cx, cz, fy - 1, 2.5, 4, Material.CUT_RED_SANDSTONE);
+        q.disk(cx, cz, fy - 1, 2, Material.RED_SANDSTONE);
+        for (int k = -1; k < 6; k++) {
+            double a = k < 0 ? 0 : Math.toRadians(45 + 60 * k);
+            double r = k < 0 ? 0 : 11;
+            double hole = k < 0 ? 2.6 : 1.9;
+            int hx = (int) Math.round(cx + Math.cos(a) * r);
+            int hz = (int) Math.round(cz + Math.sin(a) * r);
+            for (int dx = -3; dx <= 3; dx++) {
+                for (int dz = -3; dz <= 3; dz++) {
+                    if (Math.hypot(dx, dz) > hole) {
+                        continue;
+                    }
+                    int top = Math.max(fy + 17, Math.min(fy + 44, groundAt.applyAsInt(hx + dx, hz + dz) + 2));
+                    for (int y = fy + 16; y <= top; y++) {
+                        q.set(hx + dx, y, hz + dz, Material.AIR);
+                    }
+                }
+            }
+        }
+        // pilares de cobertura (quebraveis)
+        for (int[] c : pillarCenters(cx, cz, fx, fz)) {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    for (int dy = 0; dy <= 15; dy++) {
+                        Material m = dy == 0 || dy == 15 ? Material.SMOOTH_SANDSTONE
+                                : dy % 5 == 4 ? Material.CHISELED_SANDSTONE : Material.CUT_SANDSTONE;
+                        q.set(c[0] + dx, fy + dy, c[1] + dz, m);
+                    }
+                }
+            }
+        }
+        // dunas baixas nas bordas
+        for (int lx = -17; lx <= 17; lx++) {
+            for (int lz = -17; lz <= 17; lz++) {
+                double d = Math.hypot(lx, lz);
+                if (d >= 14.4 && d <= 16.8 && random.nextInt(100) < 52 && !(Math.abs(lx) <= 3 && lz > 12)) {
+                    f.put(lx, fy, lz, Material.SAND);
+                    if (random.nextInt(100) < 24) {
+                        f.put(lx, fy + 1, lz, Material.SAND);
+                    }
+                }
+            }
+        }
+        org.bukkit.block.data.BlockData lantern = Material.LANTERN.createBlockData("[hanging=true]");
+        for (int k = 0; k < 8; k++) {
+            double a = Math.PI / 4 * k + Math.PI / 8;
+            q.set((int) Math.round(cx + Math.cos(a) * 14), fy + 15, (int) Math.round(cz + Math.sin(a) * 14), lantern);
+        }
+
+        // 3) porta da arena, corredor e portao
+        f.box(-2, 16, 2, 23, fy, fy + 5, Material.AIR);
+        f.box(-3, 16, 3, 23, fy + 6, fy + 6, Material.CHISELED_SANDSTONE);
+        f.box(-3, 16, -3, 20, fy, fy + 5, Material.CHISELED_SANDSTONE);
+        f.box(3, 16, 3, 20, fy, fy + 5, Material.CHISELED_SANDSTONE);
+        f.put(-3, fy + 3, 21, Material.LANTERN);
+        f.put(3, fy + 3, 21, Material.LANTERN);
+        List<int[]> seals = new ArrayList<>();
+        for (int lx = -2; lx <= 2; lx++) {
+            for (int y = fy; y <= fy + 5; y++) {
+                seals.add(f.world(lx, y, 18));
+                gateOut.add(f.world(lx, y, 22));
+            }
+        }
+
+        // 4) Salao dos Guardioes
+        f.box(-7, 24, 7, 45, fy, fy + 9, Material.AIR);
+        f.box(-7, 24, 7, 45, fy - 1, fy - 1, Material.CUT_SANDSTONE);
+        f.box(-1, 24, 1, 45, fy - 1, fy - 1, Material.ORANGE_TERRACOTTA);
+        for (int lz = 26; lz <= 44; lz += 6) {
+            f.put(-3, fy + 9, lz, Material.LANTERN.createBlockData("[hanging=true]"));
+            f.put(3, fy + 9, lz, Material.LANTERN.createBlockData("[hanging=true]"));
+        }
+        f.box(-7, 26, -5, 32, fy, fy + 4, Material.CUT_SANDSTONE);
+        f.box(5, 34, 7, 40, fy, fy + 4, Material.CUT_SANDSTONE);
+        f.box(-7, 26, -5, 32, fy + 4, fy + 4, Material.CHISELED_SANDSTONE);
+        f.box(5, 34, 7, 40, fy + 4, fy + 4, Material.CHISELED_SANDSTONE);
+        f.box(-2, 44, 2, 50, fy, fy + 5, Material.AIR);
+
+        // 5) Atrio dos Ventos Cortantes
+        f.box(-3, 48, 3, 71, fy, fy + 6, Material.AIR);
+        f.box(-3, 48, 3, 71, fy - 1, fy - 1, Material.CUT_SANDSTONE);
+        f.box(-3, 52, 0, 54, fy - 1, fy - 1, Material.SOUL_SAND);
+        f.box(1, 59, 3, 61, fy - 1, fy - 1, Material.SOUL_SAND);
+        f.box(-3, 67, 0, 69, fy - 1, fy - 1, Material.SOUL_SAND);
+        org.bukkit.block.data.BlockData spike = org.bukkit.Bukkit.createBlockData(
+                "minecraft:pointed_dripstone[thickness=tip,vertical_direction=up]");
+        for (int[] pit : new int[][] {{-3, 1, 56, 57}, {-1, 3, 63, 64}}) {
+            f.box(pit[0], pit[2], pit[1], pit[3], fy - 4, fy - 1, Material.AIR);
+            f.box(pit[0], pit[2], pit[1], pit[3], fy - 4, fy - 4, Material.DRIPSTONE_BLOCK);
+            for (int lx = pit[0]; lx <= pit[1]; lx++) {
+                for (int lz = pit[2]; lz <= pit[3]; lz++) {
+                    if ((lx + lz) % 2 == 0) {
+                        q.set(f.x(lx, lz), fy - 3, f.z(lx, lz), spike);
+                    }
+                }
+            }
+        }
+        for (int lz : new int[] {51, 56, 62, 68}) {
+            q.set(f.x(4, lz), fy + 1, f.z(4, lz), dispenserFacing(f, -1));
+            q.set(f.x(-4, lz), fy + 1, f.z(-4, lz), dispenserFacing(f, 1));
+        }
+        for (int lz = 50; lz <= 68; lz += 6) {
+            f.put(0, fy + 6, lz, Material.LANTERN.createBlockData("[hanging=true]"));
+        }
+
+        // 6) escadaria ate a superficie, com muralhas laterais
+        for (int i = 0; i <= stairs; i++) {
+            int floor = fy - 1 + i;
+            for (int lz = 72 + 2 * i; lz <= 73 + 2 * i; lz++) {
+                for (int lx = -5; lx <= 5; lx++) {
+                    if (Math.abs(lx) <= 3) {
+                        for (int y = fy - 4; y <= floor; y++) {
+                            f.put(lx, y, lz, y == floor ? Material.CUT_SANDSTONE : Material.SANDSTONE);
+                        }
+                        for (int y = floor + 1; y <= fy + stairs + 12; y++) {
+                            f.put(lx, y, lz, Material.AIR);
+                        }
+                    } else {
+                        for (int y = fy - 4; y <= fy + stairs + 1; y++) {
+                            f.put(lx, y, lz, (y + lz) % 7 == 0 ? Material.CHISELED_SANDSTONE : Material.CUT_SANDSTONE);
+                        }
+                    }
+                }
+            }
+        }
+        // entrada monumental: dois pilares gemeos, lintel e lanternas
+        int top = fy + stairs;
+        for (int side : new int[] {-1, 1}) {
+            for (int lx = 5; lx <= 7; lx++) {
+                for (int lz = 112; lz <= 114; lz++) {
+                    for (int y = fy + stairs - 2; y <= top + 10; y++) {
+                        f.put(side * lx, y, lz, y % 5 == 4 ? Material.CHISELED_SANDSTONE : Material.CUT_SANDSTONE);
+                    }
+                }
+            }
+        }
+        f.box(-7, 112, 7, 114, top + 9, top + 11, Material.CHISELED_SANDSTONE);
+        f.box(-4, 112, 4, 114, top + 8, top + 8, Material.CUT_SANDSTONE);
+        f.put(-4, top + 7, 113, Material.LANTERN.createBlockData("[hanging=true]"));
+        f.put(4, top + 7, 113, Material.LANTERN.createBlockData("[hanging=true]"));
+        f.box(-4, 115, 4, 119, top, top, Material.CUT_SANDSTONE);
+        for (int i = 0; i < 40; i++) {
+            int lx = random.nextInt(21) - 10;
+            int lz = 108 + random.nextInt(14);
+            if (Math.abs(lx) <= 3 && lz < 118) {
+                continue;
+            }
+            int ground = groundAt.applyAsInt(f.x(lx, lz), f.z(lx, lz));
+            for (int h = 1; h <= 1 + random.nextInt(3); h++) {
+                f.put(lx, ground + h, lz, Material.SAND);
             }
         }
         return seals;

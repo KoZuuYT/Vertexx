@@ -118,6 +118,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(backpacks, this);
         plugins.registerEvents(endGear, this);
         plugins.registerEvents(scarabGear, this);
+        plugins.registerEvents(new dev.vertexx.boss.ParchedGreatsword(this), this);
         plugins.registerEvents(endWorld, this);
         plugins.registerEvents(portalLock, this);
         plugins.registerEvents(customBlocks, this);
