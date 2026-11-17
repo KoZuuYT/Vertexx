@@ -33,6 +33,8 @@ public final class Arena {
     /** Arena provisória criada por comando de teste: não é salva. */
     final boolean temp;
     boolean sealed;
+    /** Altar de ativação (blocos), quando a sala tem um. */
+    int[] altar;
 
     Arena(String id, BossKind kind, String world, int cx, int fy, int cz, int fx, int fz, int half, int height,
           boolean temp) {
@@ -50,8 +52,8 @@ public final class Arena {
     }
 
     static Arena create(BossKind kind, World world, int cx, int fy, int cz, int fx, int fz, boolean temp) {
-        int half = kind == BossKind.WILDFIRE ? 13 : 9;
-        int height = kind == BossKind.WILDFIRE ? 20 : 16;
+        int half = kind == BossKind.VOID_SCARAB ? 14 : kind == BossKind.WILDFIRE ? 13 : 9;
+        int height = kind == BossKind.VOID_SCARAB ? 26 : kind == BossKind.WILDFIRE ? 20 : 16;
         return new Arena(UUID.randomUUID().toString().substring(0, 8), kind, world.getName(), cx, fy, cz, fx, fz,
                 half, height, temp);
     }
@@ -77,7 +79,7 @@ public final class Arena {
         double dx = at.getX() - (cx + 0.5);
         double dz = at.getZ() - (cz + 0.5);
         double limit = half + pad;
-        boolean flat = kind == BossKind.WILDFIRE ? dx * dx + dz * dz <= limit * limit
+        boolean flat = kind.round() ? dx * dx + dz * dz <= limit * limit
                 : Math.abs(dx) <= limit && Math.abs(dz) <= limit;
         return flat && at.getY() >= fy - 2 - pad && at.getY() <= fy + height + pad;
     }
@@ -111,6 +113,9 @@ public final class Arena {
             list.add(pos[0] + "," + pos[1] + "," + pos[2]);
         }
         yaml.set(path + ".seals", list);
+        if (altar != null) {
+            yaml.set(path + ".altar", altar[0] + "," + altar[1] + "," + altar[2]);
+        }
     }
 
     static Arena load(String id, ConfigurationSection section) {
@@ -126,6 +131,15 @@ public final class Arena {
         arena.sealed = section.getBoolean("sealed");
         Material material = Material.matchMaterial(section.getString("seal-material", "BLUE_ICE"));
         arena.sealMaterial = material == null ? Material.BLUE_ICE : material;
+        String altarText = section.getString("altar");
+        if (altarText != null && altarText.split(",").length == 3) {
+            String[] a = altarText.split(",");
+            try {
+                arena.altar = new int[] {Integer.parseInt(a[0]), Integer.parseInt(a[1]), Integer.parseInt(a[2])};
+            } catch (NumberFormatException ignored) {
+                arena.altar = null;
+            }
+        }
         for (String text : section.getStringList("seals")) {
             String[] parts = text.split(",");
             if (parts.length == 3) {

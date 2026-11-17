@@ -247,7 +247,7 @@ abstract class BossFight {
         }
     }
 
-    private void checkAwaken() {
+    protected void checkAwaken() {
         for (Player player : insidePlayers()) {
             if (arena.contains(player.getLocation(), -3)) {
                 awaken();
@@ -466,8 +466,8 @@ abstract class BossFight {
         double dx = pos.getX() - (arena.cx + 0.5);
         double dz = pos.getZ() - (arena.cz + 0.5);
         double d = Math.hypot(dx, dz);
-        if (kind == BossKind.WILDFIRE ? d > limit : Math.abs(dx) > limit || Math.abs(dz) > limit) {
-            if (kind == BossKind.WILDFIRE) {
+        if (kind.round() ? d > limit : Math.abs(dx) > limit || Math.abs(dz) > limit) {
+            if (kind.round()) {
                 pos.setX(arena.cx + 0.5 + dx / d * limit);
                 pos.setZ(arena.cz + 0.5 + dz / d * limit);
             } else {

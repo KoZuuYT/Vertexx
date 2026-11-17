@@ -53,6 +53,14 @@ public enum EndItem {
     ICEOLOGER_CORE("iceologer_core", "Núcleo de Iceologer", "<aqua>", Material.PAPER, 1031,
             "<gray>O núcleo congelado do senhor", "<gray>do castelo de gelo.",
             "<dark_gray>Encaixa no Portal do End trancado."),
+    CRYSTAL_HEART("crystal_heart", "Coração de Cristal do Vazio", "<light_purple>", Material.PAPER, 1032,
+            "<gray>Âncora de retorno dimensional.", "<dark_gray>Se você cair no Vazio com ele no inventário,",
+            "<dark_gray>volta à última superfície segura (4 cargas).",
+            "<dark_gray>Recarregue com Pérolas do Fim na bigorna."),
+    CHITIN_PLATE("chitin_plate", "Placa de Quitina Reforçada", "<dark_purple>", Material.PAPER, 1033,
+            "<gray>Carapaça do Void-Scarab.", "<dark_gray>Mesa de ferraria: equipamento pós-Netherite."),
+    SCARAB_MANDIBLE("scarab_mandible", "Mandíbula de Escaravelho", "<white>", Material.PAPER, 1034,
+            "<gray>Mandíbula abissal do Void-Scarab.", "<dark_gray>Forja a Segadora de Mandíbula."),
     WARP_STONE("warp_stone", "Pedra de Warp", "<light_purple>", Material.PAPER, 1040,
             "<gray>Conecta-se a todos os Waystones", "<gray>que você já conheceu.",
             "<dark_gray>Sem custo de pérolas, mas com poucas cargas."),
@@ -145,6 +153,10 @@ public enum EndItem {
             item.setData(DataComponentTypes.FOOD, io.papermc.paper.datacomponent.item.FoodProperties.food()
                     .nutrition(5).saturation(6f).canAlwaysEat(false).build());
             item.setData(DataComponentTypes.CONSUMABLE, io.papermc.paper.datacomponent.item.Consumable.consumable().build());
+        }
+        if (this == CRYSTAL_HEART) {
+            item.setData(DataComponentTypes.MAX_STACK_SIZE, 1);
+            item.setData(DataComponentTypes.ENCHANTMENT_GLINT_OVERRIDE, true);
         }
         if (tier() > 0) {
             item.setData(DataComponentTypes.MAX_STACK_SIZE, 1);

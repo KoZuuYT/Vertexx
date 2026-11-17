@@ -181,6 +181,15 @@ bosses:
     castle-chance: 0.6
     min-spawn-distance: 500
     min-spacing: 900
+  void-scarab:
+    # Matriarca de Quitina: chefe do Pinaculo de Quitina, nos Abismos de Enderita do End.
+    health: 600
+    # Chance (1 em N) por chunk elegivel (a mais de min-radius blocos do centro) de gerar um Pinaculo.
+    chunk-odds: 650
+    min-radius: 2500
+    min-spacing: 400
+    # Minutos ate o altar resetar apos a vitoria.
+    respawn-minutes: 30
 
 fauna:
   # Criaturas rejeitadas da votacao de mobs: Rascal, Golem de Tufo, Moobloom, Glare, Caranguejo, Pinguim,

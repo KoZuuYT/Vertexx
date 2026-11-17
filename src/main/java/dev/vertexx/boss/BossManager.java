@@ -73,6 +73,7 @@ public final class BossManager implements Listener {
     private final NamespacedKey bossKey;
     private final NamespacedKey partKey;
     private final NamespacedKey projectileKey;
+    private final NamespacedKey hitKey;
     private final Map<String, Arena> arenas = new HashMap<>();
     private final Map<String, BossFight> fights = new HashMap<>();
     private final Set<String> decided = new HashSet<>();
@@ -90,6 +91,7 @@ public final class BossManager implements Listener {
         this.bossKey = new NamespacedKey(plugin, "boss_body");
         this.partKey = new NamespacedKey(plugin, "boss_part");
         this.projectileKey = new NamespacedKey(plugin, "boss_projectile");
+        this.hitKey = new NamespacedKey(plugin, "boss_hit");
     }
 
     PluginMain plugin() {
@@ -106,6 +108,10 @@ public final class BossManager implements Listener {
 
     NamespacedKey projectileKey() {
         return projectileKey;
+    }
+
+    NamespacedKey hitKey() {
+        return hitKey;
     }
 
     double damageMultiplier() {
@@ -250,14 +256,20 @@ public final class BossManager implements Listener {
     }
 
     private BossFight spawnFight(Arena arena) {
-        BossFight fight = arena.kind == BossKind.WILDFIRE ? new Wildfire(this, arena) : new Iceologer(this, arena);
+        BossFight fight = switch (arena.kind) {
+            case WILDFIRE -> new Wildfire(this, arena);
+            case VOID_SCARAB -> new VoidScarab(this, arena);
+            default -> new Iceologer(this, arena);
+        };
         fights.put(arena.id, fight);
+        setAltar(arena, false);
         fight.spawn();
         return fight;
     }
 
     void endFight(BossFight fight, boolean defeated) {
         fights.remove(fight.arena.id);
+        setAltar(fight.arena, false);
         fight.remove();
         if (fight.arena.sealed) {
             seal(fight.arena, false);
@@ -296,8 +308,8 @@ public final class BossManager implements Listener {
             Location at = new Location(world, pos[0] + 0.5, pos[1] + 0.5, pos[2] + 0.5);
             world.getBlockAt(pos[0], pos[1], pos[2]).setType(on ? arena.sealMaterial : Material.AIR, false);
             if (on) {
-                world.spawnParticle(arena.kind == BossKind.WILDFIRE ? Particle.FLAME : Particle.SNOWFLAKE, at, 3, 0.3, 0.3,
-                        0.3, 0.02);
+                world.spawnParticle(arena.kind == BossKind.WILDFIRE ? Particle.FLAME : arena.kind == BossKind.VOID_SCARAB
+                        ? Particle.PORTAL : Particle.SNOWFLAKE, at, 3, 0.3, 0.3, 0.3, 0.02);
             } else if (ThreadLocalRandom.current().nextInt(3) == 0) {
                 world.spawnParticle(Particle.BLOCK, at, 6, 0.3, 0.3, 0.3, 0.1, arena.sealMaterial.createBlockData());
             }
@@ -317,7 +329,8 @@ public final class BossManager implements Listener {
         Arena arena = fight.arena;
         Location at = fight.pos.clone().add(0, 1.5, 0);
         World world = at.getWorld();
-        long minutes = plugin.getConfig().getLong("bosses.respawn-minutes", 90);
+        long minutes = arena.kind == BossKind.VOID_SCARAB ? plugin.getConfig().getLong("bosses.void-scarab.respawn-minutes", 30)
+                : plugin.getConfig().getLong("bosses.respawn-minutes", 90);
         if (!arena.temp) {
             arena.readyAt = minutes <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + minutes * 60_000L;
             arena.kills++;
@@ -335,7 +348,15 @@ public final class BossManager implements Listener {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         List<ItemStack> loot = new ArrayList<>();
         loot.add(plugin.mobs().createEssence(6 + random.nextInt(4)));
-        if (arena.kind == BossKind.WILDFIRE) {
+        if (arena.kind == BossKind.VOID_SCARAB) {
+            loot.add(dev.vertexx.end.EndItem.CRYSTAL_HEART.create(plugin));
+            ItemStack plates = dev.vertexx.end.EndItem.CHITIN_PLATE.create(plugin);
+            plates.setAmount(4 + random.nextInt(3));
+            loot.add(plates);
+            loot.add(dev.vertexx.end.EndItem.SCARAB_MANDIBLE.create(plugin));
+            loot.add(new ItemStack(Material.AMETHYST_SHARD, 16 + random.nextInt(17)));
+            loot.add(new ItemStack(Material.ENDER_PEARL, 4 + random.nextInt(5)));
+        } else if (arena.kind == BossKind.WILDFIRE) {
             loot.add(new ItemStack(Material.NETHERITE_SCRAP, 3 + random.nextInt(3)));
             loot.add(new ItemStack(Material.GOLD_INGOT, 16 + random.nextInt(17)));
             loot.add(new ItemStack(Material.BLAZE_ROD, 8 + random.nextInt(7)));
@@ -352,8 +373,22 @@ public final class BossManager implements Listener {
             }
             loot.add(dev.vertexx.end.EndItem.ICEOLOGER_CORE.create(plugin));
         }
+        Location dropAt = arena.kind == BossKind.VOID_SCARAB && arena.altar != null
+                ? new Location(world, arena.altar[0] + 0.5, arena.altar[1] + 2, arena.altar[2] + 0.5) : at;
         for (ItemStack item : loot) {
-            world.dropItemNaturally(at, item);
+            org.bukkit.entity.Item dropped = world.dropItemNaturally(dropAt, item);
+            if (arena.kind == BossKind.VOID_SCARAB) {
+                // protegido contra o Vazio e contra o despawn por 10 minutos
+                dropped.setInvulnerable(true);
+                dropped.setUnlimitedLifetime(true);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (dropped.isValid()) {
+                        dropped.setUnlimitedLifetime(false);
+                        dropped.setInvulnerable(false);
+                        dropped.setTicksLived(1);
+                    }
+                }, 20L * 60 * 10);
+            }
         }
         for (int i = 0; i < 15; i++) {
             world.spawn(at, ExperienceOrb.class, orb -> orb.setExperience(90));
@@ -393,6 +428,13 @@ public final class BossManager implements Listener {
             Double damage = projectile.getPersistentDataContainer().get(projectileKey, PersistentDataType.DOUBLE);
             if (damage != null) {
                 event.setDamage(damage * damageMultiplier());
+                if (projectile instanceof org.bukkit.entity.ShulkerBullet && event.getEntity() instanceof Player victim) {
+                    // espinhos de coro: Levitação I por 2,5 s (no lugar dos 10 s do vanilla)
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        victim.removePotionEffect(org.bukkit.potion.PotionEffectType.LEVITATION);
+                        victim.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.LEVITATION, 50, 0));
+                    });
+                }
             }
             return;
         }
@@ -422,7 +464,9 @@ public final class BossManager implements Listener {
             fight.model.hurtFlash(10);
         }
         Location at = fight.pos.clone().add(0, 1.8, 0);
-        if (fight.kind == BossKind.WILDFIRE) {
+        if (fight.kind == BossKind.VOID_SCARAB) {
+            fight.world.spawnParticle(Particle.PORTAL, at, 10, 0.8, 0.8, 0.8, 0.3);
+        } else if (fight.kind == BossKind.WILDFIRE) {
             fight.world.spawnParticle(Particle.FLAME, at, 8, 0.4, 0.5, 0.4, 0.05);
             Fx.worldSound(at, Sound.ENTITY_BLAZE_HURT, 1f, 0.6f);
         } else {
@@ -434,6 +478,122 @@ public final class BossManager implements Listener {
 
     private static boolean isSurvival(Player player) {
         return player.getGameMode() == GameMode.SURVIVAL || player.getGameMode() == GameMode.ADVENTURE;
+    }
+
+    /** Peças (Interaction) do Void-Scarab: dá o golpe ao corpo-base indicando qual peça foi atingida. */
+    private boolean routeHit(Entity entity, Entity source, double amount) {
+        String tag = entity.getPersistentDataContainer().get(hitKey, PersistentDataType.STRING);
+        if (tag == null) {
+            return false;
+        }
+        String[] parts = tag.split(":");
+        BossFight fight = fights.get(parts[0]);
+        if (fight instanceof VoidScarab scarab && fight.vulnerable() && parts.length == 2) {
+            scarab.hitPart(VoidScarab.Part.valueOf(parts[1]));
+            fight.hitbox.damage(amount, source);
+        }
+        return true;
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onAttackPart(io.papermc.paper.event.player.PrePlayerAttackEntityEvent event) {
+        Entity target = event.getAttacked();
+        if (!target.getPersistentDataContainer().has(hitKey, PersistentDataType.STRING)) {
+            return;
+        }
+        event.setCancelled(true);
+        Player player = event.getPlayer();
+        if (!isSurvival(player)) {
+            return;
+        }
+        var attr = player.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+        double base = attr == null ? 1 : attr.getValue();
+        float charge = player.getAttackCooldown();
+        routeHit(target, player, base * (0.2 + 0.8 * charge * charge));
+        player.swingMainHand();
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onProjectilePart(ProjectileHitEvent event) {
+        Entity hit = event.getHitEntity();
+        if (hit == null || !hit.getPersistentDataContainer().has(hitKey, PersistentDataType.STRING)) {
+            return;
+        }
+        event.setCancelled(true);
+        Projectile projectile = event.getEntity();
+        if (!(projectile.getShooter() instanceof Player shooter) || !isSurvival(shooter)) {
+            projectile.remove();
+            return;
+        }
+        double amount = projectile instanceof org.bukkit.entity.AbstractArrow arrow
+                ? arrow.getDamage() * Math.min(3.0, arrow.getVelocity().length()) : 4;
+        routeHit(hit, shooter, amount);
+        projectile.remove();
+    }
+
+    // ── Altar de Cristal do Vazio ──────────────────────────────
+
+    private void setAltar(Arena arena, boolean eye) {
+        if (arena.kind != BossKind.VOID_SCARAB || arena.altar == null) {
+            return;
+        }
+        World world = arena.bukkitWorld();
+        if (world == null || !world.isChunkLoaded(arena.altar[0] >> 4, arena.altar[2] >> 4)) {
+            return;
+        }
+        org.bukkit.block.Block block = world.getBlockAt(arena.altar[0], arena.altar[1], arena.altar[2]);
+        if (block.getType() == Material.END_PORTAL_FRAME
+                && block.getBlockData() instanceof org.bukkit.block.data.type.EndPortalFrame frame) {
+            frame.setEye(eye);
+            block.setBlockData(frame, false);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onAltar(org.bukkit.event.player.PlayerInteractEvent event) {
+        if (event.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK || event.getClickedBlock() == null
+                || event.getClickedBlock().getType() != Material.END_PORTAL_FRAME || event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) {
+            return;
+        }
+        org.bukkit.block.Block clicked = event.getClickedBlock();
+        for (BossFight fight : fights.values()) {
+            Arena arena = fight.arena;
+            if (arena.kind != BossKind.VOID_SCARAB || arena.altar == null || arena.altar[0] != clicked.getX()
+                    || arena.altar[1] != clicked.getY() || arena.altar[2] != clicked.getZ()) {
+                continue;
+            }
+            event.setCancelled(true);
+            Player player = event.getPlayer();
+            if (!fight.dormant()) {
+                return;
+            }
+            var inventory = player.getInventory();
+            int fragments = 0;
+            for (ItemStack item : inventory.getContents()) {
+                if (dev.vertexx.end.EndItem.ENDERITE_FRAGMENT.matches(item)) {
+                    fragments += item.getAmount();
+                }
+            }
+            if (!inventory.contains(Material.ENDER_EYE) || fragments < 2) {
+                Msg.actionBar(player, "<dark_purple>O altar pede <white>1 Olho do Fim <dark_purple>e <white>2 Fragmentos de Enderita<dark_purple>.");
+                Fx.deny(player);
+                return;
+            }
+            inventory.removeItem(new ItemStack(Material.ENDER_EYE, 1));
+            int left = 2;
+            for (ItemStack item : inventory.getContents()) {
+                if (left > 0 && dev.vertexx.end.EndItem.ENDERITE_FRAGMENT.matches(item)) {
+                    int take = Math.min(left, item.getAmount());
+                    item.setAmount(item.getAmount() - take);
+                    left -= take;
+                }
+            }
+            setAltar(arena, true);
+            Fx.worldSound(clicked.getLocation().add(0.5, 1, 0.5), Sound.BLOCK_END_PORTAL_FRAME_FILL, 2f, 0.6f);
+            clicked.getWorld().spawnParticle(Particle.REVERSE_PORTAL, clicked.getLocation().add(0.5, 1.2, 0.5), 80, 0.5, 0.8, 0.5, 0.3);
+            fight.awaken();
+            return;
+        }
     }
 
     /** Botão do meio no boss: não entrega o ovo do golem de ferro da hitbox. */
@@ -511,6 +671,8 @@ public final class BossManager implements Listener {
                 scanFortress(player);
             } else if (world.getEnvironment() == World.Environment.NORMAL) {
                 scanCastle(player);
+            } else if (world.getEnvironment() == World.Environment.THE_END) {
+                scanSpire(player);
             }
             if (building) {
                 return;
@@ -756,6 +918,102 @@ public final class BossManager implements Listener {
         });
     }
 
+    // ── Pináculo de Quitina (Abismos de Enderita) ──────────────
+
+    private void scanSpire(Player player) {
+        World world = player.getWorld();
+        int pcx = player.getLocation().getBlockX() >> 4;
+        int pcz = player.getLocation().getBlockZ() >> 4;
+        double chance = 1.0 / Math.max(1, plugin.getConfig().getInt("bosses.void-scarab.chunk-odds", 650));
+        double minRadius = plugin.getConfig().getDouble("bosses.void-scarab.min-radius", 2500);
+        for (int dx = -5; dx <= 5; dx++) {
+            for (int dz = -5; dz <= 5; dz++) {
+                int chx = pcx + dx;
+                int chz = pcz + dz;
+                int x = chx * 16 + 8;
+                int z = chz * 16 + 8;
+                if (Math.hypot(x, z) < minRadius) {
+                    continue;
+                }
+                String key = "spire:" + world.getName() + ":" + chx + ":" + chz;
+                if (decided.contains(key)) {
+                    continue;
+                }
+                Random random = new Random(world.getSeed() * 31 + chx * 341873128712L + chz * 132897987541L);
+                if (random.nextDouble() >= chance) {
+                    continue;
+                }
+                if (!world.isChunkLoaded(chx, chz) || !world.isChunkLoaded(chx - 1, chz) || !world.isChunkLoaded(chx + 1, chz)
+                        || !world.isChunkLoaded(chx, chz - 1) || !world.isChunkLoaded(chx, chz + 1)) {
+                    continue;
+                }
+                decided.add(key);
+                save();
+                if (dev.vertexx.end.EndWorld.zoneAt(world, x, z) != dev.vertexx.end.EndWorld.Zone.WASTES
+                        || !farFromOthers(BossKind.VOID_SCARAB, world, x, z, plugin.getConfig().getDouble("bosses.void-scarab.min-spacing", 400))) {
+                    continue;
+                }
+                if (planSpire(world, x, z)) {
+                    return;
+                }
+            }
+        }
+    }
+
+    /** Área sólida mínima de 32x32 de pedra do End, com relevo quase plano; escolhe a entrada para o lado mais firme. */
+    private boolean planSpire(World world, int x, int z) {
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+        List<Integer> heights = new ArrayList<>();
+        for (int dx = -16; dx <= 16; dx += 8) {
+            for (int dz = -16; dz <= 16; dz += 8) {
+                int y = world.getHighestBlockYAt(x + dx, z + dz, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+                Material type = world.getBlockAt(x + dx, y, z + dz).getType();
+                if (type.isAir() || !type.isSolid() || y < 10) {
+                    return false;
+                }
+                min = Math.min(min, y);
+                max = Math.max(max, y);
+                heights.add(y);
+            }
+        }
+        if (max - min > 8) {
+            return false;
+        }
+        heights.sort(Integer::compare);
+        int fy = heights.get(heights.size() / 2) + 1;
+        int[][] sides = {{0, 1}, {1, 0}, {0, -1}, {-1, 0}};
+        int[] forward = sides[0];
+        int best = Integer.MIN_VALUE;
+        for (int[] side : sides) {
+            int y = world.getHighestBlockYAt(x + side[0] * 26, z + side[1] * 26, HeightMap.MOTION_BLOCKING_NO_LEAVES);
+            int score = world.getBlockAt(x + side[0] * 26, y, z + side[1] * 26).getType().isSolid() ? y : -1000;
+            if (score > best) {
+                best = score;
+                forward = side;
+            }
+        }
+        plugin.getLogger().info("Construindo o Pináculo de Quitina em " + world.getName() + " " + x + " " + fy + " " + z);
+        buildSpire(world, x, fy, z, forward[0], forward[1]);
+        return true;
+    }
+
+    private void buildSpire(World world, int cx, int fy, int cz, int fx, int fz) {
+        building = true;
+        BlockQueue queue = new BlockQueue(world);
+        List<int[]> seals = Structures.chitinSpire(queue, cx, cz, fy, fx, fz);
+        queue.run(plugin, 6000, () -> {
+            Arena arena = Arena.create(BossKind.VOID_SCARAB, world, cx, fy, cz, fx, fz, false);
+            arena.seals.addAll(seals);
+            arena.sealMaterial = Material.AMETHYST_BLOCK;
+            arena.altar = new int[] {cx, fy + 1, cz};
+            arenas.put(arena.id, arena);
+            building = false;
+            save();
+            plugin.getLogger().info("Pináculo de Quitina pronto em " + cx + " " + fy + " " + cz + ".");
+        });
+    }
+
     // ── Administração ──────────────────────────────────────────
 
     public List<String> describeArenas() {
@@ -844,7 +1102,9 @@ public final class BossManager implements Listener {
         if (building) {
             return "Já há uma construção em andamento.";
         }
-        if (kind == BossKind.WILDFIRE) {
+        if (kind == BossKind.VOID_SCARAB) {
+            buildSpire(world, x + fx * 24, y, z + fz * 24, -fx, -fz);
+        } else if (kind == BossKind.WILDFIRE) {
             buildWildfire(world, x + fx * 30, y, z + fz * 30, -fx, -fz, 33, true);
         } else {
             buildCastle(world, x + fx * 28, y, z + fz * 28, -fx, -fz, y - 4, 0);
@@ -868,7 +1128,7 @@ public final class BossManager implements Listener {
             case "spawn" -> {
                 BossKind kind = args.length > 2 ? BossKind.parse(args[2]) : null;
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer> [mundo x y z]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss spawn <wildfire|iceologer|void_scarab> [mundo x y z]");
                     return;
                 }
                 Location at = null;
@@ -912,7 +1172,7 @@ public final class BossManager implements Listener {
                 } else if (sender instanceof Player player && kind != null) {
                     error = buildHere(player, kind);
                 } else {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer> [mundo x y z [n|s|e|w]]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx boss build <wildfire|iceologer|void_scarab> [mundo x y z [n|s|e|w]]");
                     return;
                 }
                 Msg.send(sender, error == null ? "<green>Construindo " + kind.place() + " à sua frente…" : "<red>" + error);
@@ -995,12 +1255,13 @@ public final class BossManager implements Listener {
         }
         String sub = args[1].toLowerCase(Locale.ROOT);
         if (args.length == 3 && List.of("spawn", "build", "attack", "tp").contains(sub)) {
-            return Tab.of(args[2], "wildfire", "iceologer");
+            return Tab.of(args[2], "wildfire", "iceologer", "void_scarab");
         }
         if (args.length == 4 && sub.equals("attack")) {
             BossKind kind = BossKind.parse(args[2]);
             return kind == null ? List.of() : Tab.of(args[3], kind == BossKind.WILDFIRE
-                    ? List.of("shockwave", "rush", "lunge") : List.of("spikes", "iceberg"));
+                    ? List.of("shockwave", "rush", "lunge") : kind == BossKind.VOID_SCARAB
+                    ? List.of("clamp", "volley", "stinger", "swarm") : List.of("spikes", "iceberg"));
         }
         if (args.length == 4 && (sub.equals("spawn") || sub.equals("build"))) {
             return Tab.of(args[3], Bukkit.getWorlds().stream().map(World::getName).toList());

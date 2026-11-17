@@ -414,4 +414,209 @@ final class Structures {
         }
         return seals;
     }
+
+    // ── Pináculo de Quitina (Void-Scarab, Abismos de Enderita) ──
+
+    /** Raio interno da câmara em cada altura (relativa ao piso): cilindro de 14 e cúpula elíptica de 10 acima de 14. */
+    private static double spireInner(int dy) {
+        if (dy <= 14) {
+            return 14;
+        }
+        double t = (dy - 14) / 10.0;
+        return t >= 1 ? 0 : 14 * Math.sqrt(1 - t * t);
+    }
+
+    /** Raio externo da torre: tambor de 16,5 até 14 de altura e depois um cone até a ponta (42 blocos). */
+    private static double spireOuter(int dy) {
+        if (dy <= 14) {
+            return 16.5;
+        }
+        return Math.max(2, 16.5 - 14.5 * ((dy - 14) / 28.0));
+    }
+
+    /**
+     * Torre-colmeia cônica de 42 blocos com a Câmara da Matriarca (28 de diâmetro), ilha de base, quatro pontes e o
+     * Altar de Cristal do Vazio no centro. A entrada fica em +lz.
+     *
+     * @return posições do selo da entrada
+     */
+    static List<int[]> chitinSpire(BlockQueue q, int cx, int cz, int fy, int fx, int fz) {
+        Frame f = new Frame(q, cx, cz, fx, fz);
+        Random random = new Random(cx * 31L + cz * 17L);
+        Material[] shell = {Material.DEEPSLATE_BRICKS, Material.DEEPSLATE_BRICKS, Material.POLISHED_DEEPSLATE,
+                Material.CRACKED_DEEPSLATE_BRICKS, Material.CRYING_OBSIDIAN, Material.OBSIDIAN};
+
+        // ilha de base afunilada, para a torre nunca ficar no ar
+        for (int k = 1; k <= 14; k++) {
+            double radius = Math.max(2, 19 - k * 1.25);
+            q.disk(cx, cz, fy - 1 - k, radius, random.nextInt(5) == 0 ? Material.BLACKSTONE : Material.END_STONE);
+        }
+        q.cylinder(cx, cz, fy - 3, fy - 2, 18, Material.END_STONE_BRICKS);
+        // volume livre acima do piso
+        for (int dy = 0; dy <= 44; dy++) {
+            q.disk(cx, cz, fy + dy, 17.5, Material.AIR);
+        }
+        // casca: tambor e cone sólidos, depois a câmara oca por dentro
+        for (int dy = 0; dy <= 42; dy++) {
+            double outer = spireOuter(dy);
+            for (int lx = -18; lx <= 18; lx++) {
+                for (int lz = -18; lz <= 18; lz++) {
+                    if (Math.hypot(lx, lz) <= outer) {
+                        f.put(lx, fy + dy, lz, shell[random.nextInt(shell.length)]);
+                    }
+                }
+            }
+        }
+        for (int dy = 0; dy <= 24; dy++) {
+            double inner = spireInner(dy);
+            if (inner > 0.5) {
+                q.disk(cx, cz, fy + dy, inner, Material.AIR);
+            }
+        }
+        // anéis claros de End Stone Bricks no cone
+        for (int dy = 15; dy <= 42; dy += 6) {
+            q.ring(cx, cz, fy + dy, spireOuter(dy) - 1, spireOuter(dy), Material.END_STONE_BRICKS);
+        }
+        q.set(cx, fy + 43, cz, Material.AMETHYST_BLOCK);
+        q.set(cx, fy + 44, cz, Material.AMETHYST_CLUSTER);
+        q.set(cx, fy + 45, cz, Material.END_ROD);
+
+        // nervuras exteriores em forma de patas de inseto ancorando a torre
+        for (int k = 0; k < 8; k++) {
+            double a = Math.PI / 4 * k + Math.PI / 8;
+            for (int dy = -3; dy <= 16; dy++) {
+                double t = Math.max(0, 1 - dy / 14.0);
+                double r = 16.5 + 6 * t * t;
+                int px = (int) Math.round(cx + Math.cos(a) * r);
+                int pz = (int) Math.round(cz + Math.sin(a) * r);
+                q.set(px, fy + dy, pz, Material.END_STONE_BRICKS);
+                q.set(px + 1, fy + dy, pz, Material.END_STONE_BRICKS);
+                q.set(px, fy + dy, pz + 1, Material.END_STONE_BRICKS);
+            }
+        }
+        // janelas âmbar e verde-ácido (vidro sobre luz): no tambor a luz entra; no cone é só enfeite
+        for (int k = 0; k < 8; k++) {
+            double a = Math.PI / 4 * k;
+            for (int dy : new int[] {7, 11, 20, 27, 34}) {
+                double r = spireOuter(dy) - 0.5;
+                Material glass = (k + dy) % 2 == 0 ? Material.ORANGE_STAINED_GLASS : Material.LIME_STAINED_GLASS;
+                for (int w = -1; w <= 1; w++) {
+                    double aa = a + w * (dy < 15 ? 0.07 : 0.12);
+                    int px = (int) Math.round(cx + Math.cos(aa) * r);
+                    int pz = (int) Math.round(cz + Math.sin(aa) * r);
+                    for (int h = 0; h <= (dy < 15 ? 3 : 1); h++) {
+                        q.set(px, fy + dy + h, pz, glass);
+                        if (dy >= 15) {
+                            q.set((int) Math.round(cx + Math.cos(aa) * (r - 1.5)), fy + dy + h,
+                                    (int) Math.round(cz + Math.sin(aa) * (r - 1.5)), Material.SHROOMLIGHT);
+                        }
+                    }
+                }
+            }
+        }
+
+        // piso: tijolos de ardósia com anéis
+        q.disk(cx, cz, fy - 1, 14.5, Material.DEEPSLATE_TILES);
+        q.ring(cx, cz, fy - 1, 10, 11.4, Material.CRACKED_DEEPSLATE_TILES);
+        q.ring(cx, cz, fy - 1, 5.4, 6.4, Material.CHISELED_DEEPSLATE);
+        // poças de ácido (rasas): manchas de concreto-pó verde no piso, longe da entrada
+        for (int i = 0; i < 6; i++) {
+            double a = random.nextDouble() * Math.PI * 2;
+            double r = 7.5 + random.nextDouble() * 4;
+            int px = (int) Math.round(Math.cos(a) * r);
+            int pz = (int) Math.round(Math.sin(a) * r);
+            if (Math.abs(a - Math.PI / 2) < 0.4) {
+                continue;
+            }
+            for (int lx = -2; lx <= 2; lx++) {
+                for (int lz = -2; lz <= 2; lz++) {
+                    if (lx * lx + lz * lz <= 4 + random.nextInt(2)) {
+                        q.set(cx + px + lx, fy - 1, cz + pz + lz, Material.LIME_CONCRETE_POWDER);
+                    }
+                }
+            }
+        }
+        // ninho elevado com o altar de cristal
+        q.disk(cx, cz, fy, 3.2, Material.PURPUR_BLOCK);
+        q.disk(cx, cz, fy, 2.2, Material.END_STONE_BRICKS);
+        q.set(cx, fy + 1, cz, Material.END_PORTAL_FRAME);
+        for (int k = 0; k < 4; k++) {
+            double a = Math.PI / 2 * k + Math.PI / 4;
+            int px = (int) Math.round(cx + Math.cos(a) * 1.5);
+            int pz = (int) Math.round(cz + Math.sin(a) * 1.5);
+            q.set(px, fy + 1, pz, Material.AMETHYST_CLUSTER);
+            q.set(px, fy + 2, pz, Material.END_ROD);
+        }
+
+        // costelas arqueadas de End Stone Bricks acompanhando a cúpula
+        for (int k = 0; k < 12; k++) {
+            if (k == 3) {
+                continue;
+            }
+            double a = Math.PI / 6 * k;
+            for (int dy = 0; dy <= 23; dy++) {
+                double r = spireInner(dy) - 0.5;
+                if (r < 1) {
+                    break;
+                }
+                q.set((int) Math.round(cx + Math.cos(a) * r), fy + dy, (int) Math.round(cz + Math.sin(a) * r),
+                        Material.END_STONE_BRICKS);
+                q.set((int) Math.round(cx + Math.cos(a) * (r - 1)), fy + dy, (int) Math.round(cz + Math.sin(a) * (r - 1)),
+                        dy % 5 == 4 ? Material.SHROOMLIGHT : Material.END_STONE_BRICKS);
+            }
+        }
+        // teias e casulos bioluminescentes pendurados no teto
+        for (int i = 0; i < 26; i++) {
+            double a = random.nextDouble() * Math.PI * 2;
+            double r = 3 + random.nextDouble() * 8.5;
+            int px = (int) Math.round(cx + Math.cos(a) * r);
+            int pz = (int) Math.round(cz + Math.sin(a) * r);
+            int ceiling = fy + 14 + (int) Math.floor(10 * Math.sqrt(Math.max(0, 1 - (r / 14.0) * (r / 14.0)))) - 1;
+            int drop = 2 + random.nextInt(4);
+            for (int h = 0; h < drop; h++) {
+                q.set(px, ceiling - h, pz, Material.COBWEB);
+            }
+            if (i % 2 == 0) {
+                q.set(px, ceiling - drop, pz, Material.SHROOMLIGHT);
+                q.set(px, ceiling - drop - 1, pz, i % 4 == 0 ? Material.PEARLESCENT_FROGLIGHT : Material.OCHRE_FROGLIGHT);
+            } else {
+                q.set(px, ceiling, pz, Material.GLOW_LICHEN);
+            }
+        }
+
+        // quatro pontes estreitas sobre o abismo; a de +lz é a entrada
+        for (int side = 0; side < 4; side++) {
+            int dx = new int[] {0, 1, 0, -1}[side];
+            int dz = new int[] {1, 0, -1, 0}[side];
+            for (int d = 14; d <= 44; d++) {
+                for (int w = -1; w <= 1; w++) {
+                    f.put(dx * d + dz * w, fy - 1, dz * d + dx * w,
+                            d % 6 == 0 ? Material.POLISHED_BLACKSTONE_BRICKS : Material.DEEPSLATE_TILES);
+                    for (int h = 0; h < 5; h++) {
+                        f.put(dx * d + dz * w, fy + h, dz * d + dx * w, Material.AIR);
+                    }
+                }
+                if (d % 4 == 0) {
+                    f.put(dx * d + dz * 2, fy, dz * d + dx * 2, Material.POLISHED_BLACKSTONE_BRICK_WALL);
+                    f.put(dx * d - dz * 2, fy, dz * d - dx * 2, Material.POLISHED_BLACKSTONE_BRICK_WALL);
+                    f.put(dx * d + dz * 2, fy + 1, dz * d + dx * 2, Material.END_ROD);
+                    f.put(dx * d - dz * 2, fy + 1, dz * d - dx * 2, Material.END_ROD);
+                }
+            }
+        }
+        // porta da entrada atravessando o tambor
+        f.box(-2, 12, 2, 18, fy, fy + 5, Material.AIR);
+        f.box(-3, 14, 3, 17, fy + 6, fy + 6, Material.CRYING_OBSIDIAN);
+        f.box(-3, 14, -3, 17, fy, fy + 5, Material.END_STONE_BRICKS);
+        f.box(3, 14, 3, 17, fy, fy + 5, Material.END_STONE_BRICKS);
+        f.put(-3, fy + 3, 18, Material.SHROOMLIGHT);
+        f.put(3, fy + 3, 18, Material.SHROOMLIGHT);
+        List<int[]> seals = new ArrayList<>();
+        for (int lx = -2; lx <= 2; lx++) {
+            for (int y = fy; y <= fy + 5; y++) {
+                seals.add(f.world(lx, y, 15));
+            }
+        }
+        return seals;
+    }
 }

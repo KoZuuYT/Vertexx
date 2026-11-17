@@ -51,6 +51,7 @@ public final class PluginMain extends JavaPlugin {
     private UpgradeManager upgrades;
     private dev.vertexx.end.Backpacks backpacks;
     private dev.vertexx.end.EndGear endGear;
+    private dev.vertexx.end.ScarabGear scarabGear;
     private dev.vertexx.end.EndWorld endWorld;
     private dev.vertexx.end.PortalLock portalLock;
     private dev.vertexx.block.CustomBlocks customBlocks;
@@ -87,6 +88,7 @@ public final class PluginMain extends JavaPlugin {
         upgrades = new UpgradeManager(this);
         backpacks = new dev.vertexx.end.Backpacks(this);
         endGear = new dev.vertexx.end.EndGear(this);
+        scarabGear = new dev.vertexx.end.ScarabGear(this);
         endWorld = new dev.vertexx.end.EndWorld(this);
         portalLock = new dev.vertexx.end.PortalLock(this);
         customBlocks = new dev.vertexx.block.CustomBlocks(this);
@@ -115,6 +117,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(upgrades, this);
         plugins.registerEvents(backpacks, this);
         plugins.registerEvents(endGear, this);
+        plugins.registerEvents(scarabGear, this);
         plugins.registerEvents(endWorld, this);
         plugins.registerEvents(portalLock, this);
         plugins.registerEvents(customBlocks, this);
@@ -153,6 +156,7 @@ public final class PluginMain extends JavaPlugin {
         rpg.start();
         backpacks.start();
         endGear.start();
+        scarabGear.start();
         endWorld.start();
         customBlocks.start();
         curses.start();

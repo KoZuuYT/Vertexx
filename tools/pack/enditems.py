@@ -92,6 +92,18 @@ def iceologer_core():
     return ramp_recolor(vanilla("nether_star"), ["#06203a", "#1a5a9a", "#4aa8e0", "#a8e8ff", "#ffffff"])
 
 
+def crystal_heart():
+    return ramp_recolor(vanilla("heart_of_the_sea"), ["#2a0a52", "#6a2ac0", "#b070ff", "#e8c8ff", "#ffffff"])
+
+
+def chitin_plate():
+    return ramp_recolor(vanilla("armadillo_scute"), ["#120a22", "#2c1d4c", "#5a3f9a", "#a08ad0", "#e2dcee"])
+
+
+def scarab_mandible():
+    return ramp_recolor(vanilla("bone"), ["#1c1230", "#44307a", "#8a7fa8", "#c6bcdc", "#f4f0ff"])
+
+
 def warp_stone():
     return ramp_recolor(vanilla("ender_eye"), ["#1e0d36", "#4b2a8a", "#8a58d0", "#c9a0ff", "#ffffff"])
 
@@ -192,6 +204,9 @@ def build(ns, save, write_json):
         "levitation_core": levitation_core(),
         "wildfire_core": wildfire_core(),
         "iceologer_core": iceologer_core(),
+        "crystal_heart": crystal_heart(),
+        "chitin_plate": chitin_plate(),
+        "scarab_mandible": scarab_mandible(),
         "warp_stone": warp_stone(),
         "amber_fragment": amber_fragment(),
         "calcified_fossil": calcified_fossil(),

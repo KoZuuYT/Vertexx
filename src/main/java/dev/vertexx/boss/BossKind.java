@@ -6,7 +6,8 @@ import net.kyori.adventure.bossbar.BossBar;
 /** Bosses do Vertexx. Cada um tem a sua sala (estrutura própria) e seus ataques. */
 public enum BossKind {
     WILDFIRE("Wildfire", "<gold>", BossBar.Color.RED, "Câmara do Wildfire"),
-    ICEOLOGER("Iceologer", "<aqua>", BossBar.Color.BLUE, "Castelo de Gelo");
+    ICEOLOGER("Iceologer", "<aqua>", BossBar.Color.BLUE, "Castelo de Gelo"),
+    VOID_SCARAB("Void-Scarab", "<dark_purple>", BossBar.Color.PURPLE, "Pináculo de Quitina");
 
     private final String display;
     private final String color;
@@ -37,6 +38,11 @@ public enum BossKind {
         return place;
     }
 
+    /** Salas circulares (Wildfire e Void-Scarab); o castelo é quadrado. */
+    public boolean round() {
+        return this != ICEOLOGER;
+    }
+
     public String key() {
         return name().toLowerCase(Locale.ROOT);
     }
@@ -46,7 +52,8 @@ public enum BossKind {
             return null;
         }
         for (BossKind kind : values()) {
-            if (kind.key().equalsIgnoreCase(text)) {
+            if (kind.key().equalsIgnoreCase(text) || kind.key().replace("_", "").equalsIgnoreCase(text)
+                    || kind == VOID_SCARAB && text.equalsIgnoreCase("scarab")) {
                 return kind;
             }
         }
