@@ -5,6 +5,7 @@ import dev.vertexx.core.Fx;
 import dev.vertexx.core.Msg;
 import java.util.List;
 import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -54,6 +55,10 @@ public final class WaystoneListener implements Listener {
         }
         event.setCancelled(true);
         Player player = event.getPlayer();
+        if (!WaystoneManager.hasRoomAbove(block)) {
+            refuse(player, "<red>O Waystone tem quase 2 blocos de altura: deixe o bloco acima do Lodestone livre.");
+            return;
+        }
         if (waystones().limitReached(player)) {
             refuse(player, "<red>Você atingiu o limite de <white>"
                     + plugin.getConfig().getInt("waystones.max-per-player", 3) + "</white> Waystones.");
@@ -65,6 +70,10 @@ public final class WaystoneListener implements Listener {
     private void finishCreation(Player player, Block block, String name) {
         if (block.getType() != Material.LODESTONE || waystones().at(block) != null) {
             refuse(player, "<red>Este Lodestone mudou: o Waystone não foi criado.");
+            return;
+        }
+        if (!WaystoneManager.hasRoomAbove(block)) {
+            refuse(player, "<red>O bloco acima do Lodestone foi ocupado: o Waystone não foi criado.");
             return;
         }
         boolean creative = player.getGameMode() == GameMode.CREATIVE;
@@ -184,6 +193,9 @@ public final class WaystoneListener implements Listener {
         }
         waystones().remove(waystone);
         event.setDropItems(false);
+        if (event.getBlock().getType() == Material.BARRIER && waystone.pos().block() != null) {
+            waystone.pos().block().setType(Material.AIR, false); // quebrou pela parte de cima (criativo)
+        }
         Location center = waystone.pos().center();
         if (player.getGameMode() != GameMode.CREATIVE) {
             center.getWorld().dropItemNaturally(center, new ItemStack(Material.LODESTONE));
@@ -191,6 +203,18 @@ public final class WaystoneListener implements Listener {
         Fx.burst(center, Particle.REVERSE_PORTAL, 50, 0.3, 0.1);
         Fx.worldSound(center, Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.2f);
         Msg.send(player, "<yellow>Waystone <white><name></white> removido.", Placeholder.unparsed("name", waystone.name()));
+    }
+
+    /** A barreira da parte alta do modelo é refeita quando o chunk carrega (ela pode ter sumido com um /fill, por ex.). */
+    @EventHandler
+    public void onChunkLoad(org.bukkit.event.world.ChunkLoadEvent event) {
+        for (Waystone waystone : waystones().all()) {
+            if (waystone.pos().world().equals(event.getWorld().getName())
+                    && (waystone.pos().x() >> 4) == event.getChunk().getX()
+                    && (waystone.pos().z() >> 4) == event.getChunk().getZ()) {
+                Bukkit.getScheduler().runTask(plugin, () -> waystones().ensureUpper(waystone));
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true)

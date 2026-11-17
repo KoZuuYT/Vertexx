@@ -9,7 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.Vector;
 
 /**
- * Arraia do Vazio: água-viva voadora e passiva das copas do Coro. Paira entre as ilhas, segue quem segura Fruta do
+ * Água-viva do Fim (End Jellyfish): água-viva voadora e passiva das copas do Coro. Paira entre as ilhas, segue quem segura Fruta do
  * Coro e, com uma sela ou uma guia na mão, deixa o jogador pendurar-se nela e planar devagar (transporte pré-Elytra).
  * Base Allay sem IA (o cérebro do Allay brigaria com a nossa direção): o movimento é por velocidade.
  */
@@ -30,6 +30,11 @@ final class VoidRay extends Critter {
     @Override
     FaunaKind kind() {
         return FaunaKind.VOID_RAY;
+    }
+
+    @Override
+    protected String modelId() {
+        return "end_jellyfish";
     }
 
     private Player rider() {

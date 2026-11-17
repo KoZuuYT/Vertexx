@@ -58,21 +58,26 @@ public final class GithubLatest {
      * bloqueada (403/429). {@code asset} é o nome do arquivo; {@code {v}} nele vira a versão sem o "v".
      * O id do asset é um hash da tag (muda a cada release). Não traz SHA-256: o chamador valida o conteúdo.
      */
-    public static com.google.gson.JsonObject fallbackRelease(String repository, String userAgent, String asset) {
+    public static com.google.gson.JsonObject fallbackRelease(String repository, String userAgent, String... assetPatterns) {
         Optional<String> tag = tag(repository, userAgent);
-        if (tag.isEmpty()) {
-            return null;
-        }
-        String name = asset.replace("{v}", tag.get().replaceFirst("^[vV]", ""));
-        com.google.gson.JsonObject a = new com.google.gson.JsonObject();
-        a.addProperty("name", name);
-        a.addProperty("id", tag.get().hashCode() & 0xffffffffL);
-        a.addProperty("size", 0);
-        a.addProperty("browser_download_url", downloadUrl(repository, tag.get(), name));
+        return tag.isEmpty() ? null : synthetic(repository, tag.get(), assetPatterns);
+    }
+
+    /** Release montada só com a tag: cada padrão de arquivo vira um asset ({@code {v}} = versão sem o "v"). */
+    public static com.google.gson.JsonObject synthetic(String repository, String tag, String... assetPatterns) {
         com.google.gson.JsonArray assets = new com.google.gson.JsonArray();
-        assets.add(a);
+        for (String pattern : assetPatterns) {
+            String name = pattern.replace("{v}", tag.replaceFirst("^[vV]", ""));
+            com.google.gson.JsonObject a = new com.google.gson.JsonObject();
+            a.addProperty("name", name);
+            a.addProperty("id", tag.hashCode() & 0xffffffffL);
+            a.addProperty("size", 0);
+            a.addProperty("browser_download_url", downloadUrl(repository, tag, name));
+            assets.add(a);
+        }
         com.google.gson.JsonObject release = new com.google.gson.JsonObject();
-        release.addProperty("tag_name", tag.get());
+        release.addProperty("tag_name", tag);
+        release.addProperty("synthetic", true);
         release.add("assets", assets);
         return release;
     }

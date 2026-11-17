@@ -2,11 +2,13 @@
 
 ``build(ns, save, write_json)`` escreve, para cada skin:
   textures/block/waystone/<skin>_{rune,body,dark,cap}.png
-  models/block/waystone/<skin>.json        (base larga, pescoço escuro, pilar com runas e tampa)
+  models/block/waystone/<skin>.json        (base, estaca, núcleo com runas e tampa: 1,75 bloco de altura)
   items/waystone_<skin>.json               (item_model usado pela ItemDisplay do plugin)
 
-O corpo cobre o Lodestone por inteiro (as peças têm 0,25 a 0,5 px a mais que o bloco), então só a
-base e a tampa são mais largas. Os ids TÊM de bater com WaystoneSkin.java.
+Da base para o topo: base (4 px), estaca (4 px, mais fina que a base mas ainda cobrindo o Lodestone), núcleo
+(16 px, o próprio Lodestone retexturizado) e tampa (4 px) = 28 px. O que passa de 16 px fica no bloco de cima, que o
+plugin ocupa com uma barreira invisível. Todas as peças têm 0,25 a 2 px a mais que o bloco, então o Lodestone original
+nunca aparece. Os ids TÊM de bater com WaystoneSkin.java.
 """
 from __future__ import annotations
 
@@ -73,19 +75,20 @@ def _model(skin):
 
     def box(a, b, side, up, down):
         face = {"uv": [0, 0, 16, 16]}
+        strip = {"uv": [0, 0, 16, min(16, b[1] - a[1])]}      # lados baixos mostram uma faixa, sem esticar a textura
         return {"from": a, "to": b, "faces": {
-            "north": dict(face, texture=side), "south": dict(face, texture=side),
-            "east": dict(face, texture=side), "west": dict(face, texture=side),
+            "north": dict(strip, texture=side), "south": dict(strip, texture=side),
+            "east": dict(strip, texture=side), "west": dict(strip, texture=side),
             "up": dict(face, texture=up), "down": dict(face, texture=down)}}
 
     return {
         "textures": {"rune": f"{t}_rune", "body": f"{t}_body", "dark": f"{t}_dark", "cap": f"{t}_cap",
                      "particle": f"{t}_body"},
         "elements": [
-            box([-2, 0, -2], [18, 4, 18], "#body", "#cap", "#dark"),            # base larga
-            box([-0.25, 4, -0.25], [16.25, 6, 16.25], "#dark", "#dark", "#dark"),   # pescoço escuro
-            box([-0.5, 6, -0.5], [16.5, 14, 16.5], "#rune", "#body", "#body"),      # pilar com runas
-            box([-1.5, 14, -1.5], [17.5, 16.5, 17.5], "#body", "#cap", "#dark"),    # tampa
+            box([-2, 0, -2], [18, 4, 18], "#body", "#cap", "#dark"),                # 1. base larga (0,25)
+            box([-1, 4, -1], [17, 8, 17], "#dark", "#dark", "#dark"),               # 2. estaca, um pouco mais fina (0,25)
+            box([-0.5, 8, -0.5], [16.5, 24, 16.5], "#rune", "#body", "#body"),      # 3. núcleo: o Lodestone, 1 bloco, com runas
+            box([-1.5, 24, -1.5], [17.5, 28, 17.5], "#body", "#cap", "#dark"),      # 4. tampa (0,25)
         ],
     }
 

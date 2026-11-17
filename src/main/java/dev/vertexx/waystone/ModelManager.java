@@ -53,8 +53,8 @@ public final class ModelManager implements Listener {
     private static final float PILLAR_BOTTOM = 0.36f;
     private static final float PILLAR_TOP = 1.46f;
     private static final float PILLAR_MID = (PILLAR_BOTTOM + PILLAR_TOP) / 2;
-    private static final float ICON_Y = 2.08f;
-    private static final float NAME_Y = 2.78f;
+    private static final float ICON_Y = 2.45f;
+    private static final float NAME_Y = 3.1f;
     private static final float ICON_SCALE = 0.72f;
     private static final float EYE_SCALE = 0.5f;
     private static final float EYE_PULSE = 0.6f;
@@ -232,6 +232,7 @@ public final class ModelManager implements Listener {
         ItemDisplay icon;
         /** Corpo do resource pack (uma só entidade); quem não tem o pack vê as peças de bloco. */
         ItemDisplay model;
+        Display.Brightness light;
         final Map<UUID, Boolean> packSeen = new HashMap<>();
         TextDisplay name;
         WaystoneSkin skin;
@@ -449,6 +450,9 @@ public final class ModelManager implements Listener {
                 spawn(instance);
             }
             syncViewers(instance, wanted);
+            if (instance.spawned && !instance.animate) {
+                refreshLight(instance);
+            }
             if (!instance.viewers.isEmpty()) {
                 spin(instance, interval);
             }
@@ -692,6 +696,50 @@ public final class ModelManager implements Listener {
         }
     }
 
+    /** Brilho mínimo dos olhos decorativos (só a versão sem o pack). */
+    private static final int EYE_GLOW = 9;
+
+    /**
+     * Luz do ambiente ao redor do Lodestone. O display não pode usar a luz do próprio bloco (opaco = 0, escuro) nem
+     * ficar fixo em 15 (brilharia no escuro): usa a maior luz entre os blocos vizinhos.
+     */
+    private static Display.Brightness lightAt(Location base, int minBlock) {
+        org.bukkit.block.Block block = base.getBlock();
+        int blockLight = 0;
+        int skyLight = 0;
+        for (org.bukkit.block.BlockFace face : new org.bukkit.block.BlockFace[]{
+                org.bukkit.block.BlockFace.UP, org.bukkit.block.BlockFace.DOWN, org.bukkit.block.BlockFace.NORTH,
+                org.bukkit.block.BlockFace.SOUTH, org.bukkit.block.BlockFace.EAST, org.bukkit.block.BlockFace.WEST}) {
+            org.bukkit.block.Block near = block.getRelative(face);
+            blockLight = Math.max(blockLight, near.getLightFromBlocks());
+            skyLight = Math.max(skyLight, near.getLightFromSky());
+        }
+        return new Display.Brightness(Math.max(blockLight, minBlock), skyLight);
+    }
+
+    /** Reaplica a luz do ambiente quando ela muda (tocha colocada, anoitecer de caverna etc.). */
+    private void refreshLight(Instance instance) {
+        Location base = baseLocation(instance.waystone);
+        Display.Brightness now = lightAt(base, 0);
+        if (instance.light != null && instance.light.getBlockLight() == now.getBlockLight()
+                && instance.light.getSkyLight() == now.getSkyLight()) {
+            return;
+        }
+        instance.light = now;
+        for (Display part : instance.parts) {
+            part.setBrightness(now);
+        }
+        for (ItemDisplay eye : instance.eyes) {
+            eye.setBrightness(lightAt(base, EYE_GLOW));
+        }
+        if (instance.model != null) {
+            instance.model.setBrightness(now);
+        }
+        if (instance.icon != null) {
+            instance.icon.setBrightness(now);
+        }
+    }
+
     private BlockDisplay spawnPart(Instance instance, Location base, Part part, boolean animated) {
         BlockDisplay display = base.getWorld().spawn(base, BlockDisplay.class, entity -> {
             entity.setBlock(part.block(instance.skin).createBlockData());
@@ -701,7 +749,7 @@ public final class ModelManager implements Listener {
             entity.setTransformation(animated ? part.from() : part.to());
             entity.setViewRange(1.0f);
             // sem isto o bloco usa a luz do ponto de spawn (dentro do Lodestone = escuro)
-            entity.setBrightness(new Display.Brightness(15, 15));
+            entity.setBrightness(lightAt(base, 0));
         });
         if (!animated) {
             showTo(instance, display);
@@ -717,7 +765,7 @@ public final class ModelManager implements Listener {
             entity.setPersistent(false);
             entity.setVisibleByDefault(false);
             entity.setViewRange(0.8f);
-            entity.setBrightness(new Display.Brightness(15, 15));
+            entity.setBrightness(lightAt(base, EYE_GLOW));
             entity.setTransformation(eyeTransform(eye, animated ? 0.001f : EYE_SCALE));
         });
         if (!animated) {
@@ -732,7 +780,7 @@ public final class ModelManager implements Listener {
         return stack;
     }
 
-    /** Modelo de 1 bloco, centrado na origem: sobe 0,5 para a base ficar no chão. */
+    /** Modelo de 1,75 bloco (base, estaca, núcleo e tampa), centrado na origem: sobe 0,5 para a base ficar no chão. */
     private static Transformation modelTransform(float height) {
         return new Transformation(new Vector3f(0, 0.5f * height, 0), new Quaternionf(),
                 new Vector3f(1f, height, 1f), new Quaternionf());
@@ -746,7 +794,7 @@ public final class ModelManager implements Listener {
             entity.setPersistent(false);
             entity.setVisibleByDefault(false);
             entity.setViewRange(1.0f);
-            entity.setBrightness(new Display.Brightness(15, 15));
+            entity.setBrightness(lightAt(base, 0));
             entity.setTransformation(modelTransform(animated ? 0.001f : 1f));
         });
         if (!animated) {
@@ -762,7 +810,7 @@ public final class ModelManager implements Listener {
             entity.setPersistent(false);
             entity.setVisibleByDefault(false);
             entity.setViewRange(0.8f);
-            entity.setBrightness(new Display.Brightness(15, 15));
+            entity.setBrightness(lightAt(base, 0));
             entity.setTransformation(transform(new Vector3f(0, ICON_Y, 0),
                     new Vector3f(animated ? 0.001f : ICON_SCALE)));
         });

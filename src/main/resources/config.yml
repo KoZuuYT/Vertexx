@@ -290,3 +290,14 @@ overworld:
     generation: true          # bolsões de cascalho suspeito em cavernas de deepslate (chunks novos)
     pocket-chance: 0.3
     incubation-seconds: 180   # ciclo da Incubadora Geotérmica
+
+# Decoração: relógio do Minecraft e ganchos de exposição.
+decor:
+  clock:
+    # Segurando um relógio, mostra o dia e a hora do mundo na barra de ação.
+    day-counter: true
+    # Duração máxima do timer do relógio decorativo, em segundos.
+    max-timer-seconds: 3600
+  hooks:
+    # Botão direito num Tripwire Hook com um item na mão o pendura como exposição.
+    enabled: true

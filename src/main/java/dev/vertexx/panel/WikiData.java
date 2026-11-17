@@ -77,7 +77,16 @@ final class WikiData {
                         "<gray>Ao morrer, itens e XP ficam numa cabeça", "<gray>sua. Por 30 min só você abre; depois,",
                         "<gray>qualquer um. Veja o local com /tumulo."),
                 e(Material.TRIPWIRE_HOOK, "<white><bold>Chave de Túmulo",
-                        "<gray>Entregue por administradores: abre um", "<gray>túmulo ainda protegido."));
+                        "<gray>Entregue por administradores: abre um", "<gray>túmulo ainda protegido."),
+                e(Material.CLOCK, "<yellow><bold>Relógio e contador de dias",
+                        "<gray>Segurando um relógio, a barra de ação", "<gray>mostra o dia e a hora exata do mundo."),
+                e(Material.CLOCK, "<yellow><bold>Relógio decorativo",
+                        "<gray>Clique direito num bloco com um relógio:", "<gray>fixa no chão, teto ou parede. Clique nele",
+                        "<gray>para configurar alarme diário, timer,", "<gray>som, pulso de redstone e horário flutuante.",
+                        "<dark_gray>Agache + mão vazia recolhe."),
+                e(Material.TRIPWIRE_HOOK, "<white><bold>Ganchos de exposição",
+                        "<gray>Clique direito num Tripwire Hook com um", "<gray>item: ele fica pendurado. Mão vazia abre",
+                        "<gray>o ajuste de tamanho, giro, inclinação e", "<gray>posição. Agache + mão vazia retira."));
     }
 
     // ── Criaturas ───────────────────────────────────────────────
@@ -107,6 +116,8 @@ final class WikiData {
                         "<gray>e barcos e morde quem chega perto.", "<red>Perigoso."),
                 c(FaunaKind.VOID_RAY, "<gray>Copas do Coro (End). Segue Fruta do Coro.", "<gray>Com sela ou guia na mão, você se",
                         "<gray>pendura e plana devagar.", "<dark_gray>Pacífica."),
+                c(FaunaKind.END_STINGRAY, "<gray>Copas do Coro (End). Plana em círculos", "<gray>largos sobre as ilhas e segue Fruta do",
+                        "<gray>Coro. Solta fragmentos de ametista.", "<dark_gray>Pacífica."),
                 c(FaunaKind.END_CRAWLER, "<gray>Besouro de obsidiana do End. Neutro até", "<gray>você minerar ametista por perto.",
                         "<gray>Resiste a projéteis; se enrola em crítico.", "<gray>Solta Quitina do Vazio."),
                 c(FaunaKind.SHULKER_SENTINEL, "<gray>Guardião raro das ruínas do End.", "<gray>Rajadas cinéticas (pouco dano, muito",

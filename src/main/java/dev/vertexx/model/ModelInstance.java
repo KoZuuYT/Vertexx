@@ -59,6 +59,7 @@ public final class ModelInstance {
     private final boolean[] sentHidden;
 
     private Location lastAt;
+    private long lastUpdateMs;
     private float roll;
     private final Quaternionf lastBasis = new Quaternionf();
 
@@ -427,30 +428,33 @@ public final class ModelInstance {
     }
 
     /**
-     * Move a âncora sem salto: a posição das displays e a translação da pose interpolam juntas, na mesma duração,
-     * então a soma (posição + translação) continua uma linha reta e nada pisca nem teleporta. Só troca de mundo
-     * (ou a primeira pose) é seca.
+     * Move a âncora com um corte seco: a posição das displays e a translação da pose mudam no mesmo instante, sem
+     * interpolação nenhuma. (Antes as duas interpolavam juntas, mas a posição e a transformação têm relógios próprios
+     * no cliente: qualquer defasagem de meio tick vezes os ~10 blocos de deslocamento virava um "teleporte" visível a
+     * cada vez que o mob se afastava da âncora.) A pose seguinte também vai sem interpolação.
      */
-    private void reanchor(Location at, int duration) {
-        boolean sameWorld = anchor.getWorld() == at.getWorld();
+    private void reanchor(Location at) {
         anchor = at.clone();
         anchor.setYaw(0);
         anchor.setPitch(0);
         for (int i = 0; i < displays.length; i++) {
             if (displays[i] != null && displays[i].isValid()) {
-                displays[i].setTeleportDuration(sameWorld ? Math.max(1, Math.min(59, duration + 1)) : 0);
+                displays[i].setTeleportDuration(0);
                 displays[i].teleport(anchor);
-                if (!sameWorld) {
-                    sentT[i] = null;   // outro mundo: próxima pose sem interpolação
-                }
             }
+            sentT[i] = null;          // próxima pose sem interpolação, junto com o teleporte
         }
     }
 
     /** Calcula a pose e a envia. {@code at} é a origem do modelo (pés), {@code yaw} o do Bukkit. */
     public void update(Location at, float yaw, int duration) {
+        long now = System.currentTimeMillis();
+        boolean stale = lastUpdateMs != 0 && now - lastUpdateMs > 750;   // ficou sem atualizar (ninguém perto, lag): sem deslizar da pose velha
+        lastUpdateMs = now;
         if (anchor.getWorld() != at.getWorld() || anchor.distanceSquared(at) > REANCHOR * REANCHOR) {
-            reanchor(at, duration);
+            reanchor(at);
+        } else if (stale) {
+            java.util.Arrays.fill(sentT, null);
         }
         lastAt = at.clone();
         light(at, duration);

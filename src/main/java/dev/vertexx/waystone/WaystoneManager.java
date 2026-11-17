@@ -207,10 +207,52 @@ public final class WaystoneManager {
     // ── Registro ────────────────────────────────────────────────
 
     public Waystone at(Block block) {
-        if (byPos.isEmpty() || block.getType() != Material.LODESTONE) {
+        if (byPos.isEmpty()) {
             return null;
         }
-        return byPos.get(BlockPos.of(block));
+        Material type = block.getType();
+        if (type == Material.LODESTONE) {
+            return byPos.get(BlockPos.of(block));
+        }
+        if (type == Material.BARRIER) {
+            // o bloco de cima (hitbox da parte alta do modelo) responde pelo Waystone de baixo
+            return byPos.get(BlockPos.of(block.getRelative(org.bukkit.block.BlockFace.DOWN)));
+        }
+        return null;
+    }
+
+    /** O espaço acima do Lodestone está livre para o modelo (que tem 1,75 bloco)? */
+    public static boolean hasRoomAbove(Block lodestone) {
+        Block up = lodestone.getRelative(org.bukkit.block.BlockFace.UP);
+        return up.getType().isAir() || up.getType() == Material.BARRIER;
+    }
+
+    /** Coloca a barreira invisível que dá colisão e clique à parte alta do modelo (se o espaço estiver livre). */
+    public void ensureUpper(Waystone waystone) {
+        if (!waystone.pos().isChunkLoaded()) {
+            return;
+        }
+        Block up = waystone.pos().block().getRelative(org.bukkit.block.BlockFace.UP);
+        if (up.getType().isAir()) {
+            up.setType(Material.BARRIER, false);
+        }
+    }
+
+    private void clearUpper(Waystone waystone) {
+        if (!waystone.pos().isChunkLoaded()) {
+            return;
+        }
+        Block up = waystone.pos().block().getRelative(org.bukkit.block.BlockFace.UP);
+        if (up.getType() == Material.BARRIER) {
+            up.setType(Material.AIR, false);
+        }
+    }
+
+    /** Garante a barreira de todos os Waystones cujos chunks estão carregados (início e /reload). */
+    public void ensureAllUpper() {
+        for (Waystone waystone : byId.values()) {
+            ensureUpper(waystone);
+        }
     }
 
     public Waystone byId(UUID id) {
@@ -306,6 +348,7 @@ public final class WaystoneManager {
         byId.put(waystone.id(), waystone);
         byPos.put(waystone.pos(), waystone);
         discovered.computeIfAbsent(owner.getUniqueId(), k -> new HashSet<>()).add(waystone.id());
+        ensureUpper(waystone);
         plugin.models().add(waystone, true);
         save();
         return CreateResult.CREATED;
@@ -319,6 +362,7 @@ public final class WaystoneManager {
                 other.route(null); // rotas que apontavam para ele deixam de existir
             }
         }
+        clearUpper(waystone);
         plugin.models().remove(waystone);
         save();
     }

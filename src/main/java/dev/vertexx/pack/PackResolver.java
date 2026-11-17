@@ -2,8 +2,9 @@ package dev.vertexx.pack;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import dev.vertexx.PluginMain;
+import dev.vertexx.core.Msg;
+import dev.vertexx.update.ReleaseSource;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
@@ -13,6 +14,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.HexFormat;
@@ -22,12 +24,16 @@ import java.util.logging.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 
 /**
  * Descobre sozinho o resource pack do servidor: consulta a release mais recente do repositório,
  * baixa o {@code Vertexx-Pack.zip}, valida o conteúdo e calcula o SHA-1. O resultado fica em cache
  * ({@code pack-cache.properties}) para o servidor já ter o link ao reiniciar, mesmo sem internet.
  * Toda a rede roda fora da thread principal. Um {@code resource-pack.url} manual no config tem prioridade.
+ * <p>
+ * Falhas passageiras (rede fora, release ainda subindo os arquivos) são retentadas em 2 min, até 5 vezes,
+ * em vez de esperar o ciclo de 30 min. O pacote só é trocado depois de baixado e validado por inteiro.
  */
 public final class PackResolver {
 
@@ -42,7 +48,9 @@ public final class PackResolver {
     private final File cacheFile;
     private volatile String url = "";
     private volatile String sha1 = "";
-    private volatile long assetId = -1;
+    private volatile String key = "";
+    private volatile String tag = "";
+    private volatile int retries;
 
     public PackResolver(PluginMain plugin) {
         this.plugin = plugin;
@@ -62,13 +70,37 @@ public final class PackResolver {
         return !url.isEmpty() && !sha1.isEmpty();
     }
 
+    /** Versão (tag) do pacote em uso, ou vazio. */
+    public String tag() {
+        return tag;
+    }
+
     /** Agenda a checagem periódica (a primeira, logo após a inicialização). */
     public void start() {
         if (!plugin.getConfig().getBoolean("resource-pack.auto.enabled", true)) {
             return;
         }
         long interval = Math.max(5, plugin.getConfig().getLong("updater.check-interval-minutes", 30)) * 60 * 20;
-        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::check, 20L * 5, interval);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> check(null, false), 20L * 5, interval);
+    }
+
+    /** Checa agora (assíncrono), ignorando o resultado em memória, e responde a {@code feedback}. */
+    public void checkNow(CommandSender feedback) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> check(feedback, true));
+    }
+
+    private void tell(CommandSender feedback, String message) {
+        if (feedback != null && plugin.isEnabled()) {
+            Bukkit.getScheduler().runTask(plugin, () -> Msg.send(feedback, message));
+        }
+    }
+
+    private void retrySoon() {
+        if (!plugin.isEnabled() || retries >= 5) {
+            return;
+        }
+        retries++;
+        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> check(null, false), 20L * 120);
     }
 
     private void loadCache() {
@@ -80,8 +112,9 @@ public final class PackResolver {
             props.load(in);
             url = props.getProperty("url", "");
             sha1 = props.getProperty("sha1", "");
-            assetId = Long.parseLong(props.getProperty("asset", "-1"));
-        } catch (IOException | NumberFormatException e) {
+            key = props.getProperty("key", "");
+            tag = props.getProperty("tag", "");
+        } catch (IOException e) {
             plugin.getLogger().log(Level.WARNING, "Cache do resource pack ilegível, será refeito: " + e);
         }
     }
@@ -90,20 +123,25 @@ public final class PackResolver {
         Properties props = new Properties();
         props.setProperty("url", url);
         props.setProperty("sha1", sha1);
-        props.setProperty("asset", Long.toString(assetId));
+        props.setProperty("key", key);
+        props.setProperty("tag", tag);
         try {
             Files.createDirectories(cacheFile.toPath().getParent());
-            try (var out = Files.newOutputStream(cacheFile.toPath())) {
+            // grava num temporário e troca: um desligamento no meio não deixa o cache pela metade
+            File temp = new File(cacheFile.getPath() + ".tmp");
+            try (var out = Files.newOutputStream(temp.toPath())) {
                 props.store(out, "Gerado automaticamente pelo Vertexx");
             }
+            Files.move(temp.toPath(), cacheFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             plugin.getLogger().log(Level.WARNING, "Não foi possível salvar o cache do resource pack: " + e);
         }
     }
 
     /** Bloqueante: chame fora da thread principal. */
-    private void check() {
+    private void check(CommandSender feedback, boolean force) {
         if (!checking.compareAndSet(false, true)) {
+            tell(feedback, "<yellow>Já existe uma checagem do resource pack em andamento.");
             return;
         }
         try {
@@ -112,37 +150,33 @@ public final class PackResolver {
             if (!repository.matches("[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+") || assetName.isEmpty()) {
                 return;
             }
-            HttpRequest request = HttpRequest.newBuilder(
-                            URI.create("https://api.github.com/repos/" + repository + "/releases/latest"))
-                    .header("Accept", "application/vnd.github+json")
-                    .header("User-Agent", "Vertexx-PackResolver")
-                    .timeout(Duration.ofSeconds(20))
-                    .GET().build();
-            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            JsonObject release;
-            if (response.statusCode() == 200) {
-                release = JsonParser.parseString(response.body()).getAsJsonObject();
-            } else if (response.statusCode() == 403 || response.statusCode() == 429) {
-                release = dev.vertexx.update.GithubLatest.fallbackRelease(repository, "Vertexx-PackResolver", assetName);
-                if (release == null) {
-                    return;
-                }
-            } else {
+            JsonObject release = ReleaseSource.latest(repository, "Vertexx-PackResolver", force, "Vertexx-{v}.jar", assetName);
+            if (release == null) {
+                tell(feedback, "<red>Resource pack: não consegui consultar o GitHub agora.");
+                retrySoon();
                 return;
             }
+            String releaseTag = release.get("tag_name").getAsString();
             JsonObject asset = findAsset(release, assetName);
             if (asset == null) {
-                plugin.getLogger().info("A release mais recente não tem o arquivo " + assetName
-                        + "; o resource pack automático segue desativado.");
+                // a release pode ter sido criada antes de os arquivos terminarem de subir
+                plugin.getLogger().info("A release " + releaseTag + " ainda não tem o arquivo " + assetName + ".");
+                tell(feedback, "<yellow>Resource pack: a release " + releaseTag + " ainda não tem o " + assetName + ".");
+                retrySoon();
                 return;
             }
-            long id = asset.get("id").getAsLong();
             String downloadUrl = asset.get("browser_download_url").getAsString();
             if (!downloadUrl.startsWith("https://github.com/" + repository + "/releases/download/")) {
                 plugin.getLogger().warning("URL do resource pack inesperada; ignorada por segurança.");
                 return;
             }
-            if (id == assetId && isReady()) {
+            JsonElement digest = asset.get("digest");
+            boolean hasDigest = digest != null && !digest.isJsonNull() && digest.getAsString().startsWith("sha256:");
+            // identifica o arquivo: o SHA-256 da release quando existe (pega até reenvio com o mesmo nome), senão a tag
+            String newKey = hasDigest ? digest.getAsString() : "tag:" + releaseTag;
+            if (newKey.equals(key) && isReady() && downloadUrl.equals(url)) {
+                retries = 0;
+                tell(feedback, "<green>Resource pack já está na versão mais recente (<white>" + releaseTag + "</white>).");
                 return;
             }
             long size = asset.has("size") ? asset.get("size").getAsLong() : 0;
@@ -152,6 +186,7 @@ public final class PackResolver {
             }
             HttpResponse<byte[]> file = http.send(HttpRequest.newBuilder(URI.create(downloadUrl))
                     .header("User-Agent", "Vertexx-PackResolver")
+                    .header("Cache-Control", "no-cache")
                     .timeout(Duration.ofMinutes(2)).GET().build(), HttpResponse.BodyHandlers.ofByteArray());
             if (file.statusCode() != 200) {
                 throw new IOException("download respondeu com o código " + file.statusCode());
@@ -160,8 +195,7 @@ public final class PackResolver {
             if (bytes.length > MAX_BYTES || !hasPackMeta(bytes)) {
                 throw new IOException("o arquivo baixado não é um resource pack válido");
             }
-            JsonElement digest = asset.get("digest");
-            if (digest != null && !digest.isJsonNull() && digest.getAsString().startsWith("sha256:")) {
+            if (hasDigest) {
                 String expected = digest.getAsString().substring("sha256:".length());
                 String actual = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
                 if (!expected.equalsIgnoreCase(actual)) {
@@ -169,17 +203,26 @@ public final class PackResolver {
                 }
             }
             String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-1").digest(bytes));
-            assetId = id;
+            boolean changed = !hash.equals(sha1) || !downloadUrl.equals(url);
+            // só agora, com tudo validado, o pacote anterior é substituído
             sha1 = hash;
             url = downloadUrl;
+            key = newKey;
+            tag = releaseTag;
             saveCache();
-            plugin.getLogger().info("Resource pack configurado automaticamente: " + downloadUrl + " (sha1 " + hash + ")");
-            // quem entrou antes da descoberta recebeu o pacote do cache (versão antiga): reenvia o novo
-            org.bukkit.Bukkit.getScheduler().runTask(plugin, () -> plugin.resourcePack().refreshOnline());
+            retries = 0;
+            plugin.getLogger().info("Resource pack " + releaseTag + " configurado automaticamente: " + downloadUrl + " (sha1 " + hash + ")");
+            tell(feedback, "<green>Resource pack atualizado para <white>" + releaseTag + "</white>.");
+            if (changed) {
+                // quem entrou antes da descoberta recebeu o pacote do cache (versão antiga): reenvia o novo
+                Bukkit.getScheduler().runTask(plugin, () -> plugin.resourcePack().refreshOnline());
+            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, "Falha ao obter o resource pack da release: " + e);
+            tell(feedback, "<red>Falha ao atualizar o resource pack: <gray>" + Msg.esc(String.valueOf(e.getMessage())));
+            retrySoon();
         } finally {
             checking.set(false);
         }

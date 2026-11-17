@@ -2,7 +2,6 @@ package dev.vertexx.update;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import dev.vertexx.PluginMain;
 import dev.vertexx.core.Msg;
 import java.io.IOException;
@@ -59,7 +58,67 @@ public final class AutoUpdater implements Listener, TabExecutor {
             return;
         }
         long interval = Math.max(5, plugin.getConfig().getLong("updater.check-interval-minutes", 30)) * 60 * 20;
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, this::cleanStale);
         Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> check(null), 20L * 15, interval);
+    }
+
+    /** Falhas seguidas já reagendadas (zera ao dar certo). */
+    private volatile int retries;
+
+    /** Falha passageira (rede, release ainda subindo): tenta de novo em 2 min, até 5 vezes, em vez de esperar o ciclo. */
+    private void retrySoon() {
+        if (!plugin.isEnabled() || retries >= 5) {
+            return;
+        }
+        retries++;
+        Bukkit.getScheduler().runTaskLaterAsynchronously(plugin, () -> check(null), 20L * 120);
+    }
+
+    /**
+     * Limpa a pasta update de resíduos: downloads incompletos e jars que não são mais novos que o em execução
+     * (senão o próximo reinício <i>desfaria</i> uma atualização manual). Um jar mais novo vira "pendente".
+     */
+    private void cleanStale() {
+        try {
+            Path dir = Bukkit.getUpdateFolderFile().toPath();
+            if (!Files.isDirectory(dir)) {
+                return;
+            }
+            try (var files = Files.list(dir)) {
+                for (Path file : files.toList()) {
+                    String name = file.getFileName().toString();
+                    if (name.endsWith(".part")) {
+                        Files.deleteIfExists(file);
+                    } else if (name.startsWith(plugin.jarFile().getName().replaceFirst("-[0-9][^/]*\\.jar$", "")) && name.endsWith(".jar")) {
+                        String version = jarVersion(file);
+                        if (version == null || compare(version, currentVersion()) <= 0) {
+                            Files.deleteIfExists(file);
+                            plugin.getLogger().info("Removido da pasta update um jar velho ou inválido: " + name);
+                        } else {
+                            pendingVersion = version;
+                        }
+                    }
+                }
+            }
+        } catch (IOException e) {
+            plugin.getLogger().log(Level.WARNING, "Não consegui limpar a pasta update: " + e);
+        }
+    }
+
+    /** Versão declarada no plugin.yml do jar, ou {@code null} se não for um plugin legível. */
+    private static String jarVersion(Path jarPath) {
+        try (JarFile jar = new JarFile(jarPath.toFile())) {
+            var entry = jar.getEntry("plugin.yml");
+            if (entry == null) {
+                return null;
+            }
+            try (var reader = new java.io.InputStreamReader(jar.getInputStream(entry), java.nio.charset.StandardCharsets.UTF_8)) {
+                String version = org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(reader).getString("version");
+                return version == null || version.isBlank() ? null : version.strip();
+            }
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     /** Versão baixada que aguarda reinício, ou {@code null}. */
@@ -70,6 +129,7 @@ public final class AutoUpdater implements Listener, TabExecutor {
     /** Checa o GitHub agora (assíncrono), respondendo a {@code feedback}. */
     public void checkNow(CommandSender feedback) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> check(feedback));
+        plugin.resourcePack().checkPackNow(feedback);
     }
 
     public String currentVersion() {
@@ -90,44 +150,28 @@ public final class AutoUpdater implements Listener, TabExecutor {
                 tell(feedback, "<red>updater.repository inválido no config.yml (use dono/repositorio).");
                 return;
             }
-            HttpRequest request = HttpRequest.newBuilder(
-                            URI.create("https://api.github.com/repos/" + repository + "/releases/latest"))
-                    .header("Accept", "application/vnd.github+json")
-                    .header("User-Agent", "Vertexx-Updater")
-                    .timeout(Duration.ofSeconds(20))
-                    .GET().build();
-            HttpResponse<String> response = http.send(request, HttpResponse.BodyHandlers.ofString());
-            JsonObject release;
-            if (response.statusCode() == 200) {
-                release = JsonParser.parseString(response.body()).getAsJsonObject();
-            } else if (response.statusCode() == 403 || response.statusCode() == 429) {
-                // limite da API anônima (60/h por IP): descobre a tag pela página de releases, que não tem limite
-                plugin.getLogger().info("API do GitHub respondeu " + response.statusCode() + "; usando o caminho alternativo.");
-                release = GithubLatest.fallbackRelease(repository, "Vertexx-Updater", "Vertexx-{v}.jar");
-                if (release == null) {
-                    tell(feedback, "<red>O GitHub respondeu com o código " + response.statusCode()
-                            + " (limite de requisições) e o caminho alternativo também falhou. Tente de novo em alguns minutos.");
-                    return;
-                }
-            } else if (response.statusCode() == 404) {
-                tell(feedback, "<yellow>O repositório ainda não tem nenhuma release publicada.");
-                return;
-            } else {
-                tell(feedback, "<red>O GitHub respondeu com o código " + response.statusCode() + ".");
+            JsonObject release = ReleaseSource.latest(repository, "Vertexx-Updater", feedback != null, "Vertexx-{v}.jar");
+            if (release == null) {
+                tell(feedback, "<red>Não consegui consultar o GitHub agora (sem resposta da página nem da API). "
+                        + "Vou tentar de novo em alguns minutos.");
+                retrySoon();
                 return;
             }
             String latest = release.get("tag_name").getAsString().replaceFirst("^[vV]", "");
             if (compare(latest, currentVersion()) <= 0) {
+                retries = 0;
                 tell(feedback, "<green>O servidor já está na versão mais recente (<white>" + currentVersion() + "</white>).");
                 return;
             }
-            if (latest.equals(pendingVersion)) {
-                tell(feedback, "<yellow>A versão <white>" + latest + "</white> já foi baixada e será aplicada no próximo reinício.");
+            if (pendingVersion != null && compare(latest, pendingVersion) <= 0) {
+                tell(feedback, "<yellow>A versão <white>" + pendingVersion + "</white> já foi baixada e será aplicada no próximo reinício.");
                 return;
             }
             JsonObject asset = findJar(release);
             if (asset == null) {
-                tell(feedback, "<red>A release " + latest + " não contém um arquivo .jar.");
+                // a release pode ter sido criada antes de os arquivos terminarem de subir
+                tell(feedback, "<yellow>A release " + latest + " ainda não tem o arquivo .jar; tentarei de novo em instantes.");
+                retrySoon();
                 return;
             }
             String url = asset.get("browser_download_url").getAsString();
@@ -136,7 +180,8 @@ public final class AutoUpdater implements Listener, TabExecutor {
                 return;
             }
             tell(feedback, "<gray>Baixando a versão <white>" + latest + "</white>…");
-            download(url, asset);
+            download(url, asset, latest);
+            retries = 0;
             pendingVersion = latest;
             plugin.getLogger().info("Vertexx " + latest + " baixado para plugins/update/. Reinicie o servidor para aplicar.");
             Bukkit.getScheduler().runTask(plugin, () -> {
@@ -151,6 +196,7 @@ public final class AutoUpdater implements Listener, TabExecutor {
         } catch (Exception e) {
             plugin.getLogger().log(Level.WARNING, "Falha ao checar atualizações: " + e);
             tell(feedback, "<red>Falha ao checar atualizações: <gray>" + Msg.esc(String.valueOf(e.getMessage())));
+            retrySoon();
         } finally {
             checking.set(false);
         }
@@ -170,7 +216,7 @@ public final class AutoUpdater implements Listener, TabExecutor {
     }
 
     /** Baixa, valida (SHA-256 da release e conteúdo do jar) e só então move para a pasta update. */
-    private void download(String url, JsonObject asset) throws Exception {
+    private void download(String url, JsonObject asset, String expectedVersion) throws Exception {
         Path updateDir = Bukkit.getUpdateFolderFile().toPath();
         Files.createDirectories(updateDir);
         String jarName = plugin.jarFile().getName();
@@ -193,10 +239,12 @@ public final class AutoUpdater implements Listener, TabExecutor {
                     throw new IOException("o SHA-256 do arquivo baixado não confere com o da release");
                 }
             }
-            try (JarFile jar = new JarFile(partial.toFile())) {
-                if (jar.getEntry("plugin.yml") == null) {
-                    throw new IOException("o arquivo baixado não é um plugin válido");
-                }
+            String inside = jarVersion(partial);
+            if (inside == null) {
+                throw new IOException("o arquivo baixado não é um plugin válido");
+            }
+            if (compare(inside, expectedVersion) != 0) {
+                throw new IOException("o jar baixado é da versão " + inside + ", mas a release diz " + expectedVersion);
             }
             Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING);
         } finally {
@@ -281,6 +329,7 @@ public final class AutoUpdater implements Listener, TabExecutor {
         if (args.length > 0 && args[0].equalsIgnoreCase("atualizar")) {
             Msg.send(sender, "<gray>Checando a release mais recente no GitHub…");
             Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> check(sender));
+            plugin.resourcePack().checkPackNow(sender);
             return true;
         }
         Msg.send(sender, "<gray>Versão em execução: <white>" + currentVersion() + "</white>"

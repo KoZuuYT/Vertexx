@@ -58,6 +58,8 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.overworld.Climates climates;
     private dev.vertexx.overworld.Arid arid;
     private dev.vertexx.overworld.Archaeology archaeology;
+    private dev.vertexx.decor.ClockManager clocks;
+    private dev.vertexx.decor.HookManager hooks;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -92,6 +94,8 @@ public final class PluginMain extends JavaPlugin {
         climates = new dev.vertexx.overworld.Climates(this);
         arid = new dev.vertexx.overworld.Arid(this);
         archaeology = new dev.vertexx.overworld.Archaeology(this);
+        clocks = new dev.vertexx.decor.ClockManager(this);
+        hooks = new dev.vertexx.decor.HookManager(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -118,6 +122,8 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(climates, this);
         plugins.registerEvents(arid, this);
         plugins.registerEvents(archaeology, this);
+        plugins.registerEvents(clocks, this);
+        plugins.registerEvents(hooks, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
@@ -153,6 +159,8 @@ public final class PluginMain extends JavaPlugin {
         climates.start();
         arid.start();
         archaeology.start();
+        clocks.start();
+        hooks.start();
         warpStone.start();
         recipeBook.start();
 
@@ -177,6 +185,7 @@ public final class PluginMain extends JavaPlugin {
                 bosses.apply(bossData);
                 models.load(waystones.all());
                 models.start();
+                waystones.ensureAllUpper();
                 waystones.startAmbient();
                 rpg.refreshOnline();
                 ready = true;
@@ -207,6 +216,8 @@ public final class PluginMain extends JavaPlugin {
         climates.shutdown();
         arid.shutdown();
         archaeology.shutdown();
+        clocks.shutdown();
+        hooks.shutdown();
         rpg.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
     }

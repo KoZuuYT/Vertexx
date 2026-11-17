@@ -297,6 +297,7 @@ public final class FaunaManager implements Listener {
             case GREAT_HUNGER -> new GreatHunger(this, mob);
             case BARNACLE -> new Barnacle(this, mob);
             case VOID_RAY -> new VoidRay(this, mob);
+            case END_STINGRAY -> new EndStingray(this, mob);
             case END_CRAWLER -> new EndCrawler(this, mob);
             case SHULKER_SENTINEL -> new ShulkerSentinel(this, mob);
             case AMETHYST_GOLEM -> new AmethystGolem(this, mob);
@@ -446,6 +447,7 @@ public final class FaunaManager implements Listener {
                     case GREAT_HUNGER -> 0.45;
                     case BARNACLE -> 2.2;
                     case VOID_RAY -> 1.0;
+                    case END_STINGRAY -> 1.0;
                     case END_CRAWLER -> 2.2;
                     case SHULKER_SENTINEL -> 1.0;
                     case AMETHYST_GOLEM -> 1.0;
@@ -630,6 +632,12 @@ public final class FaunaManager implements Listener {
             ItemStack membrane = dev.vertexx.end.EndItem.ETHEREAL_MEMBRANE.create(plugin);
             membrane.setAmount(1 + random.nextInt(2));
             event.getDrops().add(membrane);
+        } else if (critter.kind() == FaunaKind.END_STINGRAY) {
+            event.getDrops().clear();
+            event.getDrops().add(new ItemStack(Material.AMETHYST_SHARD, 1 + random.nextInt(3)));
+            if (random.nextDouble() < 0.3) {
+                event.getDrops().add(new ItemStack(Material.ENDER_PEARL));
+            }
         } else if (critter.kind() == FaunaKind.END_CRAWLER) {
             event.getDrops().clear();
             ItemStack chitin = dev.vertexx.end.EndItem.VOID_CHITIN.create(plugin);
@@ -844,6 +852,9 @@ public final class FaunaManager implements Listener {
         if (zone == dev.vertexx.end.EndWorld.Zone.CANOPY && count(FaunaKind.VOID_RAY, l, 64) < 3 && random.nextDouble() < 0.35) {
             spawnNear(player, FaunaKind.VOID_RAY, 10, 22, false);
         }
+        if (zone == dev.vertexx.end.EndWorld.Zone.CANOPY && count(FaunaKind.END_STINGRAY, l, 96) < 2 && random.nextDouble() < 0.2) {
+            spawnNear(player, FaunaKind.END_STINGRAY, 14, 28, false);
+        }
         if (zone == dev.vertexx.end.EndWorld.Zone.WASTES) {
             if (count(FaunaKind.END_CRAWLER, l, 64) < 3 && random.nextDouble() < 0.3) {
                 spawnNear(player, FaunaKind.END_CRAWLER, 10, 22, false);
@@ -932,7 +943,7 @@ public final class FaunaManager implements Listener {
             }
             for (int dy = 3; dy >= -4; dy--) {
                 Block b = world.getBlockAt(x, player.getLocation().getBlockY() + dy, z);
-                boolean ground = kind != FaunaKind.GLARE && kind != FaunaKind.VOID_RAY;
+                boolean ground = kind != FaunaKind.GLARE && kind != FaunaKind.VOID_RAY && kind != FaunaKind.END_STINGRAY;
                 if (!b.isPassable() || b.isLiquid() || !b.getRelative(0, 1, 0).isPassable() || !b.getRelative(0, 2, 0).isPassable()
                         || (ground && b.getRelative(0, -1, 0).isPassable())) {
                     continue;
@@ -963,7 +974,7 @@ public final class FaunaManager implements Listener {
             case "spawn", "criar" -> {
                 FaunaKind kind = args.length < 3 ? null : FaunaKind.parse(args[2]);
                 if (kind == null) {
-                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endcrawler|shulkersentinel|amethystgolem|meerkat|ostrich|vulture|deepslateankylo|caveglider> [variante]");
+                    Msg.send(sender, "<gray>Uso: <white>/vertexx rejeitado spawn <rascal|tuffgolem|moobloom|glare|crab|penguin|greathunger|barnacle|voidray|endstingray|endcrawler|shulkersentinel|amethystgolem|meerkat|ostrich|vulture|deepslateankylo|caveglider> [variante]");
                     return;
                 }
                 String variant = args.length >= 4 && GreatHunger.VARIANTS.contains(args[3].toLowerCase(Locale.ROOT))
@@ -1002,7 +1013,7 @@ public final class FaunaManager implements Listener {
             return Tab.of(args[1], "spawn", "limpar", "lista");
         }
         if (args.length == 3 && args[1].equalsIgnoreCase("spawn")) {
-            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endcrawler", "shulkersentinel", "amethystgolem", "meerkat", "ostrich", "vulture", "deepslateankylo", "caveglider");
+            return Tab.of(args[2], "rascal", "tuffgolem", "moobloom", "glare", "crab", "penguin", "greathunger", "barnacle", "voidray", "endstingray", "endcrawler", "shulkersentinel", "amethystgolem", "meerkat", "ostrich", "vulture", "deepslateankylo", "caveglider");
         }
         if (args.length == 4 && args[1].equalsIgnoreCase("spawn") && FaunaKind.parse(args[2]) == FaunaKind.GREAT_HUNGER) {
             return Tab.of(args[3], GreatHunger.VARIANTS.toArray(new String[0]));

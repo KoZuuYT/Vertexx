@@ -52,6 +52,11 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         resolver.start();
     }
 
+    /** Força a checagem do pacote na release mais recente (usada por /vertexx atualizar). */
+    public void checkPackNow(CommandSender feedback) {
+        resolver.checkNow(feedback);
+    }
+
     public boolean isLoaded(Player player) {
         return loaded.contains(player.getUniqueId());
     }

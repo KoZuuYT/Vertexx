@@ -24,7 +24,8 @@ public enum FaunaKind {
     PENGUIN("penguin", "Pinguim", "<dark_aqua>", Material.COD, Turtle.class),
     GREAT_HUNGER("greathunger", "Great Hunger", "<dark_green>", Material.COARSE_DIRT, Cow.class),
     BARNACLE("barnacle", "Barnacle", "<dark_aqua>", Material.PRISMARINE, Squid.class),
-    VOID_RAY("voidray", "Arraia do Vazio", "<light_purple>", Material.PHANTOM_MEMBRANE, Allay.class),
+    VOID_RAY("voidray", "Água-viva do Fim", "<light_purple>", Material.PHANTOM_MEMBRANE, Allay.class),
+    END_STINGRAY("endstingray", "Raia do Fim", "<dark_purple>", Material.ENDER_EYE, Allay.class),
     END_CRAWLER("endcrawler", "Rastejador do Fim", "<dark_purple>", Material.OBSIDIAN, Silverfish.class),
     SHULKER_SENTINEL("shulkersentinel", "Sentinela de Shulker", "<light_purple>", Material.SHULKER_SHELL, Breeze.class),
     AMETHYST_GOLEM("amethystgolem", "Golem de Ametista", "<light_purple>", Material.AMETHYST_BLOCK, Allay.class),
@@ -84,7 +85,8 @@ public enum FaunaKind {
             case "pinguim" -> PENGUIN;
             case "hunger", "fome" -> GREAT_HUNGER;
             case "monstro", "lula" -> BARNACLE;
-            case "arraia", "ray" -> VOID_RAY;
+            case "aguaviva", "jellyfish", "arraiadovazio", "voidray" -> VOID_RAY;
+            case "arraia", "raia", "ray", "stingray" -> END_STINGRAY;
             case "rastejador", "crawler" -> END_CRAWLER;
             case "sentinela", "sentinel" -> SHULKER_SENTINEL;
             case "ametista" -> AMETHYST_GOLEM;
