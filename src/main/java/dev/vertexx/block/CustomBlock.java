@@ -73,6 +73,7 @@ public enum CustomBlock {
                 lines.add(Msg.item(line));
             }
             meta.lore(lines);
+            meta.setTooltipStyle(dev.vertexx.core.Items.TOOLTIP);
             meta.setItemModel(NamespacedKey.fromString("vertexx:" + id));
             meta.getPersistentDataContainer().set(KEY, PersistentDataType.STRING, id);
         });

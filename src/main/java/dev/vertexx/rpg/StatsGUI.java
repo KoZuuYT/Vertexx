@@ -57,6 +57,9 @@ public final class StatsGUI extends Menu {
     private static final int CLOSE = 8;
     private static final int BUY = 26;
     private static final int RESPEC = 53;
+    /** Cabeça e pontos da página de status ficam na fileira de cima, livres das barras. */
+    private static final int HEAD = 5;
+    private static final int POINTS = 7;
 
     private final Page page;
     private final int info;
@@ -165,8 +168,8 @@ public final class StatsGUI extends Menu {
                     c.bar(tx, cell + 9, level >= cap ? 1 : d.xp(s) / PlayerData.statNeed(level), tone(s));
                     c.text(tx + Canvas.BAR_W + 3, cell + 9, String.valueOf(level), WHITE);
                 }
-                c.slotFrame(16, 0);
-                c.slotFrame(RESPEC, 2);
+                c.slotFrame(HEAD, 0);
+                c.slotFrame(POINTS, 2);
                 c.text(-84, 24, "PONTOS", GREY).text(-84, 34, String.valueOf(d.points), AQUA);
                 c.text(-84, 52, "GASTE NA", GREY).text(-84, 61, "ARVORE DE", GREY).text(-84, 70, "HABILIDADES", GREY);
                 c.text(188, 24, "NIVEL GERAL", GREY).text(188, 34, String.valueOf(d.level), GOLD);
@@ -288,8 +291,8 @@ public final class StatsGUI extends Menu {
                         RpgManager.bar(d.xp / need, 16),
                         "<gray>XP: <white>" + Math.round(d.xp) + "<dark_gray>/<white>" + Math.round(need)));
         head.editMeta(SkullMeta.class, meta -> meta.setOwningPlayer(player));
-        set(16, head, null);
-        set(RESPEC, icon(Material.EXPERIENCE_BOTTLE, "ui_star", "<aqua><bold>" + d.points + " ponto(s)",
+        set(HEAD, head, null);
+        set(POINTS, icon(Material.EXPERIENCE_BOTTLE, "ui_star", "<aqua><bold>" + d.points + " ponto(s)",
                 List.of("<gray>Gaste na árvore de habilidades.", "", "<yellow>▶ Clique para abrir"), d.points > 0),
                 c -> open(plugin, player, Page.TREE, 0));
     }

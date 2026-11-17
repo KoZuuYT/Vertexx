@@ -10,6 +10,9 @@ import org.bukkit.inventory.ItemStack;
 /** Construção de itens de interface. */
 public final class Items {
 
+    /** Moldura de tooltip do Vertexx (sprites tooltip/special_* do pack). */
+    public static final org.bukkit.NamespacedKey TOOLTIP = new org.bukkit.NamespacedKey("vertexx", "special");
+
     private Items() {
     }
 
@@ -27,6 +30,7 @@ public final class Items {
             }
             meta.lore(lines);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            meta.setTooltipStyle(TOOLTIP);
             if (glint) {
                 meta.setEnchantmentGlintOverride(true);
             }

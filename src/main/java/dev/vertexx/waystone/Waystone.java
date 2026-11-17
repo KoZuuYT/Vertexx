@@ -8,7 +8,7 @@ import org.bukkit.Material;
 public final class Waystone {
 
     private final UUID id;
-    private final String name;
+    private volatile String name;
     private final BlockPos pos;
     private final UUID owner;
     private final String ownerName;
@@ -37,6 +37,10 @@ public final class Waystone {
 
     public String name() {
         return name;
+    }
+
+    public void name(String name) {
+        this.name = name;
     }
 
     public BlockPos pos() {

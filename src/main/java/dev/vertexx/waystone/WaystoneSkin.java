@@ -21,7 +21,11 @@ public enum WaystoneSkin {
     ANDESITE("Andesito", Material.POLISHED_ANDESITE, Material.ANDESITE,
             Material.ANDESITE, Material.POLISHED_ANDESITE, Material.POLISHED_ANDESITE),
     BRICKS("Tijolos de barro", Material.BRICKS, Material.BRICKS,
-            Material.BRICKS, Material.BRICKS, Material.BRICKS);
+            Material.BRICKS, Material.BRICKS, Material.BRICKS),
+    DESERT("Deserto", Material.CHISELED_SANDSTONE, Material.CUT_SANDSTONE,
+            Material.SANDSTONE, Material.SMOOTH_SANDSTONE, Material.CUT_SANDSTONE),
+    ICE("Gelo e neve", Material.PACKED_ICE, Material.SNOW_BLOCK,
+            Material.PACKED_ICE, Material.SNOW_BLOCK, Material.SNOW_BLOCK);
 
     public static final WaystoneSkin DEFAULT = STONE_BRICKS;
 
@@ -39,6 +43,11 @@ public enum WaystoneSkin {
         this.plate = plate;
         this.rimInner = rimInner;
         this.rim = rim;
+    }
+
+    /** Id da skin no resource pack (assets/vertexx/items/waystone_<id>.json). */
+    public String id() {
+        return name().toLowerCase(Locale.ROOT);
     }
 
     public String label() {

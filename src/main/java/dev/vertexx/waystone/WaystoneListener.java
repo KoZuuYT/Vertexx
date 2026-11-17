@@ -21,7 +21,6 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPistonExtendEvent;
 import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -29,7 +28,6 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 
 /** Criação, uso, proteção e remoção de Waystones. */
 public final class WaystoneListener implements Listener {
@@ -44,37 +42,57 @@ public final class WaystoneListener implements Listener {
         return plugin.waystones();
     }
 
-    // ── Criação: colocar um Lodestone renomeado ─────────────────
+    // ── Criação: Fragmento de Ametista num Lodestone ────────────
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onPlace(BlockPlaceEvent event) {
-        if (event.getBlockPlaced().getType() != Material.LODESTONE) {
+    private boolean isShard(ItemStack item) {
+        return item != null && item.getType() == Material.AMETHYST_SHARD && dev.vertexx.end.EndItem.of(item) == null;
+    }
+
+    private void startCreation(PlayerInteractEvent event, Block block) {
+        if (block.getType() != Material.LODESTONE || !isShard(event.getItem())) {
             return;
         }
-        ItemMeta meta = event.getItemInHand().getItemMeta();
-        if (meta == null || !meta.hasCustomName()) {
-            return; // Lodestone comum continua 100% vanilla
-        }
+        event.setCancelled(true);
         Player player = event.getPlayer();
-        String name = Msg.plain(meta.customName());
-        switch (waystones().create(player, event.getBlockPlaced(), name)) {
+        if (waystones().limitReached(player)) {
+            refuse(player, "<red>Você atingiu o limite de <white>"
+                    + plugin.getConfig().getInt("waystones.max-per-player", 3) + "</white> Waystones.");
+            return;
+        }
+        plugin.namePrompt().ask(player, "Qual será o nome do novo Waystone?", name -> finishCreation(player, block, name));
+    }
+
+    private void finishCreation(Player player, Block block, String name) {
+        if (block.getType() != Material.LODESTONE || waystones().at(block) != null) {
+            refuse(player, "<red>Este Lodestone mudou: o Waystone não foi criado.");
+            return;
+        }
+        boolean creative = player.getGameMode() == GameMode.CREATIVE;
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (!creative && !isShard(held)) {
+            refuse(player, "<red>Segure um <white>Fragmento de Ametista</white> para criar o Waystone.");
+            return;
+        }
+        switch (waystones().create(player, block, name)) {
             case CREATED -> {
-                Location center = event.getBlockPlaced().getLocation().add(0.5, 0.5, 0.5);
+                if (!creative) {
+                    held.setAmount(held.getAmount() - 1);
+                }
+                Location center = block.getLocation().add(0.5, 0.5, 0.5);
                 Fx.ring(center.clone().add(0, 0.7, 0), Particle.END_ROD, 0.9, 20);
                 Fx.burst(center.clone().add(0, 1, 0), Particle.ENCHANT, 50, 0.4, 1.0);
                 Fx.worldSound(center, Sound.BLOCK_BEACON_ACTIVATE, 0.8f, 1.4f);
                 Msg.send(player, "<green>Waystone <white><name></white> criado. <gray>Clique nele com o botão direito para viajar.",
-                        Placeholder.unparsed("name", name.strip()));
+                        Placeholder.unparsed("name", waystones().cleanName(name)));
             }
-            case LIMIT_REACHED -> refuse(event, player, "<red>Você atingiu o limite de <white>"
+            case LIMIT_REACHED -> refuse(player, "<red>Você atingiu o limite de <white>"
                     + plugin.getConfig().getInt("waystones.max-per-player", 3) + "</white> Waystones.");
-            case NAME_TAKEN -> refuse(event, player, "<red>Já existe um Waystone com esse nome. Renomeie o Lodestone na bigorna.");
-            case INVALID_NAME -> refuse(event, player, "<red>Nome de Waystone inválido.");
+            case NAME_TAKEN -> refuse(player, "<red>Já existe um Waystone com esse nome. Clique no Lodestone de novo e escolha outro.");
+            case INVALID_NAME -> refuse(player, "<red>Nome de Waystone inválido.");
         }
     }
 
-    private void refuse(BlockPlaceEvent event, Player player, String message) {
-        event.setCancelled(true);
+    private void refuse(Player player, String message) {
         Msg.send(player, message);
         Fx.deny(player);
     }
@@ -89,6 +107,7 @@ public final class WaystoneListener implements Listener {
         }
         Waystone waystone = waystones().at(event.getClickedBlock());
         if (waystone == null) {
+            startCreation(event, event.getClickedBlock());
             return;
         }
         Player player = event.getPlayer();
@@ -167,9 +186,7 @@ public final class WaystoneListener implements Listener {
         event.setDropItems(false);
         Location center = waystone.pos().center();
         if (player.getGameMode() != GameMode.CREATIVE) {
-            ItemStack drop = new ItemStack(Material.LODESTONE);
-            drop.editMeta(meta -> meta.customName(net.kyori.adventure.text.Component.text(waystone.name())));
-            center.getWorld().dropItemNaturally(center, drop);
+            center.getWorld().dropItemNaturally(center, new ItemStack(Material.LODESTONE));
         }
         Fx.burst(center, Particle.REVERSE_PORTAL, 50, 0.3, 0.1);
         Fx.worldSound(center, Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.2f);

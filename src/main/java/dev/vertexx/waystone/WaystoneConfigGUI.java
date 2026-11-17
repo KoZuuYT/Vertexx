@@ -32,12 +32,13 @@ public final class WaystoneConfigGUI implements InventoryHolder {
     private static final int ICON_SLOT = 22;
     private static final int NAME_SLOT = 24;
     private static final int ROUTE_SLOT = 31;
+    private static final int RENAME_SLOT = 29;
     private static final int TITLE_SLOT = 4;
     private static final int ACTION_SLOT = 40;
     private static final int BACK_SLOT = 45;
     private static final int CLOSE_SLOT = 49;
     private static final int NEXT_SLOT = 53;
-    private static final int[] SKIN_SLOTS = {19, 21, 23, 25, 28, 30, 32, 34};
+    private static final int[] SKIN_SLOTS = {19, 21, 23, 25, 28, 30, 32, 34, 37, 39};
     private static final int[] CONTENT_SLOTS = {
             10, 11, 12, 13, 14, 15, 16,
             19, 20, 21, 22, 23, 24, 25,
@@ -105,6 +106,7 @@ public final class WaystoneConfigGUI implements InventoryHolder {
             case SKIN_SLOT -> go(Mode.SKIN);
             case ICON_SLOT -> go(Mode.ICON);
             case ROUTE_SLOT -> go(Mode.ROUTE);
+            case RENAME_SLOT -> rename();
             case NAME_SLOT -> {
                 waystone.showName(!waystone.showName());
                 plugin.waystones().changed(waystone);
@@ -118,6 +120,31 @@ public final class WaystoneConfigGUI implements InventoryHolder {
             default -> {
             }
         }
+    }
+
+    /** Pede o novo nome no chat e reabre esta tela quando terminar. */
+    private void rename() {
+        Fx.click(player);
+        plugin.namePrompt().ask(player, "Qual o novo nome do Waystone <white>" + Msg.esc(waystone.name()) + "</white>?", text -> {
+            if (!plugin.waystones().exists(waystone) || !plugin.waystones().canConfigure(player, waystone)) {
+                return;
+            }
+            switch (plugin.waystones().rename(waystone, text)) {
+                case CREATED -> {
+                    Fx.select(player);
+                    Msg.send(player, "<green>Waystone renomeado para <white>" + Msg.esc(waystone.name()) + "</white>.");
+                }
+                case NAME_TAKEN -> {
+                    Fx.deny(player);
+                    Msg.send(player, "<red>Já existe um Waystone com esse nome.");
+                }
+                default -> {
+                    Fx.deny(player);
+                    Msg.send(player, "<red>Nome inválido.");
+                }
+            }
+            new WaystoneConfigGUI(plugin, player, waystone).open();
+        });
     }
 
     private void handleSkin(int slot) {
@@ -235,7 +262,7 @@ public final class WaystoneConfigGUI implements InventoryHolder {
                         "<gray>Viagens até aqui: <white>" + waystone.uses()), true));
         inventory.setItem(SKIN_SLOT, Items.of(waystone.skin().pillar(), "<gradient:#c4a7ff:#2cb67d>Skin do modelo",
                 List.of("<gray>Atual: <white>" + waystone.skin().label(),
-                        "<dark_gray>Oito conjuntos de blocos.", "", "<yellow>▶ Clique para escolher")));
+                        "<dark_gray>Dez estilos, de pedra a gelo.", "", "<yellow>▶ Clique para escolher")));
         inventory.setItem(ICON_SLOT, Items.of(waystone.icon(), "<gradient:#c4a7ff:#2cb67d>Ícone flutuante",
                 List.of("<gray>Atual: <white><lang:" + waystone.icon().translationKey() + ">",
                         "<dark_gray>Gira sobre o topo do modelo.", "", "<yellow>▶ Clique para escolher")));
@@ -251,6 +278,9 @@ public final class WaystoneConfigGUI implements InventoryHolder {
                         "<dark_gray>Shift + clique direito ainda abre o menu.",
                         "",
                         "<yellow>▶ Clique para escolher")));
+        inventory.setItem(RENAME_SLOT, Items.of(Material.ANVIL, "<gradient:#c4a7ff:#2cb67d>Renomear Waystone",
+                List.of("<gray>Atual: <white>" + Msg.esc(waystone.name()),
+                        "<dark_gray>O novo nome é digitado no chat.", "", "<yellow>▶ Clique para renomear")));
         inventory.setItem(BACK_SLOT, Items.of(Material.ARROW, "<yellow>◀ Voltar ao menu", List.of()));
     }
 

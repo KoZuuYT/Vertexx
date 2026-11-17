@@ -21,7 +21,9 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Container;
 import org.bukkit.block.TileState;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
@@ -32,6 +34,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.inventory.FurnaceStartSmeltEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -46,6 +49,9 @@ import org.bukkit.inventory.DoubleChestInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Transformation;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 /**
  * Upgrades de fornalhas (velocidade de cozimento) e baús (capacidade em páginas). O nível fica no
@@ -235,7 +241,10 @@ public final class UpgradeManager implements Listener {
         Fx.burst(at.clone().add(0, 0.6, 0), Particle.FLAME, 25, 0.35, 0.04);
         Fx.worldSound(at, Sound.BLOCK_ANVIL_USE, 0.8f, 1.2f);
         Fx.worldSound(at, Sound.BLOCK_BEACON_POWER_SELECT, 0.7f, 1.5f);
-        plugin.rpg().cinematics().upgraded(player, kind.display(), current + 1);
+        if (kind == Kind.CHEST) {
+            badge(block, current + 1, true);
+        }
+        Msg.actionBar(player, "<gold>" + kind.display() + " melhorado <white>nível " + (current + 1));
         return null;
     }
 
@@ -388,6 +397,7 @@ public final class UpgradeManager implements Listener {
             return;
         }
         closeViewer(block);
+        removeBadge(block);
         if (event.getPlayer().getGameMode() != org.bukkit.GameMode.CREATIVE) {
             dropExtras(block);
         }
@@ -438,6 +448,7 @@ public final class UpgradeManager implements Listener {
                     meta.getPersistentDataContainer().set(tierKey, PersistentDataType.INTEGER, tier);
                     meta.lore(List.of(Msg.item("<gold>" + kind.display() + " melhorado <white>nível " + tier)));
                     meta.setEnchantmentGlintOverride(true);
+                    meta.setTooltipStyle(Items.TOOLTIP);
                 });
                 drop.setItemStack(stack);
                 break;
@@ -445,28 +456,110 @@ public final class UpgradeManager implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onPlaceCheck(BlockPlaceEvent event) {
-        Material type = event.getBlockPlaced().getType();
+    /**
+     * Baús melhorados ficam lado a lado sem virar baú duplo: depois de colocar, o baú novo e o vizinho
+     * voltam ao tipo SINGLE (o jogo só junta os dois se nenhum deles for melhorado).
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPlace(BlockPlaceEvent event) {
+        int tier = itemTier(event.getItemInHand());
+        Block placed = event.getBlockPlaced();
+        if (tier > 0 && kindOf(placed.getType()) != null) {
+            setTier(placed, tier);
+            if (kindOf(placed.getType()) == Kind.CHEST) {
+                badge(placed, tier, true);
+            }
+        }
+        Material type = placed.getType();
         if (type != Material.CHEST && type != Material.TRAPPED_CHEST) {
             return;
         }
-        boolean placedTier = itemTier(event.getItemInHand()) > 0;
         for (BlockFace face : new BlockFace[]{BlockFace.NORTH, BlockFace.SOUTH, BlockFace.EAST, BlockFace.WEST}) {
-            Block neighbor = event.getBlockPlaced().getRelative(face);
-            if (neighbor.getType() == type && (placedTier || tierOf(neighbor) > 0)) {
-                event.setCancelled(true);
-                Msg.actionBar(event.getPlayer(), "<red>Baús melhorados não formam baú duplo.");
-                return;
+            Block neighbor = placed.getRelative(face);
+            if (neighbor.getType() == type && (tier > 0 || tierOf(neighbor) > 0)) {
+                single(placed);
+                single(neighbor);
             }
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onPlace(BlockPlaceEvent event) {
-        int tier = itemTier(event.getItemInHand());
-        if (tier > 0 && kindOf(event.getBlockPlaced().getType()) != null) {
-            setTier(event.getBlockPlaced(), tier);
+    // ── Faixa visual dos baús melhorados ───────────────────────
+
+    private static final String BADGE = "vx_badge";
+
+    /** Uma faixa de metal em volta do baú (modelo do pack, uma cor por nível); fica salva no mundo. */
+    private void badge(Block block, int tier, boolean animate) {
+        Material type = block.getType();
+        if (type != Material.CHEST && type != Material.TRAPPED_CHEST && type != Material.BARREL) {
+            return;
+        }
+        removeBadge(block);
+        if (tier <= 0) {
+            return;
+        }
+        float width = type == Material.BARREL ? 1.0f : 0.9f;
+        ItemStack stack = new ItemStack(Material.PAPER);
+        stack.editMeta(meta -> meta.setItemModel(NamespacedKey.fromString("vertexx:chest_band_" + Math.min(tier, 6))));
+        Transformation full = new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(width, 1f, width), new Quaternionf());
+        Transformation small = new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(width * 0.2f, 0.2f, width * 0.2f), new Quaternionf());
+        ItemDisplay display = block.getWorld().spawn(block.getLocation().add(0.5, 0.5, 0.5), ItemDisplay.class, entity -> {
+            entity.setItemStack(stack);
+            entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
+            entity.addScoreboardTag(BADGE);
+            entity.setPersistent(true);
+            entity.setViewRange(0.5f);
+            entity.setTransformation(animate ? small : full);
+        });
+        if (animate) {
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (display.isValid()) {
+                    display.setInterpolationDelay(0);
+                    display.setInterpolationDuration(10);
+                    display.setTransformation(full);
+                }
+            }, 2L);
+        }
+    }
+
+    private static List<Entity> badgesAt(Block block) {
+        List<Entity> found = new ArrayList<>();
+        for (Entity entity : block.getWorld().getNearbyEntities(block.getLocation().add(0.5, 0.5, 0.5), 0.3, 0.3, 0.3)) {
+            if (entity.getScoreboardTags().contains(BADGE)) {
+                found.add(entity);
+            }
+        }
+        return found;
+    }
+
+    private void removeBadge(Block block) {
+        badgesAt(block).forEach(Entity::remove);
+    }
+
+    /** Baús melhorados de versões antigas (ou de faixas perdidas) ganham a faixa ao carregar o chunk. */
+    @EventHandler
+    public void onChunkLoad(ChunkLoadEvent event) {
+        if (!enabled()) {
+            return;
+        }
+        var chunk = event.getChunk();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!chunk.isLoaded()) {
+                return;
+            }
+            for (BlockState state : chunk.getTileEntities(b -> kindOf(b.getType()) == Kind.CHEST, false)) {
+                int tier = tierOf(state.getBlock());
+                if (tier > 0 && badgesAt(state.getBlock()).isEmpty()) {
+                    badge(state.getBlock(), tier, false);
+                }
+            }
+        }, 40L);
+    }
+
+    private static void single(Block block) {
+        if (block.getBlockData() instanceof org.bukkit.block.data.type.Chest data
+                && data.getType() != org.bukkit.block.data.type.Chest.Type.SINGLE) {
+            data.setType(org.bukkit.block.data.type.Chest.Type.SINGLE);
+            block.setBlockData(data, false);
         }
     }
 
@@ -483,6 +576,7 @@ public final class UpgradeManager implements Listener {
     private void explodeDrop(Block block) {
         if (kindOf(block.getType()) == Kind.CHEST && tierOf(block) > 0) {
             closeViewer(block);
+            removeBadge(block);
             dropExtras(block);
         }
     }

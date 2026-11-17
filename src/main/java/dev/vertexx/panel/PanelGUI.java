@@ -211,9 +211,9 @@ public final class PanelGUI implements InventoryHolder {
         int limit = plugin.getConfig().getInt("waystones.max-per-player", 3);
         int owned = manager.ownedBy(player.getUniqueId());
         set(20, Items.of(Material.LODESTONE, "<gradient:#c4a7ff:#2cb67d>Como criar um Waystone",
-                List.of("<gray>1. Renomeie um <white>Lodestone</white> na bigorna.",
-                        "<gray>2. Coloque-o no chão.",
-                        "<gray>3. Assista à montagem do modelo.",
+                List.of("<gray>1. Coloque um <white>Lodestone</white> no chão.",
+                        "<gray>2. Clique nele com um <white>Fragmento de Ametista</white>.",
+                        "<gray>3. Digite o nome no chat e veja o modelo montar.",
                         "",
                         "<gray>Seus Waystones: <white>" + owned + (limit < 0 ? "" : "<dark_gray>/<white>" + limit))), null);
         Material paying = manager.chosenPayment(player);

@@ -230,6 +230,9 @@ public final class ModelManager implements Listener {
         final Set<UUID> viewers = new HashSet<>();
         final Map<UUID, Integer> misses = new HashMap<>();
         ItemDisplay icon;
+        /** Corpo do resource pack (uma só entidade); quem não tem o pack vê as peças de bloco. */
+        ItemDisplay model;
+        final Map<UUID, Boolean> packSeen = new HashMap<>();
         TextDisplay name;
         WaystoneSkin skin;
         boolean spawned;
@@ -317,6 +320,9 @@ public final class ModelManager implements Listener {
         }
         if (instance.skin != waystone.skin()) {
             instance.skin = waystone.skin();
+            if (instance.model != null && instance.model.isValid()) {
+                instance.model.setItemStack(modelStack(waystone.skin()));
+            }
             for (int i = 0; i < instance.parts.size(); i++) {
                 Part def = instance.defs.get(i);
                 if (def.role() != Role.FIXED && instance.parts.get(i) instanceof BlockDisplay display
@@ -335,6 +341,9 @@ public final class ModelManager implements Listener {
         } else if (!waystone.showName() && instance.name != null) {
             instance.name.remove();
             instance.name = null;
+        }
+        if (instance.name != null && instance.name.isValid()) {
+            instance.name.text(Msg.mm("<gradient:#c4a7ff:#2cb67d><bold>" + Msg.esc(waystone.name())));
         }
     }
 
@@ -365,6 +374,7 @@ public final class ModelManager implements Listener {
         for (Instance instance : instances.values()) {
             instance.viewers.remove(player);
             instance.misses.remove(player);
+            instance.packSeen.remove(player);
         }
     }
 
@@ -473,11 +483,14 @@ public final class ModelManager implements Listener {
 
     private void syncViewers(Instance instance, Set<UUID> wanted) {
         for (UUID id : wanted) {
+            Player player = Bukkit.getPlayer(id);
             if (instance.viewers.add(id)) {
-                Player player = Bukkit.getPlayer(id);
                 if (player != null) {
-                    forEntity(instance, entity -> player.showEntity(plugin, entity));
+                    present(instance, player);
                 }
+            } else if (player != null
+                    && !Boolean.valueOf(plugin.resourcePack().isLoaded(player)).equals(instance.packSeen.get(id))) {
+                present(instance, player); // aceitou ou recusou o pack com o modelo à vista
             }
         }
         var iterator = instance.viewers.iterator();
@@ -488,6 +501,7 @@ public final class ModelManager implements Listener {
             }
             iterator.remove();
             instance.misses.remove(id);
+            instance.packSeen.remove(id);
             Player player = Bukkit.getPlayer(id);
             if (player != null) {
                 forEntity(instance, entity -> player.hideEntity(plugin, entity));
@@ -502,6 +516,9 @@ public final class ModelManager implements Listener {
         for (ItemDisplay eye : instance.eyes) {
             action.accept(eye);
         }
+        if (instance.model != null) {
+            action.accept(instance.model);
+        }
         if (instance.icon != null) {
             action.accept(instance.icon);
         }
@@ -513,10 +530,33 @@ public final class ModelManager implements Listener {
     private void showTo(Instance instance, Entity entity) {
         for (UUID id : instance.viewers) {
             Player player = Bukkit.getPlayer(id);
-            if (player != null) {
+            if (player != null && visibleFor(entity, plugin.resourcePack().isLoaded(player))) {
                 player.showEntity(plugin, entity);
             }
         }
+    }
+
+    /** O modelo do pack só aparece para quem tem o pack; as peças de bloco e os olhos, só para quem não tem. */
+    private static boolean visibleFor(Entity entity, boolean pack) {
+        if (entity.getScoreboardTags().contains("vx_model")) {
+            return pack;
+        }
+        if (entity.getScoreboardTags().contains("vx_fallback")) {
+            return !pack;
+        }
+        return true;
+    }
+
+    private void present(Instance instance, Player player) {
+        boolean pack = plugin.resourcePack().isLoaded(player);
+        instance.packSeen.put(player.getUniqueId(), pack);
+        forEntity(instance, entity -> {
+            if (visibleFor(entity, pack)) {
+                player.showEntity(plugin, entity);
+            } else {
+                player.hideEntity(plugin, entity);
+            }
+        });
     }
 
     // ── Giro do ícone e pulso dos olhos ────────────────────────────────────
@@ -572,6 +612,7 @@ public final class ModelManager implements Listener {
             for (Eye eye : EYES) {
                 instance.eyes.add(spawnEye(instance, base, eye, false));
             }
+            instance.model = spawnModel(instance, base, false);
             instance.icon = spawnIcon(instance, base, false);
             if (waystone.showName()) {
                 instance.name = spawnName(instance, base);
@@ -601,6 +642,12 @@ public final class ModelManager implements Listener {
                         5, 0.15, 0.02);
             });
         }
+        schedule(instance, 14, () -> {
+            ItemDisplay body = spawnModel(instance, base, true);
+            instance.model = body;
+            showTo(instance, body);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> animateTo(body, 26, modelTransform(1f)), 2L);
+        });
         schedule(instance, ICON_DELAY, () -> {
             ItemDisplay icon = spawnIcon(instance, base, true);
             instance.icon = icon;
@@ -648,6 +695,7 @@ public final class ModelManager implements Listener {
     private BlockDisplay spawnPart(Instance instance, Location base, Part part, boolean animated) {
         BlockDisplay display = base.getWorld().spawn(base, BlockDisplay.class, entity -> {
             entity.setBlock(part.block(instance.skin).createBlockData());
+            entity.addScoreboardTag("vx_fallback");
             entity.setPersistent(false);
             entity.setVisibleByDefault(false);
             entity.setTransformation(animated ? part.from() : part.to());
@@ -665,11 +713,41 @@ public final class ModelManager implements Listener {
         ItemDisplay display = base.getWorld().spawn(base, ItemDisplay.class, entity -> {
             entity.setItemStack(new ItemStack(Material.ENDER_EYE));
             entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+            entity.addScoreboardTag("vx_fallback");
             entity.setPersistent(false);
             entity.setVisibleByDefault(false);
             entity.setViewRange(0.8f);
             entity.setBrightness(new Display.Brightness(15, 15));
             entity.setTransformation(eyeTransform(eye, animated ? 0.001f : EYE_SCALE));
+        });
+        if (!animated) {
+            showTo(instance, display);
+        }
+        return display;
+    }
+
+    private static ItemStack modelStack(WaystoneSkin skin) {
+        ItemStack stack = new ItemStack(Material.PAPER);
+        stack.editMeta(meta -> meta.setItemModel(org.bukkit.NamespacedKey.fromString("vertexx:waystone_" + skin.id())));
+        return stack;
+    }
+
+    /** Modelo de 1 bloco, centrado na origem: sobe 0,5 para a base ficar no chão. */
+    private static Transformation modelTransform(float height) {
+        return new Transformation(new Vector3f(0, 0.5f * height, 0), new Quaternionf(),
+                new Vector3f(1f, height, 1f), new Quaternionf());
+    }
+
+    private ItemDisplay spawnModel(Instance instance, Location base, boolean animated) {
+        ItemDisplay display = base.getWorld().spawn(base, ItemDisplay.class, entity -> {
+            entity.setItemStack(modelStack(instance.skin));
+            entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
+            entity.addScoreboardTag("vx_model");
+            entity.setPersistent(false);
+            entity.setVisibleByDefault(false);
+            entity.setViewRange(1.0f);
+            entity.setBrightness(new Display.Brightness(15, 15));
+            entity.setTransformation(modelTransform(animated ? 0.001f : 1f));
         });
         if (!animated) {
             showTo(instance, display);
@@ -725,6 +803,11 @@ public final class ModelManager implements Listener {
             eye.remove();
         }
         instance.eyes.clear();
+        if (instance.model != null) {
+            instance.model.remove();
+            instance.model = null;
+        }
+        instance.packSeen.clear();
         if (instance.icon != null) {
             instance.icon.remove();
             instance.icon = null;

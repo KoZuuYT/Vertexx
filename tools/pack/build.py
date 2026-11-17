@@ -418,6 +418,12 @@ def build_assets():
     enditems.build(NS, save, write_json)
     import blocks
     blocks.build(NS, save, write_json)
+    import waystone
+    waystone.build(NS, save, write_json)
+    import upgrades
+    upgrades.build(NS, save, write_json)
+    import tooltips
+    tooltips.build(NS, save, write_json)
 
     write_json(NS / "models" / "item" / "selector.json",
                {"parent": "minecraft:item/handheld", "textures": {"layer0": "vertexx:item/selector"}})

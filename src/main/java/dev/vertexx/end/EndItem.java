@@ -53,6 +53,9 @@ public enum EndItem {
     ICEOLOGER_CORE("iceologer_core", "Núcleo de Iceologer", "<aqua>", Material.PAPER, 1031,
             "<gray>O núcleo congelado do senhor", "<gray>do castelo de gelo.",
             "<dark_gray>Encaixa no Portal do End trancado."),
+    WARP_STONE("warp_stone", "Pedra de Warp", "<light_purple>", Material.PAPER, 1040,
+            "<gray>Conecta-se a todos os Waystones", "<gray>que você já conheceu.",
+            "<dark_gray>Sem custo de pérolas, mas com poucas cargas."),
     BACKPACK_LEATHER("backpack_leather", "Mochila de Couro", "<gold>", Material.PAPER, 1010,
             "<gray>9 espaços."),
     BACKPACK_IRON("backpack_iron", "Mochila Reforçada", "<white>", Material.PAPER, 1011,
@@ -128,6 +131,7 @@ public enum EndItem {
                 lines.addAll(extra);
             }
             meta.lore(lines);
+            meta.setTooltipStyle(dev.vertexx.core.Items.TOOLTIP);
             NamespacedKey key = NamespacedKey.fromString(model);
             if (key != null) {
                 meta.setItemModel(key);

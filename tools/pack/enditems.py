@@ -92,6 +92,10 @@ def iceologer_core():
     return ramp_recolor(vanilla("nether_star"), ["#06203a", "#1a5a9a", "#4aa8e0", "#a8e8ff", "#ffffff"])
 
 
+def warp_stone():
+    return ramp_recolor(vanilla("ender_eye"), ["#1e0d36", "#4b2a8a", "#8a58d0", "#c9a0ff", "#ffffff"])
+
+
 def amber_fragment():
     return ramp_recolor(vanilla("honeycomb"), ["#4a2200", "#a8560a", "#e8920f", "#ffc23a", "#fff0a0"])
 
@@ -188,6 +192,7 @@ def build(ns, save, write_json):
         "levitation_core": levitation_core(),
         "wildfire_core": wildfire_core(),
         "iceologer_core": iceologer_core(),
+        "warp_stone": warp_stone(),
         "amber_fragment": amber_fragment(),
         "calcified_fossil": calcified_fossil(),
         "termite_larva": termite_larva(),

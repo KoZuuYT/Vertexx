@@ -249,23 +249,55 @@ public final class WaystoneManager {
         return total;
     }
 
-    public CreateResult create(Player owner, Block block, String rawName) {
+    /** Nome limpo e cortado no limite, ou vazio se for inválido. */
+    public String cleanName(String rawName) {
         String name = rawName == null ? "" : rawName.strip();
         int maxLength = plugin.getConfig().getInt("waystones.name-max-length", 32);
-        if (name.isEmpty()) {
-            return CreateResult.INVALID_NAME;
-        }
         if (name.length() > maxLength) {
             name = name.substring(0, maxLength).strip();
         }
+        return name;
+    }
+
+    public boolean limitReached(Player owner) {
         int limit = plugin.getConfig().getInt("waystones.max-per-player", 3);
-        if (limit >= 0 && ownedBy(owner.getUniqueId()) >= limit && !owner.hasPermission("vertexx.admin")) {
+        return limit >= 0 && ownedBy(owner.getUniqueId()) >= limit && !owner.hasPermission("vertexx.admin");
+    }
+
+    private boolean nameTaken(String name, Waystone except) {
+        for (Waystone existing : byId.values()) {
+            if (existing != except && existing.name().equalsIgnoreCase(name)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /** Renomeia o Waystone; {@code CREATED} significa "renomeado". */
+    public CreateResult rename(Waystone waystone, String rawName) {
+        String name = cleanName(rawName);
+        if (name.isEmpty()) {
+            return CreateResult.INVALID_NAME;
+        }
+        if (nameTaken(name, waystone)) {
+            return CreateResult.NAME_TAKEN;
+        }
+        waystone.name(name);
+        plugin.models().refresh(waystone);
+        save();
+        return CreateResult.CREATED;
+    }
+
+    public CreateResult create(Player owner, Block block, String rawName) {
+        String name = cleanName(rawName);
+        if (name.isEmpty()) {
+            return CreateResult.INVALID_NAME;
+        }
+        if (limitReached(owner)) {
             return CreateResult.LIMIT_REACHED;
         }
-        for (Waystone existing : byId.values()) {
-            if (existing.name().equalsIgnoreCase(name)) {
-                return CreateResult.NAME_TAKEN;
-            }
+        if (nameTaken(name, null)) {
+            return CreateResult.NAME_TAKEN;
         }
         Waystone waystone = new Waystone(UUID.randomUUID(), name, BlockPos.of(block),
                 owner.getUniqueId(), owner.getName(), System.currentTimeMillis());
@@ -417,6 +449,15 @@ public final class WaystoneManager {
 
     /** Inicia a viagem: concentração com efeito de portal e, em seguida, o teletransporte seguro. */
     public void travel(Player player, Waystone destination) {
+        travel(player, destination, null, null, null);
+    }
+
+    /**
+     * Viagem com custo próprio ({@code fixedCost}, ou o padrão se nulo). {@code gate} é checado de novo na chegada
+     * (para a Pedra de Warp não ser largada no meio do caminho) e {@code done} roda depois que a viagem termina.
+     */
+    public void travel(Player player, Waystone destination, TravelCost fixedCost,
+                       java.util.function.Predicate<Player> gate, java.util.function.Consumer<Player> done) {
         UUID id = player.getUniqueId();
         if (traveling.contains(id)) {
             return;
@@ -425,7 +466,7 @@ public final class WaystoneManager {
             deny(player, "<red>O mundo desse Waystone não está disponível.");
             return;
         }
-        TravelCost cost = costFor(player);
+        TravelCost cost = fixedCost != null ? fixedCost : costFor(player);
         if (!cost.canPay(player)) {
             deny(player, "<red>Custo da viagem: " + cost.describe() + "<red>.");
             return;
@@ -462,23 +503,25 @@ public final class WaystoneManager {
                 elapsed += 2;
                 if (elapsed >= warmup) {
                     cancel();
-                    depart(player, destination);
+                    depart(player, destination, fixedCost, gate, done);
                 }
             }
         }.runTaskTimer(plugin, 0L, 2L);
     }
 
-    private void depart(Player player, Waystone destination) {
+    private void depart(Player player, Waystone destination, TravelCost fixedCost,
+                        java.util.function.Predicate<Player> gate, java.util.function.Consumer<Player> done) {
         World world = destination.pos().bukkitWorld();
         if (world == null) {
             abort(player, "<red>O mundo desse Waystone não está disponível.");
             return;
         }
         world.getChunkAtAsync(destination.pos().x() >> 4, destination.pos().z() >> 4)
-                .thenAccept(chunk -> sync(() -> arrive(player, destination)));
+                .thenAccept(chunk -> sync(() -> arrive(player, destination, fixedCost, gate, done)));
     }
 
-    private void arrive(Player player, Waystone destination) {
+    private void arrive(Player player, Waystone destination, TravelCost fixedCost,
+                        java.util.function.Predicate<Player> gate, java.util.function.Consumer<Player> done) {
         if (!player.isOnline()) {
             traveling.remove(player.getUniqueId());
             return;
@@ -492,7 +535,11 @@ public final class WaystoneManager {
             abort(player, "<red>O destino está obstruído ou é perigoso demais.");
             return;
         }
-        TravelCost cost = costFor(player);
+        TravelCost cost = fixedCost != null ? fixedCost : costFor(player);
+        if (gate != null && !gate.test(player)) {
+            abort(player, "<red>A viagem falhou: a Pedra de Warp não está mais com você.");
+            return;
+        }
         if (!cost.canPay(player)) {
             abort(player, "<red>Custo da viagem: " + cost.describe() + "<red>.");
             return;
@@ -505,6 +552,9 @@ public final class WaystoneManager {
                 return;
             }
             cost.charge(player);
+            if (done != null) {
+                done.accept(player);
+            }
             discover(player, destination);
             destination.uses(destination.uses() + 1);
             save();

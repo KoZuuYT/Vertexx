@@ -22,6 +22,10 @@ commands:
     description: Abre a mochila equipada no peito (ou a primeira que estiver no inventário).
     usage: /mochila
     aliases: [backpack]
+  vxp:
+    description: Soma, define, multiplica, divide ou diminui o XP e os níveis de um jogador (administradores).
+    usage: /vxp <adicionar|definir|multiplicar|dividir|remover> <jogador> <valor> [pontos|niveis|geral|<status>] [nivel|xp]
+    aliases: [vexp]
   overworldreload:
     description: Recarrega o config.yml do Vertexx (administradores).
     usage: /overworldreload

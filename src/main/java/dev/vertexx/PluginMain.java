@@ -34,6 +34,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class PluginMain extends JavaPlugin {
 
     private WaystoneManager waystones;
+    private dev.vertexx.waystone.NamePrompt namePrompt;
+    private dev.vertexx.waystone.WarpStone warpStone;
+    private dev.vertexx.core.RecipeBook recipeBook;
     private GraveManager graves;
     private ResourcePackManager resourcePack;
     private ModelManager models;
@@ -65,6 +68,9 @@ public final class PluginMain extends JavaPlugin {
         saveConfig();
 
         waystones = new WaystoneManager(this);
+        namePrompt = new dev.vertexx.waystone.NamePrompt(this);
+        warpStone = new dev.vertexx.waystone.WarpStone(this);
+        recipeBook = new dev.vertexx.core.RecipeBook(this);
         graves = new GraveManager(this);
         resourcePack = new ResourcePackManager(this);
         models = new ModelManager(this);
@@ -90,6 +96,9 @@ public final class PluginMain extends JavaPlugin {
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
         plugins.registerEvents(new WaystoneListener(this), this);
+        plugins.registerEvents(namePrompt, this);
+        plugins.registerEvents(warpStone, this);
+        plugins.registerEvents(recipeBook, this);
         plugins.registerEvents(new GraveListener(this), this);
         plugins.registerEvents(resourcePack, this);
         plugins.registerEvents(models, this);
@@ -115,6 +124,7 @@ public final class PluginMain extends JavaPlugin {
         register("pacote", resourcePack);
         register("vstats", new StatsCommand(this));
         register("mochila", backpacks);
+        register("vxp", new dev.vertexx.rpg.XpCommand(this));
         Objects.requireNonNull(getCommand("overworldreload")).setExecutor((sender, command, label, args) -> {
             if (!sender.hasPermission("vertexx.admin")) {
                 sender.sendMessage("Sem permissão.");
@@ -143,6 +153,8 @@ public final class PluginMain extends JavaPlugin {
         climates.start();
         arid.start();
         archaeology.start();
+        warpStone.start();
+        recipeBook.start();
 
         loadAsync();
     }
@@ -209,6 +221,14 @@ public final class PluginMain extends JavaPlugin {
 
     public boolean isReady() {
         return ready;
+    }
+
+    public dev.vertexx.waystone.NamePrompt namePrompt() {
+        return namePrompt;
+    }
+
+    public dev.vertexx.waystone.WarpStone warpStone() {
+        return warpStone;
     }
 
     public WaystoneManager waystones() {

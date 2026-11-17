@@ -57,8 +57,11 @@ final class WikiData {
     private static List<ItemStack> waystones() {
         return List.of(
                 e(Material.LODESTONE, "<white><bold>Criar um Waystone",
-                        "<gray>Renomeie um Lodestone na bigorna e", "<gray>coloque-o no chão. O nome do item vira o",
-                        "<gray>nome do Waystone. Sem nome, é vanilla."),
+                        "<gray>Coloque um Lodestone e clique nele com", "<gray>um Fragmento de Ametista. Digite o nome",
+                        "<gray>no chat. Sem ametista, ele é vanilla."),
+                e(Material.ECHO_SHARD, "<light_purple><bold>Pedra de Warp",
+                        "<gray>8 Fragmentos de Ametista + 1 Olho do Ender.", "<gray>Leva a qualquer Waystone que você conhece,",
+                        "<gray>sem pérolas, mas com poucas cargas."),
                 e(Material.COMPASS, "<white><bold>Descobrir",
                         "<gray>Clique direito em um Waystone para", "<gray>registrá-lo na sua lista."),
                 e(Material.ENDER_PEARL, "<white><bold>Viajar",
@@ -194,7 +197,7 @@ final class WikiData {
                 e(Material.AMETHYST_BLOCK, "<light_purple><bold>Golem de Ametista (construção)",
                         "<gray>Bloco de ametista, calcita e abóbora entalhada."),
                 e(Material.LODESTONE, "<white><bold>Waystone",
-                        "<gray>Lodestone renomeado com modelo 3D animado."));
+                        "<gray>Lodestone ativado com ametista, com modelo 3D animado."));
     }
 
     // ── Sistemas ────────────────────────────────────────────────

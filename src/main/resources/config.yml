@@ -4,7 +4,7 @@
 # ─────────────────────────────────────────────────────────────
 
 waystones:
-  # Um Waystone é criado ao colocar um Lodestone RENOMEADO na bigorna.
+  # Um Waystone é criado ao clicar com um Fragmento de Ametista num Lodestone (o nome é digitado no chat).
   # Limite por jogador (-1 = sem limite).
   max-per-player: 3
   name-max-length: 32
@@ -23,6 +23,9 @@ waystones:
     default: AMETHYST_SHARD
     # Usado quando type = XP_LEVELS.
     xp-levels: 1
+  # Pedra de Warp: abre todos os Waystones já descobertos, sem custo de pérolas, mas com poucas cargas.
+  warp-stone:
+    charges: 5
   # Modelo 3D (display entities) sobre o Lodestone.
   model:
     enabled: true
@@ -236,6 +239,7 @@ end:
     ethereal_membrane: {model: "vertexx:ethereal_membrane", custom-model-data: 1002}
     void_chitin: {model: "vertexx:void_chitin", custom-model-data: 1003}
     levitation_core: {model: "vertexx:levitation_core", custom-model-data: 1004}
+    warp_stone: {model: "vertexx:warp_stone", custom-model-data: 1040}
     backpack_leather: {model: "vertexx:backpack_leather", custom-model-data: 1010}
     backpack_iron: {model: "vertexx:backpack_iron", custom-model-data: 1011}
     backpack_void: {model: "vertexx:backpack_void", custom-model-data: 1012}
