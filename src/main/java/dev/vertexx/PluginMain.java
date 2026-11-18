@@ -64,6 +64,7 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.decor.ClockManager clocks;
     private dev.vertexx.decor.HookManager hooks;
     private dev.vertexx.backup.BackupManager backups;
+    private dev.vertexx.profile.InventoryProfiles profiles;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -110,6 +111,7 @@ public final class PluginMain extends JavaPlugin {
         clocks = new dev.vertexx.decor.ClockManager(this);
         hooks = new dev.vertexx.decor.HookManager(this);
         backups = new dev.vertexx.backup.BackupManager(this);
+        profiles = new dev.vertexx.profile.InventoryProfiles(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -145,6 +147,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(clocks, this);
         plugins.registerEvents(hooks, this);
         plugins.registerEvents(backups, this);
+        plugins.registerEvents(profiles, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
@@ -196,6 +199,7 @@ public final class PluginMain extends JavaPlugin {
         clocks.start();
         hooks.start();
         backups.start();
+        profiles.start();
         warpStone.start();
         recipeBook.start();
 
@@ -233,6 +237,7 @@ public final class PluginMain extends JavaPlugin {
 
     /** Grava agora os dados do plugin (usado no desligamento e antes de cada backup). */
     public void saveData() {
+        profiles.saveNow();
         if (ready) {
             waystones.saveNow();
             graves.saveNow();
@@ -376,6 +381,10 @@ public final class PluginMain extends JavaPlugin {
 
     public dev.vertexx.backup.BackupManager backups() {
         return backups;
+    }
+
+    public dev.vertexx.profile.InventoryProfiles profiles() {
+        return profiles;
     }
 
     public AutoUpdater updater() {

@@ -321,6 +321,11 @@ public final class PanelGUI implements InventoryHolder {
         set(40, Items.of(Material.ALLAY_SPAWN_EGG, "<white><bold>Ovos e itens",
                 List.of("<gray>Criaturas, itens customizados e livros,", "<gray>em abas.", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));
+        set(44, Items.of(Material.BARREL, "<white><bold>Perfis de inventário",
+                List.of("<gray>Guarda seu inventário num perfil e deixa só", "<gray>o Guia; editar, renomear, duplicar,",
+                        "<gray>resgatar e atualizar.", "<dark_gray>Equivale a /vertexx perfil",
+                        "<gray>Seus perfis: <white>" + plugin.profiles().list(player.getUniqueId()).size(), "",
+                        "<yellow>▶ Clique para abrir")), c -> new dev.vertexx.profile.ProfileMenu(plugin, player, 0).open());
     }
 
     private void adminServer() {

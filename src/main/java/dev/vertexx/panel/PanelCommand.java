@@ -20,7 +20,7 @@ import org.bukkit.inventory.ItemStack;
 /** {@code /vertexx}: painel (administradores), Guia para todos e utilitários de administração. */
 public final class PanelCommand implements TabExecutor {
 
-    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|item|end|cabeca|versao|atualizar]";
+    private static final String ADMIN_USAGE = " [painel|livro|mob|xp|boss|rejeitado|item|end|cabeca|perfil|versao|atualizar]";
 
     private final PluginMain plugin;
 
@@ -49,6 +49,15 @@ public final class PanelCommand implements TabExecutor {
                     plugin.panel().open(player);
                 } else {
                     Msg.send(sender, "<gray>Vertexx <white>" + plugin.updater().currentVersion() + "</white>.");
+                }
+            }
+            case "perfil", "perfis" -> {
+                if (!admin) {
+                    Msg.send(sender, "<red>Você não tem permissão.");
+                } else if (sender instanceof Player player) {
+                    new dev.vertexx.profile.ProfileMenu(plugin, player, 0).open();
+                } else {
+                    Msg.send(sender, "<red>Apenas jogadores.");
                 }
             }
             case "versao", "atualizar" -> {
@@ -372,7 +381,7 @@ public final class PanelCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String label, String[] args) {
         boolean admin = sender.hasPermission("vertexx.admin");
         if (args.length == 1) {
-            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "blueprint", "item", "end", "clima", "arida", "fossil", "cabeca", "versao", "atualizar")
+            return Tab.of(args[0], admin ? List.of("painel", "livro", "mob", "xp", "boss", "rejeitado", "blueprint", "item", "end", "clima", "arida", "fossil", "cabeca", "perfil", "versao", "atualizar")
                     : List.of("livro"));
         }
         if (!admin) {
