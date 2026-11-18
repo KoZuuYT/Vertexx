@@ -87,7 +87,7 @@ final class WikiData {
                         "<gray>Shift + clique no bloco abre o gerenciador.", "<gray>/tumulo tempo|quebrar|lista|config."),
                 e(Material.PLAYER_HEAD, "<white><bold>Moderação (administradores)",
                         "<gray>Painel > Administração > Moderação ou", "<gray>/moderar: todos que já entraram, com",
-                        "<gray>mortes, inventário (OpenInv /oi), data de", "<gray>entrada, tempo de jogo, banir e desbanir."),
+                        "<gray>mortes, inventário (OpenInv /oi), data de", "<gray>entrada, tempo de jogo, banir e desbanir.", "<gray>Também teleporta à última posição do jogador."),
                 e(Material.PLAYER_HEAD, "<white><bold>Jogadores Bedrock",
                         "<gray>Geyser/Floodgate detectados sozinhos. O", "<gray>pacote Java não é usado: menus e ícones",
                         "<gray>ficam no visual padrão. Criaturas com", "<gray>modelo custom aparecem como o mob vanilla",

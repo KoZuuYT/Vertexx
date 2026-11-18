@@ -161,6 +161,26 @@ public final class ModerationMenu extends Menu {
                         : "<red>Não foi possível teleportar."));
             });
 
+            Location pos = target.isOnline() && target.getPlayer() != null ? target.getPlayer().getLocation() : target.getLocation();
+            List<String> posLore = new ArrayList<>();
+            if (pos != null && pos.getWorld() != null) {
+                posLore.add("<gray>" + (target.isOnline() ? "Posição atual: " : "Onde saiu: ") + "<white>" + pos.getWorld().getName()
+                        + " <dark_gray>" + pos.getBlockX() + " " + pos.getBlockY() + " " + pos.getBlockZ());
+                posLore.add("");
+                posLore.add("<yellow>▶ Clique para teleportar");
+            } else {
+                posLore.add("<dark_gray>Sem posição registrada.");
+            }
+            set(29, Items.of(Material.ENDER_PEARL, "<white><bold>Última posição", posLore), c -> {
+                if (pos == null || pos.getWorld() == null) {
+                    return;
+                }
+                player.closeInventory();
+                player.teleportAsync(pos).thenAccept(ok -> Msg.send(player, ok
+                        ? "<green>Teleportado à última posição de <white>" + Msg.esc(name) + "</white>."
+                        : "<red>Não foi possível teleportar."));
+            });
+
             set(22, Items.of(Material.CHEST, "<white><bold>Inventário",
                     List.of("<gray>Abre o inventário e o baú de ender", "<gray>com o OpenInv.", "<dark_gray>Equivale a /oi " + name, "",
                             "<yellow>▶ Clique para abrir")), c -> {
