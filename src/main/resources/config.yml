@@ -354,3 +354,11 @@ backup:
     interval-minutes: 60
     # Quantos backups automáticos manter (os mais antigos são apagados; manuais nunca são).
     keep: 5
+
+# Recado de boas-vindas: ao entrar, o jogador lê a introdução e as regras do SMP e confirma para jogar.
+onboarding:
+  enabled: true
+  # Mundo do spawn para onde jogadores NOVOS vão ao confirmar (vazio = mundo principal).
+  spawn-world: ""
+  # Jogadores que já jogavam antes do recado também são levados ao spawn ao confirmar.
+  teleport-veterans: false

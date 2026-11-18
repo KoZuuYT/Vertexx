@@ -276,6 +276,9 @@ public final class PanelGUI implements InventoryHolder {
                         "<gray>Botão do meio num baú ou mochila: ordena.")), null);
         set(31, Items.of(Material.LODESTONE, "<white>Waystones",
                 List.of("<gray>Clique direito para viajar.", "<gray>Clique em um novo Waystone para descobri-lo.")), null);
+        set(40, Items.of(Material.OAK_SIGN, "<white>/vertexx recado",
+                List.of("<gray>Reabre o recado de boas-vindas", "<gray>com as regras do SMP.", "", "<yellow>▶ Clique para abrir")),
+                c -> plugin.intro().open(player));
     }
 
     // ── Administração ──────────────────────────────────────────

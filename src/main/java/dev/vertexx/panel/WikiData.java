@@ -315,6 +315,10 @@ final class WikiData {
 
     private static List<ItemStack> systems() {
         return List.of(
+                e(Material.OAK_SIGN, "<white><bold>Recado e regras do SMP",
+                        "<gray>Ao entrar, você lê a introdução do servidor", "<gray>e as regras (conviver, não roubar, não matar,",
+                        "<gray>sem griefing) e confirma para jogar. Novos", "<gray>jogadores vão ao spawn ao confirmar.",
+                        "<dark_gray>Releia quando quiser: /vertexx recado"),
                 e(Material.NETHER_STAR, "<white><bold>Status e habilidades",
                         "<gray>10 status sobem com a atividade:", "<gray>Mineração, Escavação, Lenhador, Agricultura,",
                         "<gray>Luta, Arquearia, Resistência, Acrobacia,", "<gray>Pesca e Exploração. Árvore de 16 habilidades.",

@@ -61,6 +61,11 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         return loaded.contains(player.getUniqueId());
     }
 
+    /** {@code true} se o jogador já aceitou o pacote (mesmo que ainda não tenha carregado nesta sessão). */
+    public boolean accepted(Player player) {
+        return Boolean.TRUE.equals(choices.get(player.getUniqueId()));
+    }
+
     /** {@code true} se o jogador recusou o pacote anteriormente. */
     public boolean declined(Player player) {
         return Boolean.FALSE.equals(choices.get(player.getUniqueId()));
@@ -144,7 +149,9 @@ public final class ResourcePackManager implements Listener, TabExecutor {
         }
         Boolean choice = choices.get(player.getUniqueId());
         if (choice == null) {
-            prompt(player);
+            if (!plugin.intro().isPending(player)) {     // no recado de boas-vindas o aviso do pacote já vai no chat
+                prompt(player);
+            }
         } else if (choice) {
             apply(player);
         }
@@ -226,6 +233,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
                     Msg.actionBar(player, "<green>✔ Pacote visual carregado");
                     Fx.sound(player, Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.9f, 1.2f);
                 }
+                plugin.intro().onPackLoaded(player);
             }
             case DECLINED -> {
                 loaded.remove(player.getUniqueId());

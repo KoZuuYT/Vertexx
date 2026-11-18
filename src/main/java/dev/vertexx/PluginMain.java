@@ -65,6 +65,7 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.decor.HookManager hooks;
     private dev.vertexx.backup.BackupManager backups;
     private dev.vertexx.profile.InventoryProfiles profiles;
+    private dev.vertexx.intro.IntroManager intro;
     private AutoUpdater updater;
     private volatile boolean ready;
 
@@ -112,6 +113,7 @@ public final class PluginMain extends JavaPlugin {
         hooks = new dev.vertexx.decor.HookManager(this);
         backups = new dev.vertexx.backup.BackupManager(this);
         profiles = new dev.vertexx.profile.InventoryProfiles(this);
+        intro = new dev.vertexx.intro.IntroManager(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -148,6 +150,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(hooks, this);
         plugins.registerEvents(backups, this);
         plugins.registerEvents(profiles, this);
+        plugins.registerEvents(intro, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
@@ -215,6 +218,7 @@ public final class PluginMain extends JavaPlugin {
             YamlConfiguration panelData = panel.read();
             YamlConfiguration rpgData = rpg.read();
             YamlConfiguration bossData = bosses.read();
+            YamlConfiguration introData = intro.read();
             Bukkit.getScheduler().runTask(this, () -> {
                 waystones.apply(waystoneData);
                 graves.apply(graveData);
@@ -222,6 +226,7 @@ public final class PluginMain extends JavaPlugin {
                 panel.apply(panelData);
                 rpg.apply(rpgData);
                 bosses.apply(bossData);
+                intro.apply(introData);
                 models.load(waystones.all());
                 models.start();
                 waystones.ensureAllUpper();
@@ -245,6 +250,7 @@ public final class PluginMain extends JavaPlugin {
             panel.saveNow();
             rpg.saveNow();
             bosses.saveNow();
+            intro.saveNow();
         }
     }
 
@@ -385,6 +391,10 @@ public final class PluginMain extends JavaPlugin {
 
     public dev.vertexx.profile.InventoryProfiles profiles() {
         return profiles;
+    }
+
+    public dev.vertexx.intro.IntroManager intro() {
+        return intro;
     }
 
     public AutoUpdater updater() {
