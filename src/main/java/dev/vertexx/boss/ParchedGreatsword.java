@@ -38,8 +38,8 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 /**
- * Grande Espada do Deserto (drop do Parched Titan): base de espada de netherite com 9,5 de dano, ataque pesado (1,25) e
- * +1 de alcance. Botão direito (recarga de 7 s): um corte projeta um pequeno tornado de areia por 14 blocos em 3,5 s;
+ * Grande Espada do Deserto (drop do Parched Titan): base de espada de netherite com 10 de dano (7 da espada + 2 adicionais
+ * + 1 do jogador), ataque pesado (velocidade 1,0) e +1 de alcance. Botão direito (recarga de 7 s): um corte projeta um pequeno tornado de areia por 14 blocos em 3,5 s;
  * quem for atingido (mobs, nunca jogadores) leva 7 de dano, sobe 3,5 blocos e fica com Cegueira leve. Com Fire
  * Aspect o tornado é incandescente e incendeia os alvos.
  */

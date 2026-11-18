@@ -331,7 +331,7 @@ final class WikiData {
                         "<gray>Livros raros em baús de estruturas e", "<gray>bibliotecários: bônus forte + desvantagem."),
                 e(Material.END_PORTAL_FRAME, "<dark_purple><bold>Portal do End trancado",
                         "<gray>Os 12 encaixes não aceitam o Olho do Ender", "<gray>sozinho. Encaixe 11 Núcleos de boss (um de",
-                        "<gray>cada, do Underworld) e só então o Olho.", "<red>Hoje existem 2 de 11: o portal segue selado."),
+                        "<gray>cada, do Underworld) e só então o Olho.", "<red>Hoje existem " + dev.vertexx.end.PortalLock.CORES.size() + " de 11: o portal segue selado."),
                 e(Material.AMETHYST_BLOCK, "<light_purple><bold>Blocos customizados",
                         "<gray>Minério e Bloco de Enderita, com textura", "<gray>própria. Picareta de diamante para dropar;",
                         "<gray>9 fragmentos fazem 1 bloco."),

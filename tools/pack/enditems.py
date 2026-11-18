@@ -92,6 +92,16 @@ def iceologer_core():
     return ramp_recolor(vanilla("nether_star"), ["#06203a", "#1a5a9a", "#4aa8e0", "#a8e8ff", "#ffffff"])
 
 
+def root_core():
+    """Núcleo do Root Sovereign: a estrela do Nether vanilla em verde-musgo, com seiva luminosa no centro."""
+    return ramp_recolor(vanilla("nether_star"), ["#071a05", "#1d5a0e", "#46b02c", "#a2ee6a", "#f2ffcc"])
+
+
+def gloom_core():
+    """Núcleo do Gloom Stalker: a estrela do Nether vanilla em ardósia profunda, com o pulso ciano do sculk."""
+    return ramp_recolor(vanilla("nether_star"), ["#02101a", "#0a3548", "#17809c", "#4adcee", "#e6ffff"])
+
+
 def crystal_heart():
     return ramp_recolor(vanilla("heart_of_the_sea"), ["#2a0a52", "#6a2ac0", "#b070ff", "#e8c8ff", "#ffffff"])
 
@@ -275,6 +285,8 @@ def build(ns, save, write_json):
         "levitation_core": levitation_core(),
         "wildfire_core": wildfire_core(),
         "iceologer_core": iceologer_core(),
+        "root_core": root_core(),
+        "gloom_core": gloom_core(),
         "crystal_heart": crystal_heart(),
         "chitin_plate": chitin_plate(),
         "scarab_mandible": scarab_mandible(),

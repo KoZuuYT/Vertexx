@@ -946,7 +946,7 @@ public final class PanelGUI implements InventoryHolder {
                 List.of("<gray>A vida cresce <white>60%</white> por jogador extra", "<gray>(até 4 jogadores).")), null);
         set(33, Items.of(Material.CHEST, "<white>Recompensas",
                 List.of("<gray>Essência Elite, recursos raros e um", "<gray>troféu, além de XP de Luta.",
-                        "<gray>Void-Scarab: Coração de Cristal, Placas e", "<gray>Mandíbula. Parched Titan: Grande Espada", "<gray>do Deserto. Root Sovereign: Cajado do", "<gray>Soberano Silvestre. Gloom Stalker: Coração da", "<gray>Penumbra, Garras e Carapaça. Mais recursos.", "",
+                        "<gray>Void-Scarab: Coração de Cristal, Placas e", "<gray>Mandíbula. Parched Titan: Grande Espada", "<gray>do Deserto. Root Sovereign: Cajado do", "<gray>Soberano Silvestre. Gloom Stalker: Coração da", "<gray>Penumbra, Garras e Carapaça. Wildfire, Iceologer,", "<gray>Root Sovereign e Gloom Stalker soltam o seu", "<gray>Núcleo (abre o Portal do End). Mais recursos.", "",
                         "<gray>Renasce em <white>" + c.getInt("bosses.respawn-minutes", 90) + " min</white>",
                         "<gray>(Void-Scarab: <white>" + c.getInt("bosses.void-scarab.respawn-minutes", 30) + " min</white>).")), null);
     }

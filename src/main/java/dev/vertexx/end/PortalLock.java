@@ -34,7 +34,7 @@ import org.bukkit.persistence.PersistentDataType;
 /**
  * Portal do End trancado. Os 12 encaixes do portal exigem 11 Núcleos de boss, todos de tipos diferentes, e por
  * último um Olho do Ender comum no 12º encaixe; só então o portal abre. O olho vanilla não entra enquanto os
- * núcleos não estiverem todos no lugar. Hoje existem 2 tipos de núcleo (Wildfire e Iceologer), então o portal
+ * núcleos não estiverem todos no lugar. Hoje existem 4 tipos de núcleo (Wildfire, Iceologer, Root Sovereign e Gloom Stalker), então o portal
  * permanece trancado até os demais bosses existirem (basta registrar o item em {@link #CORES}).
  * <p>
  * Estado: o encaixe fica "com olho" no mundo; qual núcleo está em qual encaixe vai no PDC do chunk
@@ -42,8 +42,9 @@ import org.bukkit.persistence.PersistentDataType;
  */
 public final class PortalLock implements Listener {
 
-    /** Núcleos de boss que já existem (o portal exige {@code end.portal.core-slots} deles; hoje faltam 9). */
-    public static final List<EndItem> CORES = List.of(EndItem.WILDFIRE_CORE, EndItem.ICEOLOGER_CORE);
+    /** Núcleos de boss que já existem (o portal exige {@code end.portal.core-slots} deles; hoje faltam 7). */
+    public static final List<EndItem> CORES = List.of(EndItem.WILDFIRE_CORE, EndItem.ICEOLOGER_CORE,
+            EndItem.ROOT_CORE, EndItem.GLOOM_CORE);
 
     private final PluginMain plugin;
     private final NamespacedKey key;

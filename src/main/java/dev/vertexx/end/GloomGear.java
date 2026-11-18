@@ -97,7 +97,7 @@ public final class GloomGear implements Listener {
             lore.add(Msg.item("<gray>Garras do Espreitador forjadas numa lâmina."));
             lore.add(Msg.item("<dark_aqua>◆ Pulso Sônico <gray>(3º golpe seguido)"));
             lore.add(Msg.item("<dark_gray>Dispara um pulso de 5 blocos à frente que"));
-            lore.add(Msg.item("<dark_gray>atravessa escudos. Arma rápida (dano 9)."));
+            lore.add(Msg.item("<dark_gray>atravessa escudos. Arma rápida (dano 9, velocidade 2,2)."));
             meta.lore(lore);
             meta.setTooltipStyle(dev.vertexx.core.Items.TOOLTIP);
             NamespacedKey model = NamespacedKey.fromString(plugin.getConfig().getString("end.items.sonic_claws.model",

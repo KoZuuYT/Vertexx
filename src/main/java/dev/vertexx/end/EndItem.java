@@ -53,6 +53,12 @@ public enum EndItem {
     ICEOLOGER_CORE("iceologer_core", "Núcleo de Iceologer", "<aqua>", Material.PAPER, 1031,
             "<gray>O núcleo congelado do senhor", "<gray>do castelo de gelo.",
             "<dark_gray>Encaixa no Portal do End trancado."),
+    ROOT_CORE("root_core", "Núcleo do Root Sovereign", "<green>", Material.PAPER, 1035,
+            "<gray>A seiva viva do guardião musgoso", "<gray>da Gruta dos Esporos Ancestrais.",
+            "<dark_gray>Encaixa no Portal do End trancado."),
+    GLOOM_CORE("gloom_core", "Núcleo do Gloom Stalker", "<dark_aqua>", Material.PAPER, 1036,
+            "<gray>O pulso de sculk do predador", "<gray>cego do Covil Ressonante.",
+            "<dark_gray>Encaixa no Portal do End trancado."),
     CRYSTAL_HEART("crystal_heart", "Coração de Cristal do Vazio", "<light_purple>", Material.PAPER, 1032,
             "<gray>Âncora de retorno dimensional.", "<dark_gray>Se você cair no Vazio com ele no inventário,",
             "<dark_gray>volta à última superfície segura (4 cargas).",
@@ -122,7 +128,7 @@ public enum EndItem {
 
     /** Núcleos de boss que destrancam o Portal do End. */
     public boolean isBossCore() {
-        return this == WILDFIRE_CORE || this == ICEOLOGER_CORE;
+        return this == WILDFIRE_CORE || this == ICEOLOGER_CORE || this == ROOT_CORE || this == GLOOM_CORE;
     }
 
     /** 1 a 3 para as mochilas, 0 para os demais. */

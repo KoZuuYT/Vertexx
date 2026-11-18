@@ -378,11 +378,13 @@ public final class BossManager implements Listener {
             carapace.setAmount(1 + random.nextInt(2));
             loot.add(carapace);
             loot.add(new ItemStack(Material.ECHO_SHARD, 4 + random.nextInt(5)));
+            loot.add(dev.vertexx.end.EndItem.GLOOM_CORE.create(plugin));
         } else if (arena.kind == BossKind.ROOT_SOVEREIGN) {
             loot.add(SovereignStaff.create(plugin));
             loot.add(new ItemStack(Material.MOSS_BLOCK, 16 + random.nextInt(9)));
             loot.add(new ItemStack(Material.SPORE_BLOSSOM, 4 + random.nextInt(5)));
             loot.add(new ItemStack(Material.DIAMOND, 2 + random.nextInt(3)));
+            loot.add(dev.vertexx.end.EndItem.ROOT_CORE.create(plugin));
         } else if (arena.kind == BossKind.PARCHED_TITAN) {
             loot.add(ParchedGreatsword.create(plugin));
             loot.add(new ItemStack(Material.CHISELED_RED_SANDSTONE, 6 + random.nextInt(5)));
