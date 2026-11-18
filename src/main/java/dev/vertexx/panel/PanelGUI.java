@@ -310,6 +310,10 @@ public final class PanelGUI implements InventoryHolder {
                 List.of("<gray>Mundos, jogadores e dados do Vertexx:", "<gray>criar, renomear, copiar e restaurar.",
                         "<dark_gray>Equivale a /vbackup", "<gray>Guardados: <white>" + plugin.backups().list().size(), "",
                         "<yellow>▶ Clique para abrir")), c -> new dev.vertexx.backup.BackupMenu(plugin, player, 0).open());
+        set(42, Items.of(Material.SKELETON_SKULL, "<white><bold>Túmulos",
+                List.of("<gray>Ver o interior, mudar o tempo de proteção,", "<gray>entregar, quebrar e ajustar as regras.",
+                        "<dark_gray>Equivale a /tumulo admin", "<gray>Ativos: <white>" + plugin.graves().count(), "",
+                        "<yellow>▶ Clique para abrir")), c -> new dev.vertexx.grave.GraveMenu(plugin, player, 0).open());
         set(40, Items.of(Material.ALLAY_SPAWN_EGG, "<white><bold>Ovos e itens",
                 List.of("<gray>Criaturas, itens customizados e livros,", "<gray>em abas.", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));

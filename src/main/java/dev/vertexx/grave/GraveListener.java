@@ -80,6 +80,9 @@ public final class GraveListener implements Listener {
             return;
         }
         event.setCancelled(true);
+        if (adminOpen(event.getPlayer(), grave)) {
+            return;
+        }
         graves().tryCollect(event.getPlayer(), grave);
     }
 
@@ -91,7 +94,19 @@ public final class GraveListener implements Listener {
         }
         // quebrar equivale a tentar abrir: o bloco nunca dropa como cabeça
         event.setCancelled(true);
+        if (adminOpen(event.getPlayer(), grave)) {
+            return;
+        }
         graves().tryCollect(event.getPlayer(), grave);
+    }
+
+    /** Administrador agachado abre o menu de gerenciamento do túmulo em vez de coletá-lo. */
+    private boolean adminOpen(Player player, Grave grave) {
+        if (!player.isSneaking() || !player.hasPermission("vertexx.admin")) {
+            return false;
+        }
+        new GraveMenu.GraveDetailMenu(plugin, player, grave.id(), 0).open();
+        return true;
     }
 
     @EventHandler(ignoreCancelled = true)

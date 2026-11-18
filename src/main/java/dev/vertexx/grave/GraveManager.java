@@ -78,7 +78,7 @@ public final class GraveManager {
                 Grave grave = new Grave(UUID.fromString(key), UUID.fromString(entry.getString("owner", "")),
                         entry.getString("owner-name", "?"), pos, entry.getLong("created"), entry.getInt("xp"),
                         Base64.getDecoder().decode(entry.getString("items", "")),
-                        display == null ? null : UUID.fromString(display));
+                        display == null ? null : UUID.fromString(display), entry.getLong("until", 0L));
                 if (pos != null) {
                     byId.put(grave.id(), grave);
                     byPos.put(pos, grave);
@@ -110,6 +110,9 @@ public final class GraveManager {
             if (grave.display() != null) {
                 entry.set("display", grave.display().toString());
             }
+            if (grave.until() != 0) {
+                entry.set("until", grave.until());
+            }
         }
         return data;
     }
@@ -138,15 +141,164 @@ public final class GraveManager {
         return result;
     }
 
-    /** Milissegundos de proteção restantes (0 = qualquer um pode abrir). */
+    /** Todos os túmulos, na ordem de criação. */
+    public List<Grave> all() {
+        return new ArrayList<>(byId.values());
+    }
+
+    /** Túmulo pelo id completo ou por um prefixo único dele; {@code null} se não achar (ou se for ambíguo). */
+    public Grave find(String ref) {
+        String text = ref.toLowerCase(java.util.Locale.ROOT);
+        Grave found = null;
+        for (Grave grave : byId.values()) {
+            String id = grave.id().toString();
+            if (id.equals(text)) {
+                return grave;
+            }
+            if (id.startsWith(text)) {
+                if (found != null) {
+                    return null;
+                }
+                found = grave;
+            }
+        }
+        return found;
+    }
+
+    public Grave byId(UUID id) {
+        return byId.get(id);
+    }
+
+    /** Milissegundos de proteção restantes (0 = qualquer um pode abrir; {@link Long#MAX_VALUE} = permanente). */
     public long protectionLeft(Grave grave) {
-        long protection = plugin.getConfig().getLong("graves.protection-minutes", 30) * 60_000L;
-        return Math.max(0, grave.created() + protection - System.currentTimeMillis());
+        if (grave.until() == Long.MAX_VALUE) {
+            return Long.MAX_VALUE;
+        }
+        long end = grave.until() != 0 ? grave.until()
+                : grave.created() + plugin.getConfig().getLong("graves.protection-minutes", 30) * 60_000L;
+        return Math.max(0, end - System.currentTimeMillis());
     }
 
     public static String formatTime(long millis) {
+        if (millis == Long.MAX_VALUE) {
+            return "permanente";
+        }
         long seconds = (millis + 999) / 1000;
+        if (seconds >= 3600) {
+            return String.format("%dh%02d", seconds / 3600, seconds % 3600 / 60);
+        }
         return String.format("%d:%02d", seconds / 60, seconds % 60);
+    }
+
+    // ── Controle de administrador ───────────────────────────────
+
+    private Grave replace(Grave grave) {
+        byId.put(grave.id(), grave);
+        byPos.put(grave.pos(), grave);
+        save();
+        return grave;
+    }
+
+    /** Soma (ou subtrai, se negativo) milissegundos ao tempo de proteção restante; nunca abaixo de zero. */
+    public Grave addProtection(Grave grave, long deltaMillis) {
+        long left = protectionLeft(grave);
+        if (left == Long.MAX_VALUE) {
+            return grave;
+        }
+        long until = System.currentTimeMillis() + Math.max(0, left + deltaMillis);
+        return replace(grave.withUntil(Math.max(1, until)));
+    }
+
+    /** Define a proteção para daqui a {@code millis} ms (0 remove a proteção). */
+    public Grave setProtection(Grave grave, long millis) {
+        return replace(grave.withUntil(millis <= 0 ? 1 : System.currentTimeMillis() + millis));
+    }
+
+    public Grave setPermanent(Grave grave) {
+        return replace(grave.withUntil(Long.MAX_VALUE));
+    }
+
+    /** Volta ao tempo padrão da configuração, contado a partir da criação do túmulo. */
+    public Grave resetProtection(Grave grave) {
+        return replace(grave.withUntil(0));
+    }
+
+    /** Itens do túmulo (posições vazias não aparecem). */
+    public List<ItemStack> contents(Grave grave) {
+        List<ItemStack> list = new ArrayList<>();
+        for (ItemStack item : ItemStack.deserializeItemsFromBytes(grave.items())) {
+            if (item != null && !item.isEmpty()) {
+                list.add(item);
+            }
+        }
+        return list;
+    }
+
+    /**
+     * Tira o item {@code index} (da lista de {@link #contents}) do túmulo e devolve; se o túmulo ficar vazio
+     * (sem itens e sem XP) ele é removido.
+     */
+    public ItemStack takeItem(Grave grave, int index) {
+        List<ItemStack> list = contents(grave);
+        if (index < 0 || index >= list.size()) {
+            return null;
+        }
+        ItemStack item = list.remove(index);
+        replace(grave.withContents(grave.xp(), ItemStack.serializeItemsAsBytes(list)));
+        dropIfEmpty(byId.get(grave.id()));
+        return item;
+    }
+
+    /** Zera o XP guardado e devolve o valor. */
+    public int takeXp(Grave grave) {
+        int xp = grave.xp();
+        replace(grave.withContents(0, grave.items()));
+        dropIfEmpty(byId.get(grave.id()));
+        return xp;
+    }
+
+    private void dropIfEmpty(Grave grave) {
+        if (grave != null && grave.xp() <= 0 && contents(grave).isEmpty()) {
+            remove(grave);
+        }
+    }
+
+    /** Quebra o túmulo: o bloco some e os itens caem no chão (e o XP vira orbes) ou são destruídos. */
+    public void breakGrave(Grave grave, boolean dropContents) {
+        Location center = grave.pos().center();
+        remove(grave);
+        if (dropContents && center.getWorld() != null) {
+            for (ItemStack item : contents(grave)) {
+                center.getWorld().dropItemNaturally(center, item);
+            }
+            if (grave.xp() > 0) {
+                center.getWorld().spawn(center, org.bukkit.entity.ExperienceOrb.class, orb -> orb.setExperience(grave.xp()));
+            }
+        }
+        Fx.burst(center, Particle.SOUL, 20, 0.3, 0.04);
+        Fx.worldSound(center, Sound.BLOCK_SOUL_SAND_BREAK, 1.0f, 0.8f);
+    }
+
+    /** Entrega tudo ao jogador (itens que não cabem caem aos pés dele) e remove o túmulo. */
+    public void giveAll(Player target, Grave grave) {
+        remove(grave);
+        giveContents(target, grave, target.getLocation());
+    }
+
+    private void giveContents(Player target, Grave grave, Location overflow) {
+        int dropped = 0;
+        for (ItemStack item : contents(grave)) {
+            for (ItemStack leftover : target.getInventory().addItem(item).values()) {
+                overflow.getWorld().dropItemNaturally(overflow, leftover);
+                dropped++;
+            }
+        }
+        if (grave.xp() > 0) {
+            target.giveExp(grave.xp());
+        }
+        if (dropped > 0) {
+            Msg.send(target, "<gray>O que não coube no inventário caiu no chão.");
+        }
     }
 
     // ── Criação ─────────────────────────────────────────────────
@@ -174,7 +326,7 @@ public final class GraveManager {
             entity.addScoreboardTag("vertexx_grave");
         });
         Grave grave = new Grave(UUID.randomUUID(), player.getUniqueId(), player.getName(), BlockPos.of(block),
-                System.currentTimeMillis(), xp, ItemStack.serializeItemsAsBytes(drops), display.getUniqueId());
+                System.currentTimeMillis(), xp, ItemStack.serializeItemsAsBytes(drops), display.getUniqueId(), 0L);
         byId.put(grave.id(), grave);
         byPos.put(grave.pos(), grave);
         save();
@@ -228,12 +380,8 @@ public final class GraveManager {
         }
         remove(grave);
         Location center = grave.pos().center();
-        ItemStack[] items = ItemStack.deserializeItemsFromBytes(grave.items());
         int dropped = 0;
-        for (ItemStack item : items) {
-            if (item == null || item.isEmpty()) {
-                continue;
-            }
+        for (ItemStack item : contents(grave)) {
             for (ItemStack leftover : player.getInventory().addItem(item).values()) {
                 center.getWorld().dropItemNaturally(center, leftover);
                 dropped++;
