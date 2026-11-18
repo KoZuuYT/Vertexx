@@ -11,6 +11,10 @@ commands:
     description: Lista os seus túmulos pendentes.
     usage: /tumulo [chave|admin|lista|tempo|quebrar|config ...]
     aliases: [tumulos, grave]
+  moderar:
+    description: Ferramenta de moderação (jogadores, mortes, inventário, banir), só administradores.
+    usage: /moderar
+    aliases: [moderacao]
   pacote:
     description: Aceita ou recusa o pacote visual opcional.
     usage: /pacote [aceitar|recusar]

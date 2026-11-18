@@ -314,6 +314,10 @@ public final class PanelGUI implements InventoryHolder {
                 List.of("<gray>Ver o interior, mudar o tempo de proteção,", "<gray>entregar, quebrar e ajustar as regras.",
                         "<dark_gray>Equivale a /tumulo admin", "<gray>Ativos: <white>" + plugin.graves().count(), "",
                         "<yellow>▶ Clique para abrir")), c -> new dev.vertexx.grave.GraveMenu(plugin, player, 0).open());
+        set(36, Items.of(Material.PLAYER_HEAD, "<white><bold>Moderação",
+                List.of("<gray>Todos os jogadores que já entraram:", "<gray>mortes, inventário, datas, tempo de jogo,", "<gray>banir e desbanir.",
+                        "<dark_gray>Equivale a /moderar", "", "<yellow>▶ Clique para abrir")),
+                c -> new dev.vertexx.moderation.ModerationMenu(plugin, player, 0).open());
         set(40, Items.of(Material.ALLAY_SPAWN_EGG, "<white><bold>Ovos e itens",
                 List.of("<gray>Criaturas, itens customizados e livros,", "<gray>em abas.", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));

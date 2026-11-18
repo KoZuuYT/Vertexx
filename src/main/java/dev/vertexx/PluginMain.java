@@ -144,6 +144,16 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
+        Objects.requireNonNull(getCommand("moderar")).setExecutor((sender, command, label, args) -> {
+            if (!sender.hasPermission("vertexx.admin")) {
+                sender.sendMessage("Sem permissão.");
+            } else if (sender instanceof org.bukkit.entity.Player p) {
+                new dev.vertexx.moderation.ModerationMenu(this, p, 0).open();
+            } else {
+                sender.sendMessage("Apenas jogadores.");
+            }
+            return true;
+        });
         register("pacote", resourcePack);
         register("vstats", new StatsCommand(this));
         register("mochila", backpacks);
