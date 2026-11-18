@@ -53,7 +53,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 /**
- * Uso das habilidades: ativas (Shift+botão direito usa, Shift+botão esquerdo troca), mineração em área, veio, derrubada de árvores,
+ * Uso das habilidades: ativas (botão direito 2x usa, Shift+botão esquerdo troca), mineração em área, veio, derrubada de árvores,
  * golpe atordoante, colheita, reposição, ímã e frenesi. Nenhuma habilidade afeta outros jogadores.
  */
 public final class SkillManager implements Listener {
@@ -117,27 +117,36 @@ public final class SkillManager implements Listener {
         return list;
     }
 
-    /** Shift + botão direito usa a habilidade escolhida; Shift + botão esquerdo (no ar) troca a habilidade. */
+    /** Botão direito 2 vezes rápido usa a habilidade (no ar ou num bloco); Shift + botão esquerdo (no ar) troca. */
     @EventHandler(priority = EventPriority.HIGH)
     public void onClick(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        if (event.getHand() != EquipmentSlot.HAND || !player.isSneaking()
+        if (event.getHand() != EquipmentSlot.HAND
                 || !rpg().enabled() || !plugin.getConfig().getBoolean("rpg.cast-with-shift-click", true)) {
             return;
         }
         Action action = event.getAction();
         boolean right = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
-        if (!right && action != Action.LEFT_CLICK_AIR) {
-            return;
-        }
         if (right) {
-            if (event.getItem() != null && event.getItem().getType().isBlock()) {
-                return;                                   // Shift + clique direito com bloco continua colocando
-            }
-            if (action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
+            if (event.getItem() != null && event.getItem().getType().isBlock()
+                    || action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
                     && event.getClickedBlock().getType().isInteractable()) {
+                return;                                   // colocar blocos e usar blocos continua normal
+            }
+            UUID id = player.getUniqueId();
+            long now = System.currentTimeMillis();
+            long gap = now - lastRight.getOrDefault(id, 0L);
+            lastRight.put(id, now);
+            if (gap < 60 || gap > 400 || unlockedActives(rpg().data(player)).isEmpty()) {
                 return;
             }
+            lastRight.remove(id);
+            event.setCancelled(true);
+            cast(player);
+            return;
+        }
+        if (action != Action.LEFT_CLICK_AIR || !player.isSneaking()) {
+            return;
         }
         PlayerData d = rpg().data(player);
         List<Skill> actives = unlockedActives(d);
@@ -145,20 +154,15 @@ public final class SkillManager implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (!right) {
-            int next = (actives.indexOf(d.selected) + 1) % actives.size();
-            d.selected = actives.get(next);
-            rpg().markDirty();
-            Fx.select(player);
-            Msg.actionBar(player, "<aqua>Habilidade: <white>" + d.selected.display()
-                    + " <dark_gray>(Shift + botão direito para usar)");
-        } else if (System.currentTimeMillis() - lastCast.getOrDefault(player.getUniqueId(), 0L) > 250) {
-            lastCast.put(player.getUniqueId(), System.currentTimeMillis());
-            cast(player);
-        }
+        int next = (actives.indexOf(d.selected) + 1) % actives.size();
+        d.selected = actives.get(next);
+        rpg().markDirty();
+        Fx.select(player);
+        Msg.actionBar(player, "<aqua>Habilidade: <white>" + d.selected.display()
+                + " <dark_gray>(botão direito 2x para usar)");
     }
 
-    private final java.util.Map<java.util.UUID, Long> lastCast = new java.util.HashMap<>();
+    private final Map<UUID, Long> lastRight = new HashMap<>();
 
     private long remaining(Player player, Skill skill) {
         EnumMap<Skill, Long> map = cooldowns.get(player.getUniqueId());

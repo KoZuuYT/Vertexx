@@ -303,7 +303,7 @@ final class WikiData {
                 e(Material.NETHER_STAR, "<white><bold>Status e habilidades",
                         "<gray>10 status sobem com a atividade:", "<gray>Mineração, Escavação, Lenhador, Agricultura,",
                         "<gray>Luta, Arquearia, Resistência, Acrobacia,", "<gray>Pesca e Exploração. Árvore de 16 habilidades.",
-                        "<dark_gray>/vstats  •  Shift+direito usa, Shift+esquerdo troca."),
+                        "<dark_gray>/vstats  •  Direito 2x usa, Shift+esquerdo troca."),
                 e(Material.ZOMBIE_HEAD, "<white><bold>Mobs nivelados",
                         "<gray>O nível cresce com a distância do spawn,", "<gray>dimensão, profundidade e estruturas.",
                         "<dark_gray>Veja Traits e Elites na Wiki."),
