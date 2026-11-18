@@ -139,8 +139,7 @@ public final class ScarabGear implements Listener {
         ItemStack out = base.clone();
         out.editMeta(meta -> {
             meta.displayName(Msg.item("<dark_purple>Segadora de Mandíbula do Vazio"));
-            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(new NamespacedKey(plugin, "scarab_dmg"),
-                    2.5, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            dev.vertexx.core.Items.weaponStats(plugin, meta, out.getType(), 2.5, 0);
             meta.getPersistentDataContainer().set(bladeKey, PersistentDataType.BYTE, (byte) 1);
             lore(meta, "<light_purple>◆ Avanço do Vazio <gray>(botão direito, 6 s)",
                     "<dark_gray>Corta tudo à frente e ignora 40% da armadura.");

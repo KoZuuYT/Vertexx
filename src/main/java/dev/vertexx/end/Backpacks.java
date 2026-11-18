@@ -105,21 +105,6 @@ public final class Backpacks implements Listener, TabExecutor {
         leather.setIngredient('S', Material.STRING);
         Bukkit.addRecipe(leather);
 
-        ShapelessRecipe iron = new ShapelessRecipe(new NamespacedKey(plugin, "iron_backpack"), EndItem.BACKPACK_IRON.create(plugin));
-        iron.addIngredient(new RecipeChoice.MaterialChoice(Material.PAPER));
-        iron.addIngredient(4, Material.IRON_BARS);
-        iron.addIngredient(2, Material.COPPER_BARS);
-        Bukkit.addRecipe(iron);
-
-        ShapelessRecipe voidBag = new ShapelessRecipe(new NamespacedKey(plugin, "void_backpack"), EndItem.BACKPACK_VOID.create(plugin));
-        voidBag.addIngredient(new RecipeChoice.MaterialChoice(Material.PAPER));
-        voidBag.addIngredient(2, Material.SHULKER_SHELL);
-        for (int i = 0; i < 2; i++) {
-            voidBag.addIngredient(new RecipeChoice.ExactChoice(EndItem.VOID_CHITIN.create(plugin)));
-        }
-        voidBag.addIngredient(Material.ENDER_PEARL);
-        Bukkit.addRecipe(voidBag);
-
         Bukkit.getScheduler().runTaskTimer(plugin, this::magnet, 40L, 10L);
     }
 
@@ -162,30 +147,36 @@ public final class Backpacks implements Listener, TabExecutor {
             }
             return;
         }
-        int needed = key.equals("iron_backpack") ? 1 : key.equals("void_backpack") ? 2 : 0;
-        if (needed == 0) {
+    }
+
+    /**
+     * Upgrade na bigorna: a mochila no primeiro slot e o material no segundo. O conteúdo e o id são preservados.
+     * Couro → Reforçada: 6 Barras de Ferro (3 níveis). Reforçada → do Vazio: 2 Quitinas do Vazio (8 níveis).
+     */
+    @EventHandler
+    public void onAnvil(org.bukkit.event.inventory.PrepareAnvilEvent event) {
+        ItemStack first = event.getInventory().getFirstItem();
+        ItemStack second = event.getInventory().getSecondItem();
+        int tier = tierOf(first);
+        if (tier < 1 || tier > 2 || second == null || second.isEmpty()) {
             return;
         }
-        ItemStack source = null;
-        for (ItemStack item : matrix) {
-            if (item != null && item.getType() == Material.PAPER) {
-                EndItem type = EndItem.of(item);
-                if (type != null && type.tier() == needed) {
-                    source = item;
-                }
-            }
-        }
-        if (source == null) {
-            event.getInventory().setResult(null);
+        boolean ok = tier == 1 ? second.getType() == Material.IRON_BARS && EndItem.of(second) == null
+                : EndItem.VOID_CHITIN.matches(second);
+        int need = tier == 1 ? 6 : 2;
+        if (!ok || second.getAmount() < need) {
+            event.setResult(null);
             return;
         }
-        ItemStack result = create(needed + 1);
-        ItemStack[] kept = read(source, SLOTS[needed - 1]);
-        String id = source.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
+        ItemStack result = create(tier + 1);
+        ItemStack[] kept = read(first, SLOTS[tier - 1]);
+        String id = first.getItemMeta().getPersistentDataContainer().get(idKey, PersistentDataType.STRING);
         if (id != null) {
             result.editMeta(meta -> meta.getPersistentDataContainer().set(idKey, PersistentDataType.STRING, id));
         }
-        event.getInventory().setResult(write(result, kept, SLOTS[needed]));
+        event.setResult(write(result, kept, SLOTS[tier]));
+        event.getView().setRepairCost(tier == 1 ? 3 : 8);
+        event.getView().setRepairItemCountCost(need);
     }
 
     // ── Itens ──────────────────────────────────────────────────

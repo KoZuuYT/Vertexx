@@ -41,7 +41,9 @@ import org.bukkit.event.block.BlockDropItemEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.block.Action;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -51,7 +53,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 /**
- * Uso das habilidades: ativas (tecla F, Shift+F troca), mineração em área, veio, derrubada de árvores,
+ * Uso das habilidades: ativas (Shift+botão direito usa, Shift+botão esquerdo troca), mineração em área, veio, derrubada de árvores,
  * golpe atordoante, colheita, reposição, ímã e frenesi. Nenhuma habilidade afeta outros jogadores.
  */
 public final class SkillManager implements Listener {
@@ -115,12 +117,27 @@ public final class SkillManager implements Listener {
         return list;
     }
 
-    /** F usa a habilidade escolhida; Shift+F troca a habilidade escolhida. */
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onSwap(PlayerSwapHandItemsEvent event) {
+    /** Shift + botão direito usa a habilidade escolhida; Shift + botão esquerdo (no ar) troca a habilidade. */
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onClick(PlayerInteractEvent event) {
         Player player = event.getPlayer();
-        if (!rpg().enabled() || !plugin.getConfig().getBoolean("rpg.cast-with-swap-key", true)) {
+        if (event.getHand() != EquipmentSlot.HAND || !player.isSneaking()
+                || !rpg().enabled() || !plugin.getConfig().getBoolean("rpg.cast-with-shift-click", true)) {
             return;
+        }
+        Action action = event.getAction();
+        boolean right = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+        if (!right && action != Action.LEFT_CLICK_AIR) {
+            return;
+        }
+        if (right) {
+            if (event.getItem() != null && event.getItem().getType().isBlock()) {
+                return;                                   // Shift + clique direito com bloco continua colocando
+            }
+            if (action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
+                    && event.getClickedBlock().getType().isInteractable()) {
+                return;
+            }
         }
         PlayerData d = rpg().data(player);
         List<Skill> actives = unlockedActives(d);
@@ -128,16 +145,20 @@ public final class SkillManager implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (player.isSneaking()) {
+        if (!right) {
             int next = (actives.indexOf(d.selected) + 1) % actives.size();
             d.selected = actives.get(next);
             rpg().markDirty();
             Fx.select(player);
-            Msg.actionBar(player, "<aqua>Habilidade: <white>" + d.selected.display() + " <dark_gray>(F para usar)");
-        } else {
+            Msg.actionBar(player, "<aqua>Habilidade: <white>" + d.selected.display()
+                    + " <dark_gray>(Shift + botão direito para usar)");
+        } else if (System.currentTimeMillis() - lastCast.getOrDefault(player.getUniqueId(), 0L) > 250) {
+            lastCast.put(player.getUniqueId(), System.currentTimeMillis());
             cast(player);
         }
     }
+
+    private final java.util.Map<java.util.UUID, Long> lastCast = new java.util.HashMap<>();
 
     private long remaining(Player player, Skill skill) {
         EnumMap<Skill, Long> map = cooldowns.get(player.getUniqueId());
@@ -254,6 +275,69 @@ public final class SkillManager implements Listener {
 
     // ── Mineração, veio e árvores ──────────────────────────────
 
+    private static final org.bukkit.NamespacedKey PLACED_KEY = new org.bukkit.NamespacedKey("vertexx", "placed_logs");
+
+    private static int pack(Block b) {
+        return ((b.getY() + 2048) << 8) | ((b.getX() & 15) << 4) | (b.getZ() & 15);
+    }
+
+    private boolean isPlayerPlaced(Block b) {
+        int[] list = b.getChunk().getPersistentDataContainer().get(PLACED_KEY,
+                org.bukkit.persistence.PersistentDataType.INTEGER_ARRAY);
+        if (list == null) {
+            return false;
+        }
+        int key = pack(b);
+        for (int v : list) {
+            if (v == key) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void markPlaced(Block b, boolean placed) {
+        var pdc = b.getChunk().getPersistentDataContainer();
+        int[] list = pdc.get(PLACED_KEY, org.bukkit.persistence.PersistentDataType.INTEGER_ARRAY);
+        int key = pack(b);
+        List<Integer> out = new ArrayList<>();
+        boolean had = false;
+        if (list != null) {
+            for (int v : list) {
+                if (v == key) {
+                    had = true;
+                } else {
+                    out.add(v);
+                }
+            }
+        }
+        if (placed) {
+            out.add(key);
+        } else if (!had) {
+            return;
+        }
+        if (out.isEmpty()) {
+            pdc.remove(PLACED_KEY);
+        } else {
+            pdc.set(PLACED_KEY, org.bukkit.persistence.PersistentDataType.INTEGER_ARRAY,
+                    out.stream().mapToInt(Integer::intValue).toArray());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onLogPlaced(BlockPlaceEvent event) {
+        if (Tag.LOGS.isTagged(event.getBlockPlaced().getType())) {
+            markPlaced(event.getBlockPlaced(), true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onLogBroken(BlockBreakEvent event) {
+        if (Tag.LOGS.isTagged(event.getBlock().getType())) {
+            markPlaced(event.getBlock(), false);
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
@@ -297,7 +381,11 @@ public final class SkillManager implements Listener {
                 targets = connected(block, veinRank * 8 + (veinRank == 3 ? 8 : 0), b -> Ores.isOre(b.getType())
                         && Ores.group(b.getType()).equals(Ores.group(type)));
             } else if (axe && treeRank > 0 && Tag.LOGS.isTagged(type)) {
-                targets = connected(block, treeRank >= 2 ? 120 : 40, b -> Tag.LOGS.isTagged(b.getType()));
+                if (isPlayerPlaced(block)) {
+                    return;                                   // tora de construção: quebra normal
+                }
+                targets = connected(block, treeRank >= 2 ? 120 : 40,
+                        bl -> Tag.LOGS.isTagged(bl.getType()) && !isPlayerPlaced(bl));
             }
         }
         if (targets == null || targets.isEmpty()) {

@@ -108,8 +108,7 @@ public final class GloomGear implements Listener {
             CustomModelDataComponent component = meta.getCustomModelDataComponent();
             component.setFloats(List.of(1063f));
             meta.setCustomModelDataComponent(component);
-            meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(new NamespacedKey(plugin, "claws_spd"),
-                    0.6, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            dev.vertexx.core.Items.weaponStats(plugin, meta, Material.NETHERITE_SWORD, 1.0, 0.6);
             meta.getPersistentDataContainer().set(clawsKey, PersistentDataType.BYTE, (byte) 1);
         });
         return item;

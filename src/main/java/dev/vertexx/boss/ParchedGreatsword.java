@@ -86,10 +86,7 @@ public final class ParchedGreatsword implements Listener {
             CustomModelDataComponent component = meta.getCustomModelDataComponent();
             component.setFloats(List.of(1050f));
             meta.setCustomModelDataComponent(component);
-            meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(new NamespacedKey(plugin, "greatsword_dmg"),
-                    0.5, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
-            meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(new NamespacedKey(plugin, "greatsword_spd"),
-                    -0.35, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            dev.vertexx.core.Items.weaponStats(plugin, meta, Material.NETHERITE_SWORD, 2.0, -0.6);
             meta.addAttributeModifier(Attribute.ENTITY_INTERACTION_RANGE, new AttributeModifier(
                     new NamespacedKey(plugin, "greatsword_reach"), 1.0, AttributeModifier.Operation.ADD_NUMBER,
                     EquipmentSlotGroup.MAINHAND));

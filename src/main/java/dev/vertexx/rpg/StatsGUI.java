@@ -433,7 +433,7 @@ public final class StatsGUI extends Menu {
         set(12, Items.of(Material.DIAMOND_PICKAXE, "<aqua>Fontes de XP",
                 statSources()), null);
         set(13, Items.of(Material.COMPARATOR, "<white>Controles",
-                List.of("<yellow>F <gray>usa a habilidade ativa escolhida.", "<yellow>Shift + F <gray>troca a habilidade.",
+                List.of("<yellow>Shift + botão direito <gray>usa a habilidade ativa.", "<yellow>Shift + botão esquerdo <gray>troca (no ar).",
                         "<yellow>Agachado + quebrar <gray>usa Veeiro e Machadeiro.", "",
                         "<gray>Habilidades ativas: <white>Investida, Pico Largo,", "<white>Golpe Atordoante<gray>.",
                         "<dark_gray>Nenhuma habilidade afeta jogadores.")), null);
