@@ -332,7 +332,8 @@ public final class PanelGUI implements InventoryHolder {
         String pending = plugin.updater().pendingVersion();
         set(20, Items.of(Material.COMMAND_BLOCK, "<white>Servidor",
                 List.of("<gray>Vertexx: <white>" + plugin.getPluginMeta().getVersion(),
-                        "<gray>Jogadores: <white>" + Bukkit.getOnlinePlayers().size() + "<dark_gray>/" + Bukkit.getMaxPlayers(),
+                        "<gray>Jogadores: <white>" + Bukkit.getOnlinePlayers().size() + "<dark_gray>/" + Bukkit.getMaxPlayers()
+                                + " <dark_gray>(Bedrock: " + plugin.bedrock().count() + ")",
                         "<gray>Túmulos ativos: <white>" + plugin.graves().count())), null);
         set(22, Items.of(Material.LODESTONE, "<white>Waystones e modelos",
                 List.of("<gray>Registrados: <white>" + models[0], "<gray>Renderizados agora: <white>" + models[1],

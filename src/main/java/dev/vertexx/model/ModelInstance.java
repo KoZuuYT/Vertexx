@@ -29,7 +29,12 @@ public final class ModelInstance {
     private final ModelDef def;
     private final float scale;
     private final ItemDisplay[] displays;
+    private final NamespacedKey tag;
+    private final float box;
     private Location anchor;
+    private Location ref;
+    private boolean removed;
+    private long lastHealMs;
 
     // animação
     private ModelDef.Clip clip;
@@ -90,43 +95,96 @@ public final class ModelInstance {
         sentS = new Vector3f[n];
         sentHidden = new boolean[n];
         baseTint = new org.bukkit.Color[n];
-        anchor = at.clone();
-        anchor.setYaw(0);
-        anchor.setPitch(0);
+        this.tag = tag;
         // caixa de culling: sem ela (0x0) mods de culling do cliente (Entity Culling etc.) testam só um ponto no chão
         // e escondem o modelo por intermitência; com a caixa cobrindo o modelo inteiro ele só some de verdade fora da tela
         float reach = 0f;
         for (ModelDef.Bone b : def.bones) {
             reach = Math.max(reach, b.origin().length() + 24f * b.k());
         }
-        float box = 2f * (REANCHOR + reach * scale / 16f + 1f);
+        box = 2f * (REANCHOR + reach * scale / 16f + 1f);
+        ref = at.clone();
+        anchor = anchorFor(at);
         for (int i = 0; i < n; i++) {
             wPos[i] = new Vector3f();
             wRot[i] = new Quaternionf();
             wScl[i] = new Vector3f(1);
             rest[i] = new Vector3f(def.bones[i].rot());
-            ModelDef.Bone bone = def.bones[i];
-            if (bone.item() == null) {
-                continue;
+            spawnBone(i);
+        }
+    }
+
+    /**
+     * Âncora das displays para um mob em {@code at}. A caixa de culling do cliente cresce só para cima a partir da
+     * âncora, então ela fica abaixo do mob (a caixa fica centrada nele): antes, com a âncora nos pés, o modelo abaixo
+     * dela saía da caixa e sumia ao olhar para baixo.
+     */
+    private Location anchorFor(Location at) {
+        Location a = at.clone();
+        a.setYaw(0);
+        a.setPitch(0);
+        a.setY(Math.max(at.getWorld().getMinHeight(), at.getY() - box / 2.0));
+        return a;
+    }
+
+    private void spawnBone(int i) {
+        ModelDef.Bone bone = def.bones[i];
+        if (bone.item() == null) {
+            displays[i] = null;
+            return;
+        }
+        ItemStack stack = new ItemStack(Material.PAPER);
+        stack.editMeta(meta -> meta.setItemModel(bone.item()));
+        if (baseTint[i] != null) {
+            stack.setData(io.papermc.paper.datacomponent.DataComponentTypes.DYED_COLOR,
+                    io.papermc.paper.datacomponent.item.DyedItemColor.dyedItemColor(baseTint[i]));
+        }
+        displays[i] = anchor.getWorld().spawn(anchor, ItemDisplay.class, entity -> {
+            entity.setItemStack(stack);
+            entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
+            entity.setPersistent(false);
+            entity.setViewRange(1.6f);
+            entity.setDisplayWidth(box);
+            entity.setDisplayHeight(box);
+            // ossos normais recebem a luz do lugar onde o mob está (ver light()); só os emissivos ficam no máximo
+            entity.setBrightness(bone.glow() ? new Display.Brightness(15, 15) : new Display.Brightness(0, 15));
+            entity.setShadowRadius(0f);
+            entity.setInterpolationDuration(0);
+            entity.setTeleportDuration(0);
+            entity.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(HIDDEN),
+                    new Quaternionf()));
+            entity.getPersistentDataContainer().set(tag, PersistentDataType.BYTE, (byte) 1);
+        });
+        sentT[i] = null;
+        sentBlock = -1;
+    }
+
+    /**
+     * Recria as displays que sumiram (chunk da âncora descarregado com o mob ainda vivo, entidade removida): sem isto o
+     * modelo ficava invisível para sempre. Recria junto ao mob, com no máximo uma tentativa por segundo.
+     */
+    private void heal(Location at) {
+        if (removed) {
+            return;
+        }
+        boolean broken = false;
+        for (int i = 0; i < displays.length; i++) {
+            if (def.bones[i].item() != null && (displays[i] == null || !displays[i].isValid())) {
+                broken = true;
+                break;
             }
-            ItemStack stack = new ItemStack(Material.PAPER);
-            stack.editMeta(meta -> meta.setItemModel(bone.item()));
-            displays[i] = anchor.getWorld().spawn(anchor, ItemDisplay.class, entity -> {
-                entity.setItemStack(stack);
-                entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.NONE);
-                entity.setPersistent(false);
-                entity.setViewRange(1.6f);
-                entity.setDisplayWidth(box);
-                entity.setDisplayHeight(box);
-                // ossos normais recebem a luz do lugar onde o mob está (ver light()); só os emissivos ficam no máximo
-                entity.setBrightness(bone.glow() ? new Display.Brightness(15, 15) : new Display.Brightness(0, 15));
-                entity.setShadowRadius(0f);
-                entity.setInterpolationDuration(0);
-                entity.setTeleportDuration(0);
-                entity.setTransformation(new Transformation(new Vector3f(), new Quaternionf(), new Vector3f(HIDDEN),
-                        new Quaternionf()));
-                entity.getPersistentDataContainer().set(tag, PersistentDataType.BYTE, (byte) 1);
-            });
+        }
+        long now = System.currentTimeMillis();
+        if (!broken || now - lastHealMs < 1000) {
+            return;
+        }
+        lastHealMs = now;
+        ref = at.clone();
+        anchor = anchorFor(at);
+        for (int i = 0; i < displays.length; i++) {
+            if (def.bones[i].item() != null && (displays[i] == null || !displays[i].isValid())) {
+                spawnBone(i);
+            }
         }
     }
 
@@ -434,9 +492,8 @@ public final class ModelInstance {
      * cada vez que o mob se afastava da âncora.) A pose seguinte também vai sem interpolação.
      */
     private void reanchor(Location at) {
-        anchor = at.clone();
-        anchor.setYaw(0);
-        anchor.setPitch(0);
+        ref = at.clone();
+        anchor = anchorFor(at);
         for (int i = 0; i < displays.length; i++) {
             if (displays[i] != null && displays[i].isValid()) {
                 displays[i].setTeleportDuration(0);
@@ -449,13 +506,20 @@ public final class ModelInstance {
     /** Calcula a pose e a envia. {@code at} é a origem do modelo (pés), {@code yaw} o do Bukkit. */
     public void update(Location at, float yaw, int duration) {
         long now = System.currentTimeMillis();
-        boolean stale = lastUpdateMs != 0 && now - lastUpdateMs > 750;   // ficou sem atualizar (ninguém perto, lag): sem deslizar da pose velha
+        long elapsed = lastUpdateMs == 0 ? 0 : now - lastUpdateMs;
+        boolean stale = lastUpdateMs != 0 && elapsed > 750;   // ficou sem atualizar (ninguém perto, lag): sem deslizar da pose velha
         lastUpdateMs = now;
-        if (anchor.getWorld() != at.getWorld() || anchor.distanceSquared(at) > REANCHOR * REANCHOR) {
+        // com o servidor atrasado a atualização chega depois do previsto: a interpolação acompanha o tempo real,
+        // senão o modelo para no fim dela e arranca de uma vez (parece piscada de posição)
+        if (duration > 0 && !stale) {
+            duration = Math.max(duration, Math.min(8, (int) Math.ceil(elapsed / 50.0)));
+        }
+        if (anchor.getWorld() != at.getWorld() || ref.distanceSquared(at) > REANCHOR * REANCHOR) {
             reanchor(at);
         } else if (stale) {
             java.util.Arrays.fill(sentT, null);
         }
+        heal(at);
         lastAt = at.clone();
         light(at, duration);
         tickFlash(duration);
@@ -509,6 +573,7 @@ public final class ModelInstance {
     }
 
     public void remove() {
+        removed = true;
         for (ItemDisplay d : displays) {
             if (d != null) {
                 d.remove();

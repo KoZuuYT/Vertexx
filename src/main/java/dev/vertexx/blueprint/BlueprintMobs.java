@@ -216,6 +216,7 @@ public final class BlueprintMobs implements Listener {
             this.id = entry.id();
             lastX = mob.getX();
             lastZ = mob.getZ();
+            plugin.bedrock().track(mob);
             bind(entry);
         }
 

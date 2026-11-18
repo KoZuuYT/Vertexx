@@ -167,3 +167,15 @@ nos keyframes.
 
 Mobs novos: Caranguejo, Pinguim (Mob Vote 2023), Great Hunger (6 variantes: terra, areia, madeira, pedra,
 ametista, grama) e Barnacle (Mob Vote 2017). Esconder um osso (`ModelInstance.hide`) esconde também os filhos.
+
+## Jogadores Bedrock (Geyser/Floodgate)
+
+O Geyser não desenha `ItemDisplay`/`BlockDisplay` nem repassa o resource pack Java. O Vertexx detecta o jogador Bedrock
+(`core/Bedrock.java`: Floodgate, depois Geyser, depois UUID `0000…`/prefixo `.`) e:
+
+- não oferece o pacote Java (`/pacote` explica); menus e ícones usam o visual padrão;
+- cria, para cada mob com modelo custom, um **duplo vanilla** do mesmo tipo, visível só para Bedrock a até 64 blocos;
+  ele segue o mob-base e repassa dano e clique direito ao mob de verdade;
+- Waystones: o Lodestone continua visível; o modelo custom, não.
+
+Para texturas e modelos 3D no Bedrock de verdade é preciso mapear os itens no Geyser (custom items v2, Rainbow) — fora do escopo do plugin.

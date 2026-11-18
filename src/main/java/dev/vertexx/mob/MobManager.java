@@ -174,6 +174,9 @@ public final class MobManager implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onSpawn(CreatureSpawnEvent event) {
+        if (event.getEntity().getScoreboardTags().contains("vx_bedrock")) {
+            return;     // duplo vanilla para jogadores Bedrock
+        }
         if (enabled() && event.getEntity() instanceof LivingEntity living) {
             Forced request = forced;
             if (request != null && living.getType() == request.type()) {

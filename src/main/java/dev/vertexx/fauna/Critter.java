@@ -30,6 +30,7 @@ abstract class Critter {
         this.mob = mob;
         this.model = plugin.entityModels().spawn(modelId(), manager.partKey(), mob.getLocation(), modelScale());
         mob.setInvisible(true);
+        plugin.bedrock().track(mob);
         if (wild()) {
             mob.setSilent(true);
             Bukkit.getMobGoals().removeAllGoals(mob);

@@ -145,6 +145,7 @@ abstract class BossFight {
             }
             golem.setHealth(maxHealth);
         });
+        plugin.bedrock().track(hitbox);
         model = plugin.entityModels().spawn(modelId(), manager.partKey(), feet, modelScale());
         rig = new Rig(manager.partKey(), feet);
         buildRig();

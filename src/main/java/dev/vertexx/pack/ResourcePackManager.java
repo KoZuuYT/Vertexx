@@ -136,7 +136,7 @@ public final class ResourcePackManager implements Listener, TabExecutor {
 
     /** Chamado quando o jogador entra: oferece o pacote ou reenvia a quem já aceitou. */
     public void greet(Player player) {
-        if (!isConfigured()) {
+        if (!isConfigured() || plugin.bedrock().is(player)) {     // Bedrock: o Geyser não repassa o pacote Java
             return;
         }
         if (loaded.contains(player.getUniqueId())) {
@@ -180,6 +180,9 @@ public final class ResourcePackManager implements Listener, TabExecutor {
     }
 
     private void apply(Player player) {
+        if (plugin.bedrock().is(player)) {
+            return;
+        }
         String hash = sha1();
         try {
             java.util.List<ResourcePackInfo> packs = new java.util.ArrayList<>();
@@ -255,6 +258,10 @@ public final class ResourcePackManager implements Listener, TabExecutor {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
             Msg.send(sender, "<red>Apenas jogadores podem usar este comando.");
+            return true;
+        }
+        if (plugin.bedrock().is(player)) {
+            Msg.send(player, "<gray>No Bedrock o pacote de recursos Java não é usado: menus e ícones aparecem no visual padrão, e as criaturas customizadas aparecem como a versão vanilla.");
             return true;
         }
         if (!isConfigured()) {

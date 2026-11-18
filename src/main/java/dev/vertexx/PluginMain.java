@@ -41,6 +41,7 @@ public final class PluginMain extends JavaPlugin {
     private ResourcePackManager resourcePack;
     private ModelManager models;
     private PanelManager panel;
+    private dev.vertexx.core.Bedrock bedrock;
     private MobManager mobs;
     private BossManager bosses;
     private FaunaManager fauna;
@@ -86,6 +87,7 @@ public final class PluginMain extends JavaPlugin {
         resourcePack = new ResourcePackManager(this);
         models = new ModelManager(this);
         panel = new PanelManager(this);
+        bedrock = new dev.vertexx.core.Bedrock(this);
         entityModels = new dev.vertexx.model.Models(this);
         mobs = new MobManager(this);
         bosses = new BossManager(this);
@@ -113,6 +115,8 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(new MenuListener(), this);
         plugins.registerEvents(new WaystoneListener(this), this);
         plugins.registerEvents(namePrompt, this);
+        plugins.registerEvents(bedrock, this);
+        bedrock.start();
         plugins.registerEvents(warpStone, this);
         plugins.registerEvents(recipeBook, this);
         plugins.registerEvents(new GraveListener(this), this);
@@ -243,6 +247,7 @@ public final class PluginMain extends JavaPlugin {
     public void onDisable() {
         saveData();
         backups.shutdown();
+        bedrock.shutdown();
         models.shutdown();
         mobs.shutdown();
         bosses.shutdown();
@@ -289,6 +294,10 @@ public final class PluginMain extends JavaPlugin {
 
     public ModelManager models() {
         return models;
+    }
+
+    public dev.vertexx.core.Bedrock bedrock() {
+        return bedrock;
     }
 
     public PanelManager panel() {
