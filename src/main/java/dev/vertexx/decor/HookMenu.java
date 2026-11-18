@@ -49,6 +49,11 @@ final class HookMenu extends Menu {
         hooks.put(display, key, Math.max(min, Math.min(max, hooks.num(display, key, fallback) + delta)));
     }
 
+    /** Ângulo com volta completa: passa de 180° para -180° e continua girando (360° no total). */
+    private void wrap(org.bukkit.NamespacedKey key, int delta) {
+        hooks.put(display, key, Math.floorMod(hooks.num(display, key, 0) + delta + 180, 360) - 180);
+    }
+
     @Override
     protected void render() {
         frame(null);
@@ -66,17 +71,14 @@ final class HookMenu extends Menu {
         int out = hooks.num(display, hooks.kOut, 22);
 
         stepper(10, "Tamanho", scale + "%", "Passo: 5%", 5, d -> bump(hooks.kScale, 70, d, 20, 250));
-        stepper(14, "Rotação", yaw + "°", "Passo: 15°", 15, d -> {
-            int value = Math.floorMod(hooks.num(display, hooks.kYaw, 0) + d + 180, 360) - 180;
-            hooks.put(display, hooks.kYaw, value);
-        });
-        stepper(19, "Inclinação", tilt + "°", "Passo: 15°", 15, d -> bump(hooks.kTilt, 0, d, -90, 90));
+        stepper(14, "Rotação", yaw + "°", "Passo: 15°", 15, d -> wrap(hooks.kYaw, d));
+        stepper(19, "Inclinação", tilt + "°", "Passo: 15°", 15, d -> wrap(hooks.kTilt, d));
         stepper(23, "Altura", String.format("%+.2f", up / 100.0), "Passo: 0,05", 5, d -> bump(hooks.kUp, -10, d, -60, 60));
         stepper(28, "Distância", String.format("%.2f", out / 100.0), "Passo: 0,05", 5, d -> bump(hooks.kOut, 22, d, -10, 60));
         int side = hooks.num(display, hooks.kSide, 0);
         int roll = hooks.num(display, hooks.kRoll, 0);
         stepper(32, "Lateral", String.format("%+.2f", side / 100.0), "Passo: 0,05", 5, d -> bump(hooks.kSide, 0, d, -60, 60));
-        stepper(37, "Rolagem", roll + "°", "Passo: 15°", 15, d -> bump(hooks.kRoll, 0, d, -180, 180));
+        stepper(37, "Rolagem", roll + "°", "Passo: 15°", 15, d -> wrap(hooks.kRoll, d));
 
         HookManager.Mode mode = hooks.mode(display);
         button(41, Material.ITEM_FRAME, "<white>Modo: <yellow>" + mode.label,
