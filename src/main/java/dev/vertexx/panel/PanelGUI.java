@@ -306,6 +306,10 @@ public final class PanelGUI implements InventoryHolder {
         set(33, Items.of(Material.WITHER_SKELETON_SKULL, "<white><bold>Bosses",
                 List.of("<gray>Salas, testes e controle.", "<dark_gray>Equivale a /vertexx boss", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_BOSSES));
+        set(38, Items.of(Material.ENDER_CHEST, "<white><bold>Backups",
+                List.of("<gray>Mundos, jogadores e dados do Vertexx:", "<gray>criar, renomear, copiar e restaurar.",
+                        "<dark_gray>Equivale a /vbackup", "<gray>Guardados: <white>" + plugin.backups().list().size(), "",
+                        "<yellow>▶ Clique para abrir")), c -> new dev.vertexx.backup.BackupMenu(plugin, player, 0).open());
         set(40, Items.of(Material.ALLAY_SPAWN_EGG, "<white><bold>Ovos e itens",
                 List.of("<gray>Criaturas, itens customizados e livros,", "<gray>em abas.", "",
                         "<yellow>▶ Clique para abrir")), c -> go(Page.ADMIN_EGGS));

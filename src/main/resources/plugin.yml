@@ -26,6 +26,10 @@ commands:
     description: Soma, define, multiplica, divide ou diminui o XP e os níveis de um jogador (administradores).
     usage: /vxp <adicionar|definir|multiplicar|dividir|remover> <jogador> <valor> [pontos|niveis|geral|<status>] [nivel|xp]
     aliases: [vexp]
+  vbackup:
+    description: Backups do servidor (criar, listar, renomear, copiar, apagar e restaurar), só administradores.
+    usage: /vbackup [menu|criar|listar|info|renomear|descricao|copiar|apagar|restaurar|cancelar|status]
+    aliases: [backup, backups]
   overworldreload:
     description: Recarrega o config.yml do Vertexx (administradores).
     usage: /overworldreload

@@ -62,8 +62,15 @@ public final class PluginMain extends JavaPlugin {
     private dev.vertexx.overworld.Archaeology archaeology;
     private dev.vertexx.decor.ClockManager clocks;
     private dev.vertexx.decor.HookManager hooks;
+    private dev.vertexx.backup.BackupManager backups;
     private AutoUpdater updater;
     private volatile boolean ready;
+
+    @Override
+    public void onLoad() {
+        // antes de qualquer mundo existir: aplica uma restauração de backup que o desligamento não conseguiu fazer
+        dev.vertexx.backup.BackupManager.applyPendingAtLoad(this);
+    }
 
     @Override
     public void onEnable() {
@@ -100,6 +107,7 @@ public final class PluginMain extends JavaPlugin {
         archaeology = new dev.vertexx.overworld.Archaeology(this);
         clocks = new dev.vertexx.decor.ClockManager(this);
         hooks = new dev.vertexx.decor.HookManager(this);
+        backups = new dev.vertexx.backup.BackupManager(this);
 
         var plugins = Bukkit.getPluginManager();
         plugins.registerEvents(new MenuListener(), this);
@@ -132,6 +140,7 @@ public final class PluginMain extends JavaPlugin {
         plugins.registerEvents(archaeology, this);
         plugins.registerEvents(clocks, this);
         plugins.registerEvents(hooks, this);
+        plugins.registerEvents(backups, this);
         plugins.registerEvents(new ActivityListener(this), this);
 
         register("tumulo", new GraveCommand(this));
@@ -139,6 +148,7 @@ public final class PluginMain extends JavaPlugin {
         register("vstats", new StatsCommand(this));
         register("mochila", backpacks);
         register("vxp", new dev.vertexx.rpg.XpCommand(this));
+        register("vbackup", new dev.vertexx.backup.BackupCommand(this));
         Objects.requireNonNull(getCommand("overworldreload")).setExecutor((sender, command, label, args) -> {
             if (!sender.hasPermission("vertexx.admin")) {
                 sender.sendMessage("Sem permissão.");
@@ -171,6 +181,7 @@ public final class PluginMain extends JavaPlugin {
         archaeology.start();
         clocks.start();
         hooks.start();
+        backups.start();
         warpStone.start();
         recipeBook.start();
 
@@ -206,8 +217,8 @@ public final class PluginMain extends JavaPlugin {
         });
     }
 
-    @Override
-    public void onDisable() {
+    /** Grava agora os dados do plugin (usado no desligamento e antes de cada backup). */
+    public void saveData() {
         if (ready) {
             waystones.saveNow();
             graves.saveNow();
@@ -216,6 +227,12 @@ public final class PluginMain extends JavaPlugin {
             rpg.saveNow();
             bosses.saveNow();
         }
+    }
+
+    @Override
+    public void onDisable() {
+        saveData();
+        backups.shutdown();
         models.shutdown();
         mobs.shutdown();
         bosses.shutdown();
@@ -336,6 +353,10 @@ public final class PluginMain extends JavaPlugin {
 
     public BossManager bosses() {
         return bosses;
+    }
+
+    public dev.vertexx.backup.BackupManager backups() {
+        return backups;
     }
 
     public AutoUpdater updater() {

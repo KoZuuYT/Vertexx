@@ -331,6 +331,11 @@ final class WikiData {
                         "<gray>Coração de Cristal recarrega com Pérolas", "<gray>do Fim na bigorna."),
                 e(Material.AXOLOTL_BUCKET, "<white><bold>Resource pack",
                         "<gray>Opcional. Ícones, menus ilustrados e", "<gray>modelos 3D. /pacote aceita ou recusa."),
+                e(Material.ENDER_CHEST, "<white><bold>Backups (administradores)",
+                        "<gray>/vbackup ou Painel > Administração: salva", "<gray>mundos, jogadores (inventário, XP, conquistas),",
+                        "<gray>dados do Vertexx, ops e whitelist em zip.", "<gray>Criar, renomear, descrever (aparece ao passar",
+                        "<gray>o mouse), copiar e apagar. Restaurar agenda a", "<gray>troca e ela ocorre ao reiniciar o servidor,",
+                        "<gray>com backup de segurança antes. Há modo automático."),
                 e(Material.BOOK, "<white><bold>Comandos úteis",
                         "<gray>/tumulo  /pacote  /vstats  /mochila", "<gray>/vertexx livro (Guia)"));
     }

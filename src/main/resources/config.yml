@@ -336,3 +336,21 @@ decor:
   hooks:
     # Botão direito num Tripwire Hook com um item na mão o pendura como exposição.
     enabled: true
+
+# Backups do servidor (/vbackup ou Painel > Administração > Backups).
+backup:
+  # Pasta dos backups, relativa à raiz do servidor (fica fora de plugins/).
+  folder: vertexx-backups
+  # Nível de compressão do zip: 0 (nenhuma, mais rápido) a 9 (menor arquivo).
+  compression: 3
+  # Antes de restaurar, guarda o estado atual em um backup de segurança.
+  safety-backup-before-restore: true
+  # Pastas ou arquivos extras (relativos à raiz do servidor) incluídos em todo backup, ex.: plugins/Essentials.
+  # Sempre entram: mundos, dados dos jogadores (inventário, XP, conquistas, estatísticas), plugins/Vertexx,
+  # ops, whitelist, banimentos e cache de usuários.
+  extra-paths: []
+  auto:
+    enabled: false
+    interval-minutes: 60
+    # Quantos backups automáticos manter (os mais antigos são apagados; manuais nunca são).
+    keep: 5
