@@ -89,7 +89,9 @@ final class WikiData {
                         "<dark_gray>Agache + mão vazia recolhe."),
                 e(Material.TRIPWIRE_HOOK, "<white><bold>Ganchos de exposição",
                         "<gray>Clique direito num Tripwire Hook com um", "<gray>item: ele fica pendurado. Mão vazia abre",
-                        "<gray>o ajuste de tamanho, giro, inclinação e", "<gray>posição. Agache + mão vazia retira."));
+                        "<gray>o ajuste de tamanho, giro, inclinação,", "<gray>rolagem, altura, distância e lateral.",
+                        "<gray>A posição fica salva no gancho; use", "<gray>Copiar/Colar para repetir em outros.",
+                        "<dark_gray>Agache + mão vazia retira o item."));
     }
 
     // ── Criaturas ───────────────────────────────────────────────

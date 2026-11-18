@@ -73,26 +73,30 @@ final class HookMenu extends Menu {
         stepper(19, "Inclinação", tilt + "°", "Passo: 15°", 15, d -> bump(hooks.kTilt, 0, d, -90, 90));
         stepper(23, "Altura", String.format("%+.2f", up / 100.0), "Passo: 0,05", 5, d -> bump(hooks.kUp, -10, d, -60, 60));
         stepper(28, "Distância", String.format("%.2f", out / 100.0), "Passo: 0,05", 5, d -> bump(hooks.kOut, 22, d, -10, 60));
+        int side = hooks.num(display, hooks.kSide, 0);
+        int roll = hooks.num(display, hooks.kRoll, 0);
+        stepper(32, "Lateral", String.format("%+.2f", side / 100.0), "Passo: 0,05", 5, d -> bump(hooks.kSide, 0, d, -60, 60));
+        stepper(37, "Rolagem", roll + "°", "Passo: 15°", 15, d -> bump(hooks.kRoll, 0, d, -180, 180));
 
         HookManager.Mode mode = hooks.mode(display);
-        button(32, Material.ITEM_FRAME, "<white>Modo: <yellow>" + mode.label,
+        button(41, Material.ITEM_FRAME, "<white>Modo: <yellow>" + mode.label,
                 List.of("<gray>Moldura: item achatado, como num quadro.", "<gray>Bloco: o item em 3D, como na cabeça.",
                         "<gray>Solto: como um item largado no chão.", "<yellow>▶ Clique para trocar"),
                 c -> hooks.put(display, hooks.kMode, mode.next().ordinal()));
         boolean spin = hooks.spins(display);
-        button(33, spin ? Material.CLOCK : Material.BARRIER, spin ? "<green>Giro: ligado" : "<gray>Giro: desligado",
+        button(42, spin ? Material.CLOCK : Material.BARRIER, spin ? "<green>Giro: ligado" : "<gray>Giro: desligado",
                 List.of("<gray>O item gira devagar.", "<yellow>▶ Clique para alternar"),
                 c -> hooks.put(display, hooks.kSpin, spin ? 0 : 1));
-        button(34, Material.SUGAR, "<aqua>Restaurar padrão", List.of("<gray>Volta tamanho, posição e giro ao início."), c -> {
-            hooks.put(display, hooks.kScale, 70);
-            hooks.put(display, hooks.kYaw, 0);
-            hooks.put(display, hooks.kTilt, 0);
-            hooks.put(display, hooks.kUp, -10);
-            hooks.put(display, hooks.kOut, 22);
-            hooks.put(display, hooks.kMode, 0);
-            hooks.put(display, hooks.kSpin, 0);
-        });
-        set(43, Items.of(Material.HOPPER, "<red>Retirar item", List.of("<gray>Devolve o item ao seu inventário.",
+        button(47, Material.WRITABLE_BOOK, "<green>Copiar posição",
+                List.of("<gray>Guarda tamanho, rotação, altura e demais", "<gray>ajustes deste gancho.",
+                        "<dark_gray>Depois cole em qualquer outro gancho."), c -> hooks.copy(player, display));
+        boolean has = hooks.hasCopy(player);
+        button(48, has ? Material.FILLED_MAP : Material.MAP, has ? "<aqua>Colar posição" : "<gray>Colar posição",
+                List.of(has ? "<gray>Aplica a posição copiada a este gancho." : "<gray>Copie a posição de outro gancho primeiro."),
+                c -> hooks.paste(player, display));
+        button(50, Material.SUGAR, "<aqua>Restaurar padrão", List.of("<gray>Volta tamanho, posição e giro ao início."),
+                c -> hooks.reset(display));
+        set(51, Items.of(Material.HOPPER, "<red>Retirar item", List.of("<gray>Devolve o item ao seu inventário.",
                 "<dark_gray>Agache + clique vazio faz o mesmo.")), c -> hooks.take(player, display));
     }
 }

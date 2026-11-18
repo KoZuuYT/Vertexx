@@ -65,7 +65,11 @@ public final class HookManager implements Listener {
 
     private final PluginMain plugin;
     private final NamespacedKey mark;
-    final NamespacedKey kOwner, kOwnerName, kPos, kScale, kYaw, kTilt, kUp, kOut, kMode, kSpin;
+    final NamespacedKey kOwner, kOwnerName, kPos, kScale, kYaw, kTilt, kUp, kOut, kMode, kSpin, kSide, kRoll;
+    /** Ordem fixa da configuração salva e copiada: tamanho, rotação, inclinação, altura, distância, modo, giro, lateral, rolagem. */
+    private NamespacedKey[] order;
+    private static final int[] DEFAULTS = {70, 0, 0, -10, 22, 0, 0, 0, 0};
+    private final Map<UUID, String> clipboard = new HashMap<>();
     private final Map<UUID, ItemDisplay> hooks = new HashMap<>();
     private final Map<UUID, Float> spinAngle = new HashMap<>();
     private BukkitTask task;
@@ -83,6 +87,9 @@ public final class HookManager implements Listener {
         this.kOut = new NamespacedKey(plugin, "hk_out");
         this.kMode = new NamespacedKey(plugin, "hk_mode");
         this.kSpin = new NamespacedKey(plugin, "hk_spin");
+        this.kSide = new NamespacedKey(plugin, "hk_side");
+        this.kRoll = new NamespacedKey(plugin, "hk_roll");
+        this.order = new NamespacedKey[] {kScale, kYaw, kTilt, kUp, kOut, kMode, kSpin, kSide, kRoll};
     }
 
     private boolean enabled() {
@@ -137,6 +144,76 @@ public final class HookManager implements Listener {
 
     void put(Entity display, NamespacedKey key, int value) {
         display.getPersistentDataContainer().set(key, PersistentDataType.INTEGER, value);
+        if (display instanceof ItemDisplay item) {
+            save(item);
+        }
+    }
+
+    // ── Configuração salva no gancho (sobrevive à troca/retirada do item) ──
+
+    private NamespacedKey storeKey(Block hook) {
+        return new NamespacedKey(plugin, "hkcfg_" + hook.getX() + "_" + hook.getY() + "_" + hook.getZ());
+    }
+
+    String serialize(Entity display) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < order.length; i++) {
+            out.append(i == 0 ? "" : ",").append(num(display, order[i], DEFAULTS[i]));
+        }
+        return out.toString();
+    }
+
+    /** Aplica uma configuração serializada ao item exposto (valores inválidos viram o padrão). */
+    void deserialize(Entity display, String data) {
+        String[] parts = data.split(",");
+        for (int i = 0; i < order.length; i++) {
+            int value = DEFAULTS[i];
+            try {
+                if (i < parts.length) {
+                    value = Integer.parseInt(parts[i].trim());
+                }
+            } catch (NumberFormatException ignored) {
+                // mantém o padrão
+            }
+            display.getPersistentDataContainer().set(order[i], PersistentDataType.INTEGER, value);
+        }
+    }
+
+    private void save(ItemDisplay display) {
+        Block hook = hookBlock(display);
+        hook.getChunk().getPersistentDataContainer().set(storeKey(hook), PersistentDataType.STRING, serialize(display));
+    }
+
+    private void forget(Block hook) {
+        hook.getChunk().getPersistentDataContainer().remove(storeKey(hook));
+    }
+
+    void copy(Player player, ItemDisplay display) {
+        clipboard.put(player.getUniqueId(), serialize(display));
+        Fx.sound(player, Sound.ENTITY_ITEM_PICKUP, 1f, 1.4f);
+        Msg.actionBar(player, "<green>Posição copiada <gray>— abra outro gancho e clique em Colar");
+    }
+
+    boolean hasCopy(Player player) {
+        return clipboard.containsKey(player.getUniqueId());
+    }
+
+    void paste(Player player, ItemDisplay display) {
+        String data = clipboard.get(player.getUniqueId());
+        if (data == null) {
+            Msg.actionBar(player, "<red>Nada copiado ainda");
+            Fx.deny(player);
+            return;
+        }
+        deserialize(display, data);
+        save(display);
+        Fx.sound(player, Sound.ENTITY_ITEM_FRAME_ROTATE_ITEM, 1f, 1.2f);
+        Msg.actionBar(player, "<green>Posição colada neste gancho");
+    }
+
+    void reset(ItemDisplay display) {
+        deserialize(display, "");
+        save(display);
     }
 
     boolean spins(Entity display) {
@@ -192,8 +269,11 @@ public final class HookManager implements Listener {
         float yaw = (float) (Math.atan2(face.getModX(), face.getModZ()) + Math.toRadians(num(display, kYaw, 0))
                 + spinAngle.getOrDefault(display.getUniqueId(), 0f));
         float tilt = (float) Math.toRadians(num(display, kTilt, 0));
-        Quaternionf rotation = new Quaternionf().rotationY(yaw).rotateX(tilt);
-        Vector3f translation = new Vector3f(face.getModX() * out, up, face.getModZ() * out);
+        float roll = (float) Math.toRadians(num(display, kRoll, 0));
+        float side = num(display, kSide, 0) / 100f;
+        Quaternionf rotation = new Quaternionf().rotationY(yaw).rotateX(tilt).rotateZ(roll);
+        Vector3f translation = new Vector3f(face.getModX() * out + face.getModZ() * side, up,
+                face.getModZ() * out - face.getModX() * side);
         display.setItemDisplayTransform(mode(display).transform);
         display.setInterpolationDelay(0);
         display.setInterpolationDuration(interpolate);
@@ -237,6 +317,11 @@ public final class HookManager implements Listener {
             pdc.set(kPos, PersistentDataType.STRING, key(hook));
         });
         hooks.put(display.getUniqueId(), display);
+        // reaproveita a posição que o jogador já configurou neste gancho
+        String saved = hook.getChunk().getPersistentDataContainer().get(storeKey(hook), PersistentDataType.STRING);
+        if (saved != null) {
+            deserialize(display, saved);
+        }
         apply(display, 0);
         return display;
     }
@@ -262,6 +347,7 @@ public final class HookManager implements Listener {
 
     /** O gancho sumiu: o item cai no chão. */
     private void release(ItemDisplay display) {
+        forget(hookBlock(display));
         ItemStack stack = display.getItemStack();
         Location at = display.getLocation();
         hooks.remove(display.getUniqueId());
@@ -281,6 +367,7 @@ public final class HookManager implements Listener {
         if (display != null) {
             release(display);
         }
+        forget(event.getBlock());
     }
 
     @EventHandler(priority = EventPriority.HIGH)
