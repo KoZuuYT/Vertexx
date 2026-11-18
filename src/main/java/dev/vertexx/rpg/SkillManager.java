@@ -68,6 +68,7 @@ public final class SkillManager implements Listener {
 
     public SkillManager(PluginMain plugin) {
         this.plugin = plugin;
+        new EmptyHandCatcher(plugin, this);
     }
 
     private RpgManager rpg() {
@@ -94,6 +95,12 @@ public final class SkillManager implements Listener {
         areaUntil.remove(id);
         stunArmed.remove(id);
         cooldowns.remove(id);
+        streak.remove(id);
+        lastRight.remove(id);
+        org.bukkit.scheduler.BukkitTask pending = pendingCast.remove(id);
+        if (pending != null) {
+            pending.cancel();
+        }
     }
 
     // ── Ativas ─────────────────────────────────────────────────
@@ -133,33 +140,75 @@ public final class SkillManager implements Listener {
                     && event.getClickedBlock().getType().isInteractable()) {
                 return;                                   // colocar blocos e usar blocos continua normal
             }
-            UUID id = player.getUniqueId();
-            long now = System.currentTimeMillis();
-            long gap = now - lastRight.getOrDefault(id, 0L);
-            lastRight.put(id, now);
-            if (gap < 60 || gap > 400 || unlockedActives(rpg().data(player)).isEmpty()) {
-                return;
+            if (doubleRight(player)) {
+                event.setCancelled(true);
             }
-            lastRight.remove(id);
+            return;
+        }
+        if (action == Action.LEFT_CLICK_AIR && player.isSneaking() && cycle(player)) {
             event.setCancelled(true);
-            cast(player);
-            return;
         }
-        if (action != Action.LEFT_CLICK_AIR || !player.isSneaking()) {
-            return;
+    }
+
+    /**
+     * Segurança contra segurar o botão: o segurar repete o clique a cada ~200 ms, sem parar. Só vale o duplo clique
+     * se forem EXATAMENTE 2 cliques (60–400 ms entre eles) seguidos de uma pausa: a habilidade sai 300 ms depois do
+     * segundo clique, e um terceiro clique nesse intervalo (ou uma sequência longa) cancela e bloqueia o uso até o
+     * jogador soltar o botão. Devolve true se o clique foi consumido como o segundo do duplo.
+     */
+    boolean doubleRight(Player player) {
+        UUID id = player.getUniqueId();
+        long now = System.currentTimeMillis();
+        long gap = now - lastRight.getOrDefault(id, 0L);
+        lastRight.put(id, now);
+        org.bukkit.scheduler.BukkitTask pending = pendingCast.remove(id);
+        if (pending != null) {
+            pending.cancel();                                // 3º clique: é o botão segurado
+            streak.put(id, 3);
+            return false;
         }
+        int count = gap > 400 ? 1 : streak.getOrDefault(id, 0) + 1;
+        if (gap < 60 && gap <= 400) {
+            count = Math.max(count, 3);                       // cliques rápidos demais: não é humano nem duplo
+        }
+        streak.put(id, count);
+        if (count != 2 || unlockedActives(rpg().data(player)).isEmpty()) {
+            return false;
+        }
+        pendingCast.put(id, org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pendingCast.remove(id);
+            if (player.isOnline()) {
+                cast(player);
+            }
+        }, 6L));
+        return true;
+    }
+
+    private final Map<UUID, Integer> streak = new HashMap<>();
+    private final Map<UUID, org.bukkit.scheduler.BukkitTask> pendingCast = new HashMap<>();
+
+    /** Passa para a próxima habilidade ativa desbloqueada. */
+    boolean cycle(Player player) {
         PlayerData d = rpg().data(player);
         List<Skill> actives = unlockedActives(d);
         if (actives.isEmpty()) {
-            return;
+            return false;
         }
-        event.setCancelled(true);
         int next = (actives.indexOf(d.selected) + 1) % actives.size();
         d.selected = actives.get(next);
         rpg().markDirty();
         Fx.select(player);
         Msg.actionBar(player, "<aqua>Habilidade: <white>" + d.selected.display()
                 + " <dark_gray>(botão direito 2x para usar)");
+        return true;
+    }
+
+    boolean hasActives(Player player) {
+        return !unlockedActives(rpg().data(player)).isEmpty();
+    }
+
+    boolean castEnabled() {
+        return rpg().enabled() && plugin.getConfig().getBoolean("rpg.cast-with-shift-click", true);
     }
 
     private final Map<UUID, Long> lastRight = new HashMap<>();
