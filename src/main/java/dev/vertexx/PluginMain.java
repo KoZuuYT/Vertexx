@@ -273,6 +273,7 @@ public final class PluginMain extends JavaPlugin {
         hooks.shutdown();
         rpg.shutdown();
         Bukkit.getScheduler().cancelTasks(this);
+        updater.applyOnShutdown();
     }
 
     private void register(String name, TabExecutor executor) {

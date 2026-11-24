@@ -53,6 +53,7 @@ public final class AutoUpdater implements Listener, TabExecutor {
     }
 
     public void start() {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, this::inspect);
         if (!plugin.getConfig().getBoolean("updater.enabled", true)) {
             plugin.getLogger().info("Atualização automática desativada no config.yml.");
             return;
@@ -118,6 +119,115 @@ public final class AutoUpdater implements Listener, TabExecutor {
             }
         } catch (IOException e) {
             return null;
+        }
+    }
+
+
+    /** Versão que já rodou neste servidor e é MAIOR que a atual (a versão voltou atrás), ou {@code null}. */
+    private volatile String rollbackFrom;
+    /** Jars do Vertexx em plugins/ mais novos que o em execução (o servidor carregou o errado). */
+    private volatile List<String> newerDuplicates = List.of();
+    private volatile List<String> removedDuplicates = List.of();
+
+    public String rollbackFrom() {
+        return rollbackFrom;
+    }
+
+    public List<String> newerDuplicates() {
+        return newerDuplicates;
+    }
+
+    /**
+     * Diagnóstico de inicialização (sem precisar do log): detecta se a versão voltou atrás em relação à última que
+     * rodou aqui e se há outros jars do Vertexx em plugins/ (jar duplicado faz o servidor carregar o antigo).
+     * Duplicados mais antigos ou iguais são removidos ({@code updater.remove-duplicates}).
+     */
+    private void inspect() {
+        try {
+            Path marker = plugin.getDataFolder().toPath().resolve("last-version.txt");
+            String previous = Files.exists(marker) ? Files.readString(marker).strip() : null;
+            String current = currentVersion();
+            if (previous != null && !previous.isEmpty() && compare(previous, current) > 0) {
+                rollbackFrom = previous;
+                plugin.getLogger().warning("A versão voltou atrás: já rodou a " + previous + " e agora está na " + current
+                        + ". Veja jars duplicados em plugins/ ou se a hospedagem restaura o jar antigo.");
+            } else {
+                Files.createDirectories(marker.getParent());
+                Files.writeString(marker, current);
+            }
+            Path self = plugin.jarFile().toPath().toAbsolutePath().normalize();
+            Path dir = self.getParent();
+            boolean remove = plugin.getConfig().getBoolean("updater.remove-duplicates", true);
+            List<String> newer = new java.util.ArrayList<>();
+            List<String> removed = new java.util.ArrayList<>();
+            try (var files = Files.list(dir)) {
+                for (Path file : files.toList()) {
+                    String name = file.getFileName().toString();
+                    if (!name.endsWith(".jar") || file.toAbsolutePath().normalize().equals(self)) {
+                        continue;
+                    }
+                    String version = jarVersion(file);
+                    if (version == null || !"Vertexx".equals(jarName(file))) {
+                        continue;
+                    }
+                    if (compare(version, current) > 0) {
+                        newer.add(name + " (" + version + ")");
+                    } else if (remove) {
+                        Files.deleteIfExists(file);
+                        removed.add(name + " (" + version + ")");
+                        plugin.getLogger().warning("Removido jar duplicado e antigo do Vertexx: " + name);
+                    } else {
+                        newer.add(name + " (" + version + ", antigo)");
+                    }
+                }
+            }
+            if (!newer.isEmpty()) {
+                plugin.getLogger().warning("Há jars do Vertexx mais novos em plugins/: " + newer
+                        + ". Apague o jar antigo para o servidor carregar o novo.");
+            }
+            newerDuplicates = newer;
+            removedDuplicates = removed;
+        } catch (IOException | RuntimeException e) {
+            plugin.getLogger().log(Level.WARNING, "Não consegui inspecionar os jars do plugin: " + e);
+        }
+    }
+
+    private static String jarName(Path jarPath) {
+        try (JarFile jar = new JarFile(jarPath.toFile())) {
+            var entry = jar.getEntry("plugin.yml");
+            if (entry == null) {
+                return null;
+            }
+            try (var reader = new java.io.InputStreamReader(jar.getInputStream(entry), java.nio.charset.StandardCharsets.UTF_8)) {
+                return org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(reader).getString("name");
+            }
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    /**
+     * No desligamento, se há um jar mais novo esperando em plugins/update/, grava-o por cima do jar em execução. Garante
+     * a atualização mesmo quando a hospedagem não aplica a pasta update. Chamar por último no onDisable.
+     */
+    public void applyOnShutdown() {
+        try {
+            Path update = Bukkit.getUpdateFolderFile().toPath().resolve(plugin.jarFile().getName());
+            if (!Files.isRegularFile(update)) {
+                return;
+            }
+            String version = jarVersion(update);
+            if (version == null || compare(version, currentVersion()) <= 0) {
+                return;
+            }
+            Path self = plugin.jarFile().toPath();
+            Path temp = self.resolveSibling(self.getFileName() + ".new");
+            Files.copy(update, temp, StandardCopyOption.REPLACE_EXISTING);
+            Files.move(temp, self, StandardCopyOption.REPLACE_EXISTING);
+            Files.deleteIfExists(update);
+            plugin.getLogger().info("Vertexx " + version + " aplicado ao desligar.");
+        } catch (IOException | RuntimeException e) {
+            plugin.getLogger().log(Level.WARNING, "Não consegui aplicar a atualização ao desligar (o servidor tentará na inicialização): " + e);
         }
     }
 
@@ -295,6 +405,16 @@ public final class AutoUpdater implements Listener, TabExecutor {
     }
 
     private void notifyAdmin(Player player) {
+        if (player.hasPermission("vertexx.admin")) {
+            if (rollbackFrom != null) {
+                Msg.send(player, "<red>A versão do plugin voltou atrás: já rodou a <white>" + rollbackFrom
+                        + "</white>, agora está na <white>" + currentVersion() + "</white>. <gray>Veja <white>/vertexx versao</white>.");
+            }
+            if (!newerDuplicates.isEmpty()) {
+                Msg.send(player, "<red>Há outro jar do Vertexx mais novo em plugins/: <white>" + Msg.esc(String.join(", ", newerDuplicates))
+                        + "</white><red>. Apague o jar antigo.");
+            }
+        }
         if (pendingVersion != null && player.hasPermission("vertexx.admin")) {
             Msg.send(player, "<yellow>Vertexx <white>" + pendingVersion + "</white> já foi baixado. "
                     + "<gray>Reinicie o servidor para aplicar.");
@@ -334,6 +454,14 @@ public final class AutoUpdater implements Listener, TabExecutor {
         }
         Msg.send(sender, "<gray>Versão em execução: <white>" + currentVersion() + "</white>"
                 + (pendingVersion == null ? "" : " <dark_gray>| <yellow>aguardando reinício: <white>" + pendingVersion));
+        Msg.send(sender, "<gray>Arquivo do plugin: <white>" + Msg.esc(plugin.jarFile().getName()) + "</white>"
+                + (rollbackFrom == null ? "" : " <dark_gray>| <red>voltou de " + rollbackFrom + " para " + currentVersion()));
+        if (!newerDuplicates.isEmpty()) {
+            Msg.send(sender, "<red>Jars do Vertexx mais novos em plugins/: <white>" + Msg.esc(String.join(", ", newerDuplicates)));
+        }
+        if (!removedDuplicates.isEmpty()) {
+            Msg.send(sender, "<gray>Duplicados antigos removidos: <white>" + Msg.esc(String.join(", ", removedDuplicates)));
+        }
         Msg.send(sender, "<gray>Use <white>/vertexx atualizar</white> para checar o GitHub agora.");
         return true;
     }

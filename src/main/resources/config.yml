@@ -151,6 +151,8 @@ updater:
   # true = desliga o servidor quando estiver vazio e houver atualização baixada.
   # Só ative se o seu painel/script reinicia o servidor sozinho.
   restart-when-empty: false
+  # Remove de plugins/ jars antigos do Vertexx que ficaram duplicados (o servidor carregaria o errado).
+  remove-duplicates: true
 
 bosses:
   # Bosses com sala propria: Iceologer (Castelo de Gelo, em terras geladas) e Wildfire
