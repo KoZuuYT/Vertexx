@@ -53,7 +53,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 
 /**
- * Uso das habilidades: ativas (botão direito 2x usa, Shift+botão esquerdo troca), mineração em área, veio, derrubada de árvores,
+ * Uso das habilidades pelo Foco de Habilidades ({@link SkillFocus}): ativas, modos (veio e árvores), mineração em área,
  * golpe atordoante, colheita, reposição, ímã e frenesi. Nenhuma habilidade afeta outros jogadores.
  */
 public final class SkillManager implements Listener {
@@ -68,7 +68,32 @@ public final class SkillManager implements Listener {
 
     public SkillManager(PluginMain plugin) {
         this.plugin = plugin;
-        new EmptyHandCatcher(plugin, this);
+        this.focus = new SkillFocus(plugin, this);
+        Bukkit.getPluginManager().registerEvents(focus, plugin);
+    }
+
+    private final SkillFocus focus;
+    /** Modos ligados (Veeiro e Machadeiro). Só valem na sessão: ao entrar, tudo começa desligado. */
+    private final Map<UUID, Set<Skill>> modes = new HashMap<>();
+
+    public SkillFocus focus() {
+        return focus;
+    }
+
+    /** O modo (Veeiro/Machadeiro) está ligado para o jogador. */
+    public boolean modeOn(Player player, Skill skill) {
+        Set<Skill> on = modes.get(player.getUniqueId());
+        return on != null && on.contains(skill);
+    }
+
+    /** Liga ou desliga o modo; devolve o novo estado. */
+    private boolean flip(Player player, Skill skill) {
+        Set<Skill> on = modes.computeIfAbsent(player.getUniqueId(), id -> java.util.EnumSet.noneOf(Skill.class));
+        if (!on.remove(skill)) {
+            on.add(skill);
+            return true;
+        }
+        return false;
     }
 
     private RpgManager rpg() {
@@ -95,12 +120,7 @@ public final class SkillManager implements Listener {
         areaUntil.remove(id);
         stunArmed.remove(id);
         cooldowns.remove(id);
-        streak.remove(id);
-        lastRight.remove(id);
-        org.bukkit.scheduler.BukkitTask pending = pendingCast.remove(id);
-        if (pending != null) {
-            pending.cancel();
-        }
+        modes.remove(id);
     }
 
     // ── Ativas ─────────────────────────────────────────────────
@@ -114,80 +134,18 @@ public final class SkillManager implements Listener {
         };
     }
 
-    private List<Skill> unlockedActives(PlayerData d) {
+    /** Habilidades que o Foco pode selecionar: ativas e modos já desbloqueados. */
+    List<Skill> unlockedActives(PlayerData d) {
         List<Skill> list = new ArrayList<>();
         for (Skill skill : Skill.values()) {
-            if (skill.active() && d.rank(skill) > 0) {
+            if (skill.usable() && d.rank(skill) > 0) {
                 list.add(skill);
             }
         }
         return list;
     }
 
-    /** Botão direito 2 vezes rápido usa a habilidade (no ar ou num bloco); Shift + botão esquerdo (no ar) troca. */
-    @EventHandler(priority = EventPriority.HIGH)
-    public void onClick(PlayerInteractEvent event) {
-        Player player = event.getPlayer();
-        if (event.getHand() != EquipmentSlot.HAND
-                || !rpg().enabled() || !plugin.getConfig().getBoolean("rpg.cast-with-shift-click", true)) {
-            return;
-        }
-        Action action = event.getAction();
-        boolean right = action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
-        if (right) {
-            if (event.getItem() != null && event.getItem().getType().isBlock()
-                    || action == Action.RIGHT_CLICK_BLOCK && event.getClickedBlock() != null
-                    && event.getClickedBlock().getType().isInteractable()) {
-                return;                                   // colocar blocos e usar blocos continua normal
-            }
-            if (doubleRight(player)) {
-                event.setCancelled(true);
-            }
-            return;
-        }
-        if (action == Action.LEFT_CLICK_AIR && player.isSneaking() && cycle(player)) {
-            event.setCancelled(true);
-        }
-    }
-
-    /**
-     * Segurança contra segurar o botão: o segurar repete o clique a cada ~200 ms, sem parar. Só vale o duplo clique
-     * se forem EXATAMENTE 2 cliques (60–400 ms entre eles) seguidos de uma pausa: a habilidade sai 300 ms depois do
-     * segundo clique, e um terceiro clique nesse intervalo (ou uma sequência longa) cancela e bloqueia o uso até o
-     * jogador soltar o botão. Devolve true se o clique foi consumido como o segundo do duplo.
-     */
-    boolean doubleRight(Player player) {
-        UUID id = player.getUniqueId();
-        long now = System.currentTimeMillis();
-        long gap = now - lastRight.getOrDefault(id, 0L);
-        lastRight.put(id, now);
-        org.bukkit.scheduler.BukkitTask pending = pendingCast.remove(id);
-        if (pending != null) {
-            pending.cancel();                                // 3º clique: é o botão segurado
-            streak.put(id, 3);
-            return false;
-        }
-        int count = gap > 400 ? 1 : streak.getOrDefault(id, 0) + 1;
-        if (gap < 60 && gap <= 400) {
-            count = Math.max(count, 3);                       // cliques rápidos demais: não é humano nem duplo
-        }
-        streak.put(id, count);
-        if (count != 2 || unlockedActives(rpg().data(player)).isEmpty()) {
-            return false;
-        }
-        pendingCast.put(id, org.bukkit.Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            pendingCast.remove(id);
-            if (player.isOnline()) {
-                cast(player);
-            }
-        }, 6L));
-        return true;
-    }
-
-    private final Map<UUID, Integer> streak = new HashMap<>();
-    private final Map<UUID, org.bukkit.scheduler.BukkitTask> pendingCast = new HashMap<>();
-
-    /** Passa para a próxima habilidade ativa desbloqueada. */
+    /** Passa para a próxima habilidade desbloqueada do Foco. */
     boolean cycle(Player player) {
         PlayerData d = rpg().data(player);
         List<Skill> actives = unlockedActives(d);
@@ -198,8 +156,7 @@ public final class SkillManager implements Listener {
         d.selected = actives.get(next);
         rpg().markDirty();
         Fx.select(player);
-        Msg.actionBar(player, "<aqua>Habilidade: <white>" + d.selected.display()
-                + " <dark_gray>(botão direito 2x para usar)");
+        Msg.actionBar(player, status(player, d.selected));
         return true;
     }
 
@@ -207,11 +164,18 @@ public final class SkillManager implements Listener {
         return !unlockedActives(rpg().data(player)).isEmpty();
     }
 
-    boolean castEnabled() {
-        return rpg().enabled() && plugin.getConfig().getBoolean("rpg.cast-with-shift-click", true);
+    /** Linha da barra de ação: habilidade selecionada e seu estado (pronta, recarga, ligada). */
+    String status(Player player, Skill skill) {
+        String head = "<aqua>◆ " + skill.display() + " <dark_gray>• ";
+        if (skill.toggle()) {
+            return head + (modeOn(player, skill) ? "<green>LIGADO" : "<red>DESLIGADO") + " <dark_gray>(botão direito alterna)";
+        }
+        long left = remaining(player, skill);
+        if (skill == Skill.AREA_MINER && areaActive(player)) {
+            return head + "<green>ATIVO";
+        }
+        return head + (left > 0 ? "<red>recarga " + (left / 1000 + 1) + "s" : "<green>pronta <dark_gray>(botão direito usa)");
     }
-
-    private final Map<UUID, Long> lastRight = new HashMap<>();
 
     private long remaining(Player player, Skill skill) {
         EnumMap<Skill, Long> map = cooldowns.get(player.getUniqueId());
@@ -229,6 +193,13 @@ public final class SkillManager implements Listener {
         Skill skill = d.selected;
         if (skill == null || d.rank(skill) < 1) {
             Fx.deny(player);
+            return;
+        }
+        if (skill.toggle()) {
+            boolean on = flip(player, skill);
+            Fx.worldSound(player.getLocation(), on ? Sound.BLOCK_BEACON_ACTIVATE : Sound.BLOCK_BEACON_DEACTIVATE, 0.6f, on ? 1.7f : 1.2f);
+            Msg.actionBar(player, "<aqua>" + skill.display() + " <white>" + (on ? "<green>ligado" : "<red>desligado")
+                    + " <dark_gray>• " + (on ? "agache para quebrar um bloco só" : "quebra normal"));
             return;
         }
         long left = remaining(player, skill);
@@ -292,6 +263,9 @@ public final class SkillManager implements Listener {
             return;
         }
         UUID id = player.getUniqueId();
+        if (d.selected != null && focus.holding(player) && !areaActive(player)) {
+            Msg.actionBar(player, status(player, d.selected));
+        }
         Long area = areaUntil.get(id);
         if (area != null) {
             long left = area - System.currentTimeMillis();
@@ -427,9 +401,9 @@ public final class SkillManager implements Listener {
         List<Block> targets = null;
         if (areaActive(player) && (pick || shovel)) {
             targets = areaTargets(player, block, tool, d.rank(Skill.AREA_MINER) >= 2 ? 3 : 2);
-        } else if (player.isSneaking()) {
-            int veinRank = d.rank(Skill.VEIN_MINER);
-            int treeRank = d.rank(Skill.CAPITATOR);
+        } else if (!player.isSneaking()) {      // agachado quebra um bloco só (útil nas construções)
+            int veinRank = modeOn(player, Skill.VEIN_MINER) ? d.rank(Skill.VEIN_MINER) : 0;
+            int treeRank = modeOn(player, Skill.CAPITATOR) ? d.rank(Skill.CAPITATOR) : 0;
             if (pick && veinRank > 0 && Ores.isOre(type)) {
                 targets = connected(block, veinRank * 8 + (veinRank == 3 ? 8 : 0), b -> Ores.isOre(b.getType())
                         && Ores.group(b.getType()).equals(Ores.group(type)));

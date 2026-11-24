@@ -13,11 +13,11 @@ public enum Skill {
             "Ativa a mineração em área com picareta ou pá.",
             "Nv.1: área 2x2 por 20s (recarga 90s)", "Nv.2: área 3x3 por 25s (recarga 75s)"),
     VEIN_MINER("Veeiro", Material.RAW_IRON, 12, 3, Stat.MINING, 10, null, false,
-            "Agachado, quebra o veio de minério inteiro.", "Até 8 / 16 / 32 minérios por veio"),
+            "Modo do Foco: ligado, quebra o veio de minério inteiro.", "Até 8 / 16 / 32 minérios por veio", "Agachado quebra um bloco só."),
     LUCKY("Garimpeiro", Material.EMERALD, 13, 3, Stat.MINING, 25, VEIN_MINER, false,
             "Chance de dobrar os drops de minérios.", "+8% de chance por nível"),
     CAPITATOR("Machadeiro", Material.DIAMOND_AXE, 15, 2, Stat.WOODCUTTING, 10, null, false,
-            "Agachado com machado, derruba a árvore toda.", "Até 40 / 120 troncos"),
+            "Modo do Foco: ligado, o machado derruba a árvore toda.", "Até 40 / 120 troncos", "Agachado quebra um bloco só."),
 
     HARVEST("Colheita Farta", Material.DIAMOND_HOE, 19, 3, Stat.FARMING, 10, null, false,
             "Chance de dobrar a colheita madura.", "+10% de chance por nível"),
@@ -99,6 +99,16 @@ public enum Skill {
 
     public boolean active() {
         return active;
+    }
+
+    /** Modo que se liga e desliga pelo Foco de Habilidades (em vez de agachar para quebrar). */
+    public boolean toggle() {
+        return this == VEIN_MINER || this == CAPITATOR;
+    }
+
+    /** Aparece no Foco de Habilidades: ativas e modos. */
+    public boolean usable() {
+        return active || toggle();
     }
 
     public String description() {

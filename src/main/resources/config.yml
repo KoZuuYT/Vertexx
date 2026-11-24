@@ -92,8 +92,6 @@ rpg:
   xp-toast: true
   # Niveis de XP do Minecraft cobrados para redefinir a arvore de habilidades.
   respec-cost-levels: 5
-  # Botao direito 2x rapido usa a habilidade ativa; Shift + botao esquerdo (no ar) troca.
-  cast-with-shift-click: true
 
 upgrades:
   # Agache e clique com a mao vazia em uma fornalha ou bau para melhora-lo.

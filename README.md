@@ -89,8 +89,11 @@ também soma no **nível geral**, que rende **pontos de habilidade** (2 a cada 5
 A árvore tem 16 habilidades: Mãos Rápidas, **Pico Largo** (mineração 2x2 e 3x3 temporária), Veeiro (vein
 miner), Garimpeiro, Machadeiro (derruba a árvore), Colheita Farta, Replantio, **Golpe Atordoante**, Frenesi,
 Ímã, **Investida** (dash), Pés Leves, Pele Grossa, Vitalidade, Reposição e Alcance do Construtor.
-Controles: **F** usa a habilidade ativa selecionada, **Shift + F** troca, e agachado ativa Veeiro e
-Machadeiro. Nenhuma habilidade afeta jogadores. Subir de nível toca uma cinemática (banner do resource
+Controles: o **Foco de Habilidades** (item entregue ao desbloquear uma ativa) só age na mão, então nunca
+atrapalha construção, arco, comida ou poção: **botão direito** usa a habilidade selecionada, **botão esquerdo**
+no ar troca e **Shift + direito** abre o menu. Veeiro e Machadeiro são *modos* que se ligam e desligam pelo Foco
+(agachado quebra um bloco só). O comando **/habilidade** [usar|trocar|menu|item] faz o mesmo sem o item e é o caminho
+para jogadores **Bedrock**. Nenhuma habilidade afeta jogadores. Subir de nível toca uma cinemática (banner do resource
 pack, clarão e sons; sem o pacote, título, partículas e sons vanilla).
 
 ### Bosses

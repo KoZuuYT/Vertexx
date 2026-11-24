@@ -302,8 +302,11 @@ public final class RpgManager implements Listener {
         }
         d.points--;
         d.skills.put(skill, rank + 1);
-        if (skill.active() && d.selected == null) {
+        if (skill.usable() && d.selected == null) {
             d.selected = skill;
+        }
+        if (skill.usable()) {
+            plugin.skills().focus().ensure(player);
         }
         applyPassives(player);
         dirty = true;
@@ -333,7 +336,7 @@ public final class RpgManager implements Listener {
 
     public void select(Player player, Skill skill) {
         PlayerData d = data(player);
-        if (skill.active() && d.rank(skill) > 0) {
+        if (skill.usable() && d.rank(skill) > 0) {
             d.selected = skill;
             dirty = true;
         }

@@ -166,6 +166,7 @@ public final class PluginMain extends JavaPlugin {
         });
         register("pacote", resourcePack);
         register("vstats", new StatsCommand(this));
+        register("habilidade", new dev.vertexx.rpg.SkillCommand(this));
         register("mochila", backpacks);
         register("vxp", new dev.vertexx.rpg.XpCommand(this));
         register("vbackup", new dev.vertexx.backup.BackupCommand(this));

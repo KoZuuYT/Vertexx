@@ -202,8 +202,8 @@ public final class StatsGUI extends Menu {
                 c.frame(7 + 18 * 8, 53, canBuy(d, sel) && d.points > 0 && d.rank(sel) < sel.maxRank() ? 2 : 3);
                 TextColor sc = d.rank(sel) > 0 ? GREEN : canBuy(d, sel) ? GOLD : GREY;
                 c.text(8, 82, sel.display(), sc);
-                c.text(8 + Canvas.width(Canvas.ascii(sel.display())) + 6, 82, sel.active() ? "ATIVA" : "PASSIVA",
-                        sel.active() ? PURPLE : GREY);
+                c.text(8 + Canvas.width(Canvas.ascii(sel.display())) + 6, 82, sel.active() ? "ATIVA" : sel.toggle() ? "MODO" : "PASSIVA",
+                        sel.usable() ? PURPLE : GREY);
                 c.text(8, 91, Canvas.fit(Canvas.ascii(sel.description()), 168), WHITE);
                 boolean statOk = d.level(sel.stat()) >= sel.requiredLevel();
                 boolean parentOk = sel.parent() == null || d.rank(sel.parent()) > 0;
@@ -325,7 +325,7 @@ public final class StatsGUI extends Menu {
             }
             lore.add("");
             lore.add("<gray>Nível: <white>" + rank + "<dark_gray>/<white>" + skill.maxRank()
-                    + (skill.active() ? " <dark_gray>• <aqua>ativa" : " <dark_gray>• <green>passiva"));
+                    + (skill.active() ? " <dark_gray>• <aqua>ativa" : skill.toggle() ? " <dark_gray>• <aqua>modo" : " <dark_gray>• <green>passiva"));
             lore.add((statOk ? "<green>✔ " : "<red>✘ ") + "<gray>" + skill.stat().display() + " nível " + skill.requiredLevel());
             if (skill.parent() != null) {
                 lore.add((parentOk ? "<green>✔ " : "<red>✘ ") + "<gray>Requer " + skill.parent().display());
@@ -333,7 +333,7 @@ public final class StatsGUI extends Menu {
             lore.add("");
             lore.add("<yellow>▶ Clique: ver detalhes");
             lore.add("<yellow>▶ Shift + clique: gastar 1 ponto");
-            if (skill.active() && rank > 0) {
+            if (skill.usable() && rank > 0) {
                 lore.add(d.selected == skill ? "<aqua>★ Habilidade selecionada" : "<yellow>▶ Clique direito: selecionar");
             }
             Material material = unlockable || rank > 0 ? skill.icon() : Material.GRAY_DYE;
@@ -392,7 +392,7 @@ public final class StatsGUI extends Menu {
     private void treeClick(Skill skill, ClickType click) {
         PlayerData d = data();
         if (click.isRightClick()) {
-            if (skill.active() && d.rank(skill) > 0) {
+            if (skill.usable() && d.rank(skill) > 0) {
                 plugin.rpg().select(player, skill);
                 Fx.select(player);
             }
@@ -433,9 +433,10 @@ public final class StatsGUI extends Menu {
         set(12, Items.of(Material.DIAMOND_PICKAXE, "<aqua>Fontes de XP",
                 statSources()), null);
         set(13, Items.of(Material.COMPARATOR, "<white>Controles",
-                List.of("<yellow>Botão direito 2x rápido <gray>usa a habilidade ativa.", "<yellow>Shift + botão esquerdo <gray>troca (no ar).",
-                        "<yellow>Agachado + quebrar <gray>usa Veeiro e Machadeiro.", "",
-                        "<gray>Habilidades ativas: <white>Investida, Pico Largo,", "<white>Golpe Atordoante<gray>.",
+                List.of("<yellow>Foco de Habilidades <gray>(item): segure e", "<yellow>botão direito <gray>usa; <yellow>botão esquerdo <gray>troca;",
+                        "<yellow>Shift + direito <gray>abre o menu. Ou use <white>/habilidade</white>.", "",
+                        "<gray>Ativas: <white>Investida, Pico Largo, Golpe Atordoante<gray>.",
+                        "<gray>Modos (liga/desliga): <white>Veeiro, Machadeiro<gray>.",
                         "<dark_gray>Nenhuma habilidade afeta jogadores.")), null);
         set(14, Items.of(Material.ZOMBIE_HEAD, "<red>Mobs nivelados",
                 List.of("<gray>Mobs hostis ganham nível conforme:", "<dark_gray>• <white>distância do spawn <gray>(300 blocos por nível)",

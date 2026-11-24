@@ -22,6 +22,10 @@ commands:
     description: Abre o menu de status, habilidades e informações.
     usage: /vstats [status|habilidades|info]
     aliases: [status, skills]
+  habilidade:
+    description: Usa, troca ou escolhe suas habilidades (o mesmo que o Foco de Habilidades).
+    usage: /habilidade [usar|trocar|menu|item]
+    aliases: [hab, vhab]
   mochila:
     description: Abre a mochila equipada no peito (ou a primeira que estiver no inventário).
     usage: /mochila

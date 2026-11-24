@@ -102,7 +102,7 @@ final class IntroMenu extends Menu {
                 "<gray>Mineração, Escavação, Lenhador, Agricultura,|<gray>Luta, Arquearia, Resistência, Acrobacia,|<gray>Pesca e Exploração. Cada ação rende XP|<gray>no status correspondente.",
                 "", "<gray>Veja com <white>/vstats</white> ou no Guia.");
         card(22, Material.ENCHANTED_BOOK, "<gold><bold>Árvore de habilidades",
-                "<gray>Subir de nível dá pontos para gastar em|<gray>habilidades: <white>Pico Largo, Veeiro, Investida,|<white>Golpe Atordoante, Vitalidade, Replantio</white>...|<gray>Cada uma melhora seu estilo de jogo.");
+                "<gray>Subir de nível dá pontos para gastar em|<gray>habilidades: <white>Pico Largo, Veeiro, Investida,|<white>Golpe Atordoante, Vitalidade, Replantio</white>...|<gray>Use pelo <white>Foco de Habilidades</white> (item) ou|<white>/habilidade</white>, também no Bedrock.");
         card(24, Material.ZOMBIE_HEAD, "<red><bold>Mobs nivelados",
                 "<gray>Mobs hostis ficam mais fortes quanto mais|<gray>longe do spawn, no Nether, no End e em|<gray>estruturas. Existem <light_purple>elites</light_purple> com traits|<gray>e recompensas melhores.");
         card(38, Material.BLAST_FURNACE, "<gold><bold>Upgrades",
